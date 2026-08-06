@@ -27,20 +27,20 @@ An AI-powered real-time student uniform monitoring system that combines person d
 - Docker
 
 ## Project Structure
-Campus-Integrity-Monitor/
-│
-├── ai/          # AI pipeline
-├── api/         # FastAPI backend
-├── desktop/     # Desktop application
-├── models/      # Trained model weights
-├── Dockerfile
-└── requirements.txt
+Campus-Integrity-Monitor/  
+│  
+├── ai/          # AI pipeline  
+├── api/         # FastAPI backend  
+├── desktop/     # Desktop application  
+├── models/      # Trained model weights  
+├── Dockerfile  
+└── requirements.txt  
 
 ## Installation
-git clone https://github.com/LeNPThuyVy/Campus-Integrity-Monitor
-cd Campus-Integrity-Monitor
-docker build -t campus_integrity-monitor .
-docker run -p 8000:8000 campus_integrity-monitor
+git clone https://github.com/LeNPThuyVy/Campus-Integrity-Monitor  
+cd Campus-Integrity-Monitor  
+docker build -t campus_integrity-monitor .  
+docker run -p 8000:8000 campus_integrity-monitor  
 
 ## API
 **HTTP Method:** `POST`  
