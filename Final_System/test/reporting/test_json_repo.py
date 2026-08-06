@@ -2,9 +2,9 @@
 # from pathlib import Path
 # from ai.reporting.models import Event
 
-from json_repository import JsonRepository
+from ai.reporting.json_repository import JsonRepository
 from pathlib import Path
-from models import Event
+from ai.reporting.models import Event
 
 repo = JsonRepository(file_path= Path("storage/events.json"))
 
