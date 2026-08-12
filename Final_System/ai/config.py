@@ -12,6 +12,8 @@ DETECT_PERSON_PATH=ROOT_DIR /"models"/"detector.pt"
 CLASSIFY_UNIFORM_PATH = ROOT_DIR /"models"/"classifier.pth"
 DETECTOR_MODEL_NAME="YOLO26"
 CLASSIFIER_MODEL_NAME="MobileNetV3"
+EVENT_JSON_PATH=ROOT_DIR / "storage"/ "events.json"
+PROMPT_YAML_PATH= CURRENT_FILE.parent/"reporting"/"prompt"/"report_prompt.yaml"
 
 
 #==========================
@@ -61,3 +63,10 @@ NON_UNIFORM_BG_COLOR="Red"
 UNIFORM_COLOR="Green"
 WAITING_COLOR="Yellow"
 FONT_COLOR="Black"
+
+
+#==========================
+#API
+#==========================
+GEMINI_MODEL="gemini-3.1-flash-lite"
+GEMINI_KEY_ENV="GEMINI_API_KEY"

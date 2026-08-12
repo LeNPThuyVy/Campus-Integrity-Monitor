@@ -1,0 +1,225 @@
+========================================================================
+TRƯỜNG HỢP KHÔNG CÓ DỮ liệu
+BÁO CÁO PHÂN TÍCH DỮ LIỆU HỆ THỐNG NHẬN DIỆN ĐỒNG PHỤC SINH VIÊN
+(Trường Đại học Công Thương TP.HCM)
+
+Ngày báo cáo: 11/08/2026
+
+Lưu ý phương pháp luận ngắn gọn:
+
+Nhãn sự kiện: "Uniform" = tuân thủ; "Non-Uniform" = vi phạm.
+Thời gian bắt đầu giám sát: giá trị first_seen nhỏ nhất trong tập Event.
+Thời gian kết thúc giám sát: giá trị last_seen lớn nhất trong tập Event.
+Tỷ lệ vi phạm = (số Event "Non-Uniform" / tổng số Event) × 100%.
+Khi không có Event, không thực hiện phép tính tỷ lệ và ghi rõ: "Dữ liệu không đủ kết luận".
+Mỗi Event tương ứng một lượt theo dõi được hệ thống chốt; không coi là số sinh viên duy nhất.
+TÓM TẮT
+Thời gian giám sát: Không thể xác định (không có Event).
+Tổng số sự kiện được ghi nhận: 0 Event.
+Số lượng vi phạm ("Non-Uniform"): 0 Event.
+Tỷ lệ vi phạm: Không thực hiện phép tính; ghi rõ: "Dữ liệu không đủ kết luận".
+VI PHẠM
+Thống kê chi tiết các sự kiện vi phạm thu thập được:
+Không có bản ghi Event nào; do đó không có thống kê chi tiết về sự kiện vi phạm (không có thời gian, vị trí, số lần lặp, hay đặc điểm khác để trình bày).
+Phân tích chuỗi/mô hình vi phạm theo khung thời gian:
+Không có dữ liệu theo thời gian; do đó không thể phát hiện xu hướng, mô hình theo giờ/ngày/tuần hay chuỗi lặp.
+Tuân thủ yêu cầu phương pháp: chỉ phân tích xu hướng khi dữ liệu cho phép; hiện không đủ dữ liệu để thực hiện phân tích thời gian.
+KIẾN NGHỊ (dựa trên thực trạng: KHÔNG CÓ DỮ LIỆU)
+Các kiến nghị dưới đây nhằm khắc phục tình trạng thiếu dữ liệu và đảm bảo hệ thống giám sát cho kết quả khả dụng, chính xác và có thể sử dụng để ra quyết định. Mọi đề xuất đều liên hệ trực tiếp với vấn đề quan sát được (không có event):
+A. Kiểm tra vận hành hệ thống và quy trình ghi nhận
+
+Kiểm tra kỹ thuật cảm biến/camera và phần mềm nhận diện:
+Xác minh nguồn cấp điện, kết nối mạng và trạng thái hoạt động của camera/gateway tại các vị trí giám sát.
+Kiểm tra logs hệ thống để xác định sự cố ghi nhận (lỗi kết nối, lỗi lưu trữ, lỗi xử lý hình ảnh).
+Kiểm tra cấu hình phần mềm:
+Xác nhận các ngưỡng, bộ lọc (ví dụ múi giờ, vùng quan sát, chế độ ghi) không vô tình chặn ghi Event.
+Xác thực bản quyền/ứng dụng cập nhật tương thích với phiên bản phần cứng hiện tại.
+B. Kiểm thử thu thập dữ liệu (Pilot/Validation)
+
+Thực hiện chiến dịch kiểm thử ngắn (ví dụ 1–3 ngày) với quy trình đã chuẩn hóa:
+Đặt lịch kiểm thử có nhân viên giám sát xác nhận trực tiếp (ground truth) để so sánh với Event do hệ thống tạo.
+Ghi lại sample video/giao thức để kiểm tra chất lượng nhận diện và lọc lỗi.
+Thiết lập chỉ số sức khỏe hệ thống (health metrics) hiển thị theo thời gian thực: số frames xử lý/giờ, số Event tạo/giờ, tỉ lệ lỗi xử lý.
+C. Quy trình vận hành dữ liệu và kiểm soát chất lượng
+
+Thực hiện cơ chế cảnh báo khi không có Event trong khoảng thời gian bất thường:
+Nếu tần suất Event thực tế kỳ vọng > 0 nhưng hệ thống báo 0 liên tiếp N giờ -> cảnh báo kỹ thuật.
+Lưu trữ logs và metadata tối thiểu cho mỗi Event (thời gian, vị trí camera, confidence score, ảnh chụp kèm theo) để thuận tiện kiểm tra sau này.
+Thiết lập lịch rà soát định kỳ (tuần/tháng) nhằm phát hiện sớm mất mạch dữ liệu.
+D. Tổ chức đánh giá thực tiễn và đào tạo
+
+Phối hợp giữa phòng CNTT, phòng Quản lý sinh viên và bộ phận giám sát để thực hiện rà soát nguyên nhân (kỹ thuật hay quy trình).
+Đào tạo cán bộ vận hành về quy trình khởi động/tắt/mantain camera và cách kiểm tra logs cơ bản.
+E. Khi có dữ liệu đủ:
+
+Xác định ngưỡng báo cáo (ví dụ báo cáo tổng hợp hàng tuần nếu số Event ≥ M trong tuần) và phương pháp phân tích (tỷ lệ vi phạm, phân bố theo khung giờ, vị trí).
+Tránh rút ra kết luận nhân thân từ Event đơn lẻ; sử dụng Event để cảnh báo và kết hợp xác minh thủ công trước bất kỳ quyết định kỷ luật nào.
+Kết luận ngắn:
+Hiện không có Event được cung cấp; do đó không thể xác định thời gian giám sát, không thể tính tỷ lệ vi phạm và không có cơ sở để phân tích xu hướng vi phạm. Cần khẩn trương kiểm tra vận hành hệ thống và thực hiện kiểm thử thu thập dữ liệu theo các đề xuất nêu trên trước khi tiến hành phân tích tiếp theo.
+
+
+========================================================================
+TOÀN BỘ LÀ Uniform
+
+BÁO CÁO GIÁM SÁT VIỆC THỰC HIỆN ĐỒNG PHỤC SINH VIÊN
+(nguồn: hệ thống nhận diện đồng phục tự động)
+
+TÓM TẮT
+Thời gian giám sát: từ 2026-08-11 21:13:00.936944 đến 2026-08-11 21:13:00.936944.
+Tổng số sự kiện được ghi nhận (số lượt phát hiện): 5 sự kiện.
+Số sự kiện ghi nhận vi phạm (label = "Non-Uniform"): 0 sự kiện.
+Tỷ lệ vi phạm = 0 / 5 × 100% = 0.0%.
+Ghi chú: Mặc dù có 5 sự kiện được hệ thống chốt lại, số lượng sự kiện không đồng nghĩa với số lượng sinh viên duy nhất.
+
+VI PHẠM
+Thống kê chi tiết các sự kiện vi phạm thu thập được:
+
+Không có sự kiện nào có phân loại "Non-Uniform" trong tập dữ liệu cung cấp. (Danh sách sự kiện hiện tại đều có phân loại "Uniform": mã theo dõi 1, 2, 3, 4, 5; tất cả bắt đầu và kết thúc tại 2026-08-11 21:13:00.936944.)
+Phân tích chuỗi/mô hình vi phạm theo khung thời gian:
+
+Dữ liệu hiện tại ghi nhận tất cả 5 sự kiện cùng một mốc thời gian (2026-08-11 21:13:00.936944). Do đó:
+Không có biến thiên theo thời gian để phân tích (không thể xác định xu hướng tăng/giảm/đột biến theo giờ, ngày hay khoảng thời gian khác).
+Không thể suy ra mô hình lặp lại hay phân bố thời gian của vi phạm vì không có sự kiện vi phạm và toàn bộ sự kiện tập trung tại cùng một mốc thời gian.
+Kết luận: Dữ liệu không cho phép phân tích xu hướng hay mô hình vi phạm theo thời gian.
+KIẾN NGHỊ (dựa trên thực trạng quan sát được)
+Các kiến nghị dưới đây được đưa ra phù hợp với thực tế dữ liệu (tất cả sự kiện đồng phục, quan sát cùng một mốc thời gian) và nhằm cải thiện khả năng giám sát, phát hiện và tính tin cậy của hệ thống:
+A. Kiểm chứng chất lượng dữ liệu và hệ thống
+
+Kiểm tra lại cấu hình ghi sự kiện của hệ thống để xác nhận việc phân bố thời gian ghi nhận: nếu nhiều sự kiện có cùng timestamp là do nhóm xử lý/ghi batch, cần sửa để ghi chính xác thời gian thực theo từng phát hiện.
+Thực hiện đánh giá chất lượng (audit) mẫu: chọn ngẫu nhiên một số khung hình gốc tương ứng với các sự kiện để xác thực nhãn (Uniform/Non-Uniform) nhằm đảm bảo độ chính xác phân loại.
+B. Mở rộng phạm vi và khoảng thời gian giám sát
+
+Kéo dài thời gian quan sát (ghi nhận nhiều khung giờ/ ngày khác nhau) để có dữ liệu phân bố theo thời gian, từ đó mới có thể phân tích xu hướng vi phạm.
+Phân bố giám sát vào các khung giờ có khả năng xuất hiện vi phạm cao (ví dụ: giờ tan học, đầu buổi học, sự kiện trường) chỉ khi có bằng chứng lịch sử — hiện tại dữ liệu chưa cho phép xác định khung giờ đó.
+C. Quy trình và nghiệp vụ vận hành
+
+Thiết lập quy trình xác minh khi hệ thống phát hiện "Non-Uniform": lưu ảnh chụp, lưu metadata (vị trí camera, thời gian chính xác) để phục vụ kiểm tra sau này.
+Định kỳ rà soát tỉ lệ false positive/false negative của mô hình nhận diện (sau khi có đủ dữ liệu khác nhau về thời gian và điều kiện ánh sáng).
+D. Báo cáo và chỉ tiêu giám sát
+
+Hiện tại không nên đưa ra biện pháp xử lý hay chế tài dựa trên dữ liệu này vì không có sự kiện vi phạm; khuyến nghị chỉ dùng kết quả để theo dõi.
+Khi thu thập đủ dữ liệu phân bổ theo thời gian, thiết lập ngưỡng cảnh báo (ví dụ: tỷ lệ vi phạm trung bình theo tuần/tháng vượt mức X%) để kích hoạt kiểm tra thủ công hoặc can thiệp đào tạo.
+Kết luận ngắn gọn
+Tập dữ liệu cung cấp gồm 5 sự kiện, tất cả được phân loại "Uniform"; tỷ lệ vi phạm là 0.0%.
+Do tất cả sự kiện cùng mốc thời gian và không có sự kiện vi phạm, không thể rút ra xu hướng thời gian hay đề xuất chế tài dựa trên dữ liệu hiện có.
+Cần cải thiện việc ghi nhận thời gian, mở rộng phạm vi và tần suất quan sát, và thực hiện kiểm chứng chất lượng để có đủ dữ liệu nền phục vụ phân tích xu hướng và ra quyết định quản lý.
+
+
+=========================================================================
+TOÀN BỘ LÀ NON-UNIFORM 
+BÁO CÁO PHÂN TÍCH DỮ LIỆU GIÁM SÁT ĐỒNG PHỤC SINH VIÊN
+(Trường Đại học Công Thương TPHCM)
+
+Ngày lập báo cáo: 11 tháng 8 năm 2026
+
+TÓM TẮT
+Thời gian giám sát: từ 2026-08-11 21:13:52.594027 đến 2026-08-11 21:13:52.594027.
+Tổng số sự kiện được ghi nhận (số lượt phát hiện): 5 sự kiện.
+Số sự kiện vi phạm (label = "Non-Uniform"): 5 sự kiện.
+Tỷ lệ vi phạm = 5 / 5 × 100% = 100,0%.
+Ghi chú: mỗi bản ghi tương ứng một lượt theo dõi được hệ thống chốt lại; báo cáo không coi số sự kiện là số lượng sinh viên duy nhất.
+
+VI PHẠM
+2.1 Thống kê chi tiết các sự kiện vi phạm
+Sự kiện mã 1 — Phân loại: Non-Uniform — Bắt đầu: 2026-08-11 21:13:52.594027 — Kết thúc: 2026-08-11 21:13:52.594027.
+Sự kiện mã 2 — Phân loại: Non-Uniform — Bắt đầu: 2026-08-11 21:13:52.594027 — Kết thúc: 2026-08-11 21:13:52.594027.
+Sự kiện mã 3 — Phân loại: Non-Uniform — Bắt đầu: 2026-08-11 21:13:52.594027 — Kết thúc: 2026-08-11 21:13:52.594027.
+Sự kiện mã 4 — Phân loại: Non-Uniform — Bắt đầu: 2026-08-11 21:13:52.594027 — Kết thúc: 2026-08-11 21:13:52.594027.
+Sự kiện mã 5 — Phân loại: Non-Uniform — Bắt đầu: 2026-08-11 21:13:52.594027 — Kết thúc: 2026-08-11 21:13:52.594027.
+2.2 Phân tích chuỗi / mô hình vi phạm theo khung thời gian
+
+Tính chất dữ liệu: toàn bộ 5 sự kiện có cùng thời điểm bắt đầu và kết thúc (2026-08-11 21:13:52.594027).
+Kết luận về xu hướng thời gian: dữ liệu hiện tại không cho phép xác định xu hướng theo thời gian (không có biến thiên về thời điểm hoặc phân bố theo khoảng thời gian). Do đó, không thể suy diễn chu kỳ, tăng/giảm theo giờ/ngày hoặc mô hình lặp lại dựa trên dữ liệu này.
+Lưu ý thêm: tỷ lệ vi phạm trong khoảng thời gian giám sát đã ghi nhận là 100%, nhưng vì toàn bộ mẫu tập trung cùng một dấu thời gian ngắn, cần thận trọng khi mở rộng kết luận ra thời gian khác.
+KIẾN NGHỊ (dựa trên thực trạng quan sát được)
+Các kiến nghị dưới đây chỉ dựa trên dữ liệu đã cung cấp (mẫu 5 sự kiện cùng thời điểm, tất cả là "Non-Uniform") và không suy diễn nguyên nhân ngoài dữ liệu:
+3.1 Xác minh chất lượng dữ liệu và hệ thống phân loại
+
+Kiểm tra lại log, hình ảnh nguồn (nếu có) và cấu hình hệ thống nhận diện để xác nhận tính chính xác của các nhãn "Non-Uniform" tại thời điểm 2026-08-11 21:13:52.594027. Vì tất cả các bản ghi trùng thời điểm, cần loại trừ khả năng lỗi kỹ thuật (ví dụ: lỗi đồng bộ thời gian, lỗi ghi đúp, cấu hình ngưỡng phân loại sai).
+Thực hiện kiểm tra chéo bằng quan sát thủ công trên một mẫu ngẫu nhiên của các sự kiện để ước lượng tỷ lệ sai phân loại (false positives).
+3.2 Mở rộng khung thời gian giám sát và tích lũy dữ liệu
+
+Kéo dài/đa dạng hóa thời gian giám sát (nhiều khung giờ, nhiều ngày) để thu thập dữ liệu có khả năng phản ánh xu hướng thật sự theo thời gian. Hiện tại dữ liệu quá tập trung theo một dấu thời gian, không đủ để phân tích xu hướng.
+Thiết lập tiêu chuẩn tối thiểu về kích thước mẫu/khung thời gian trước khi ra kết luận hoặc áp dụng biện pháp xử lý chung.
+3.3 Hành động ngắn hạn phù hợp với thực trạng quan sát
+
+Trong trường hợp kiểm tra xác thực hình ảnh/thuật toán xác nhận mức vi phạm tại thời điểm ghi nhận, đề xuất tổ chức buổi nhắc nhở/kết hợp thông báo đến các lớp/khối có lịch hoạt động vào khoảng thời gian tương tự (nếu có bằng chứng về địa điểm/nhóm cụ thể). Tuy nhiên, tránh áp dụng kỷ luật diện rộng chỉ dựa trên 5 sự kiện cùng thời điểm.
+Nếu kiểm tra cho thấy phần lớn là nhãn sai do lỗi hệ thống, tạm dừng sử dụng kết quả đó để làm căn cứ xử lý và ưu tiên sửa lỗi kỹ thuật.
+3.4 Cải thiện quy trình giám sát và báo cáo
+
+Ghi rõ metadata (ví dụ: camera/điểm giám sát, vị trí, bản ghi hình ảnh, điều kiện ánh sáng) cho từng sự kiện để giúp phân tích nguyên nhân khi nhiều dữ liệu được thu thập.
+Thiết lập báo cáo định kỳ (ví dụ: hàng ngày/tuần) với ngưỡng cảnh báo (ví dụ: tỷ lệ vi phạm trên mẫu đủ lớn) trước khi báo cáo hành chính hoặc áp dụng biện pháp xử lý kỷ luật.
+Kết luận ngắn gọn
+
+Dữ liệu hiện có: 5 sự kiện, tất cả phân loại "Non-Uniform", tỷ lệ vi phạm tính theo mẫu là 100% trong khoảng thời gian ghi nhận (2026-08-11 21:13:52.594027). Tuy nhiên, vì toàn bộ sự kiện tập trung tại một thời điểm duy nhất và kích thước mẫu nhỏ, không thể khẳng định xu hướng thời gian hay nguyên nhân; cần xác minh kỹ thuật và mở rộng giám sát trước khi ra quyết định hành chính hoặc xử lý kỷ luật chung.
+
+
+=========================================================================
+DỮ LIỆU BÌNH THƯỜNG
+
+BÁO CÁO PHÂN TÍCH DỮ LIỆU GIÁM SÁT ĐỒNG PHỤC SINH VIÊN
+(nguồn: hệ thống nhận diện đồng phục tự động)
+
+TÓM TẮT
+Thời gian bắt đầu giám sát (first_seen nhỏ nhất): 2026-08-11 21:14:00.161998
+Thời gian kết thúc giám sát (last_seen lớn nhất): 2026-08-11 21:14:00.161998
+(Ghi chú: tất cả các Event trong bộ dữ liệu có cùng dấu thời gian nêu trên.)
+Tổng số sự kiện được ghi nhận: 6 sự kiện (mỗi sự kiện tương ứng một lượt theo dõi do hệ thống chốt lại).
+(Lưu ý: số sự kiện không tương đương với số lượng sinh viên duy nhất.)
+Số sự kiện vi phạm (label = "Non-Uniform"): 3 sự kiện
+Tỷ lệ vi phạm = 3 / 6 × 100% = 50.00%
+VI PHẠM
+a) Thống kê chi tiết các sự kiện vi phạm
+Sự kiện 2
+Mã theo dõi: 2
+Phân loại: Non-Uniform
+Bắt đầu phát hiện: 2026-08-11 21:14:00.161998
+Kết thúc phát hiện: 2026-08-11 21:14:00.161998
+Sự kiện 4
+Mã theo dõi: 4
+Phân loại: Non-Uniform
+Bắt đầu phát hiện: 2026-08-11 21:14:00.161998
+Kết thúc phát hiện: 2026-08-11 21:14:00.161998
+Sự kiện 6
+Mã theo dõi: 6
+Phân loại: Non-Uniform
+Bắt đầu phát hiện: 2026-08-11 21:14:00.161998
+Kết thúc phát hiện: 2026-08-11 21:14:00.161998
+b) Phân tích chuỗi / mô hình vi phạm theo khung thời gian
+
+Dữ liệu hiện tại cho thấy tất cả 6 Event có cùng dấu thời gian (2026-08-11 21:14:00.161998). Do đó:
+Không có khả năng quan sát xu hướng thời gian (ví dụ: tăng/giảm theo giờ, ngày hoặc ca) từ bộ dữ liệu này.
+Không được phép suy diễn mối quan hệ nhân quả hay mô hình theo thời gian vì dữ liệu không cung cấp biến thiên thời gian cần thiết.
+Những quan sát có thể kết luận trực tiếp:
+Tỷ lệ vi phạm trên tập sự kiện ghi nhận là 50.00%.
+Vi phạm xuất hiện rải đều theo mã theo dõi lẻ (2, 4, 6) nhưng vì tất cả sự kiện ghi cùng thời điểm, việc kết luận về mẫu lẻ/chẵn hoặc liên hệ với vị trí/ca/nhóm là không được hỗ trợ bởi dữ liệu.
+KIẾN NGHỊ (dựa trên thực trạng quan sát)
+Lưu ý: các kiến nghị dưới đây chỉ dựa trên dữ liệu cung cấp (6 Event cùng một mốc thời gian; 50% vi phạm). Không đưa ra chế tài cá nhân hay kết luận ngoài phạm vi dữ liệu.
+a) Về chất lượng dữ liệu và giám sát
+
+Kiểm tra và làm rõ nguyên nhân tất cả Event có cùng dấu thời gian:
+Xác minh cấu hình hệ thống ghi nhật ký (timestamp), cơ chế gom batch, và đồng bộ thời gian máy chủ (NTP). Nếu hệ thống gom nhiều phát hiện vào một lần ghi, cần điều chỉnh để thu thập dấu thời gian chính xác cho từng lượt theo dõi.
+Thu thập thêm dữ liệu kéo dài theo thời gian (ít nhất vài ngày/tuần) để có khả năng phân tích xu hướng và phân bố vi phạm theo khung giờ, ngày trong tuần, vị trí hay ca giảng dạy.
+b) Về can thiệp hành chính và tuyên truyền
+
+Do tỷ lệ vi phạm trong mẫu hiện tại là cao (50%), thực hiện ngay các biện pháp tuyên truyền, nhắc nhở mang tính chung:
+Thông báo nhắc lại quy định đồng phục qua email/sổ tay/sơ đồ trường trong vòng 1 tuần kể từ ngày quan sát (tham khảo ngày sự kiện: 11/08/2026).
+Treo/đặt bảng hướng dẫn/nhắc nhở tại điểm ra vào và khu vực tập trung sinh viên.
+Ưu tiên các giải pháp không mang tính xử phạt cá nhân cho đến khi có dữ liệu đủ lớn và chính xác để xác định trường hợp lặp lại hoặc vi phạm hệ thống.
+c) Về triển khai giám sát tiếp theo
+
+Thiết kế chiến dịch giám sát mẫu gồm:
+Ghi nhận liên tục ít nhất 7–14 ngày để đánh giá xu hướng và độ lặp của vi phạm.
+Ghi kèm metadata cho mỗi Event (vị trí camera, ca/giờ, ảnh minh họa, ID thiết bị) để phân tích nguyên nhân nếu có mẫu lặp.
+Sử dụng ngưỡng cảnh báo dựa trên tỷ lệ vi phạm trung bình trong khoảng thời gian đủ dài; trước khi áp dụng chế tài, xác minh tính chính xác nhận dạng với ảnh gốc hoặc kiểm tra thủ công.
+d) Về xử lý dữ liệu và báo cáo
+
+Trong các báo cáo tiếp theo, luôn nêu rõ:
+Khoảng thời gian giám sát bằng ngày và giờ cụ thể.
+Số lượng Event và chú thích rằng không tương đương với số sinh viên duy nhất.
+Các giới hạn dữ liệu (ví dụ: tất cả Event cùng một dấu thời gian) để tránh suy diễn không hợp lệ.
+Kết luận ngắn gọn:
+
+Trong bộ dữ liệu được cung cấp (6 Event ghi cùng thời điểm 2026-08-11 21:14:00.161998), tỷ lệ vi phạm được tính là 50.00% (3/6). Do tất cả Event có cùng dấu thời gian, không thể rút ra xu hướng theo thời gian; cần thu thập thêm dữ liệu thời gian phân tách và kiểm tra chất lượng ghi thời gian trước khi đề xuất hoặc áp dụng các biện pháp chế tài cá nhân.
+
+

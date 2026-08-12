@@ -1,0 +1,53 @@
+from ai.reporting.gemini_service import GeminiService
+from ai.reporting.prompt_builder import PromptBuilder
+from ai.reporting.models import Event
+from datetime import datetime
+import ai.config as my_config
+
+eventsD = [
+    Event(
+        track_id=1,
+        label="Uniform",
+        first_seen=datetime.now(),
+        last_seen=datetime.now()
+    ),
+    Event(
+        track_id=2,
+        label="Uniform",
+        first_seen=datetime.now(),
+        last_seen=datetime.now()
+    ),
+        Event(
+        track_id=3,
+        label="Uniform",
+        first_seen=datetime.now(),
+        last_seen=datetime.now()
+    ),
+    Event(
+        track_id=4,
+        label="Non-Uniform",
+        first_seen=datetime.now(),
+        last_seen=datetime.now()
+    ),
+    Event(
+        track_id=5,
+        label="Non-Uniform",
+        first_seen=datetime.now(),
+        last_seen=datetime.now()
+    ),
+    Event(
+        track_id=6,
+        label="Uniform",
+        first_seen=datetime.now(),
+        last_seen=datetime.now()
+    ),
+]
+
+prompt=PromptBuilder(prompt_yaml_path=my_config.PROMPT_YAML_PATH).build(events=eventsD)
+
+geminiService=GeminiService(api_key_env=my_config.GEMINI_KEY_ENV, model=my_config.GEMINI_MODEL)
+
+report=geminiService.generate(prompt=prompt)
+
+print(report)
+

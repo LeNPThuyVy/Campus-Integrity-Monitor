@@ -5,8 +5,6 @@ import unittest
 from datetime import timedelta,datetime
 from ai.reporting.models import TrackingResult
 
-
-
 class TestEventLogger(unittest.TestCase):
     """
     There are 4 test case:
