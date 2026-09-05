@@ -25,8 +25,8 @@ class Mapper:
         return ModelInfo(detector=my_config.DETECTOR_MODEL_NAME,classifier=my_config.CLASSIFIER_MODEL_NAME)
 
     @classmethod
-    def mapping_detectionResponse(self,track_id: int,bbox: BBox,label,matched_count: int):
-        return DetectionResponse(track_id=track_id,bbox=bbox,label=label,matched_count=matched_count)
+    def mapping_detectionResponse(self,track_id: int,bbox: BBox,label: str,matched_count: int,uniform_label: str = "Waiting",card_label: str = "Waiting"):
+        return DetectionResponse(track_id=track_id,bbox=bbox,uniform_label=uniform_label,card_label=card_label,label=label,matched_count=matched_count)
 
     @classmethod
     def mapping_inferenceResponse(

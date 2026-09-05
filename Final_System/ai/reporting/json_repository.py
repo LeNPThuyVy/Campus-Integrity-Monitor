@@ -28,8 +28,8 @@ class JsonRepository(EventRepository):
                 JsonEventMapper.from_dict(item)
                 for item in file_event_json
             ]
-        except Exception:
-            raise RuntimeError(...)
+        except Exception as e:
+            raise RuntimeError(f"Can't read event json file {self.file_path}: {e}")
 
     def append(self, new_event:Event) -> None:
         """

@@ -11,12 +11,20 @@ class PipelineResult:
     """
     track_id: int
     bbox: list[float]
-    prediction: Prediction
+    uniform_prediction: Prediction
+    card_prediction: Prediction = None
+    prediction: Prediction = None
+
+    def __post_init__(self):
+        if self.prediction is None and self.uniform_prediction is not None:
+            self.prediction = self.uniform_prediction
 
 class Pipeline:
-    def __init__(self, detector: Detector, classifier: Classifier):
-        self.detector=detector
-        self.classifier=classifier
+    def __init__(self, detector: Detector, classifier: Classifier = None, card_classifier: Classifier = None, uniform_classifier: Classifier = None):
+        self.detector = detector
+        self.uniform_classifier = uniform_classifier if uniform_classifier is not None else classifier
+        self.card_classifier = card_classifier
+        self.classifier = self.uniform_classifier
     
     def run(self,frame)-> list[PipelineResult]:
         """
@@ -24,16 +32,23 @@ class Pipeline:
         1. Detect people in frame
             The detector returns list bbox
         2. Crop each person
-        3. Classify for each person
+        3. Classify uniform and card for each person
 
-        This function returns Pipeline_Result
+        This function returns list[PipelineResult]
         """
         results=[]
         results_detected=self.detector.track(frame)
         for result in results_detected:
             image_cropped=Utils.crop_person(frame=frame,bbox=result.bbox)
-            result_predicted= self.classifier.classify(image=image_cropped)
-            results.append(PipelineResult(result.track_id,result.bbox,result_predicted))
+            uniform_pred = self.uniform_classifier.classify(image=image_cropped) if self.uniform_classifier else None
+            card_pred = self.card_classifier.classify(image=image_cropped) if self.card_classifier else None
+            results.append(PipelineResult(
+                track_id=result.track_id,
+                bbox=result.bbox,
+                uniform_prediction=uniform_pred,
+                card_prediction=card_pred,
+                prediction=uniform_pred
+            ))
         
         return results
 

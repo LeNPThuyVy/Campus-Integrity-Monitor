@@ -18,7 +18,9 @@ class ModelInfo(BaseModel):
 class DetectionResponse(BaseModel):
     track_id: int
     bbox: BBox
-    label:str
+    uniform_label: str = "Waiting"
+    card_label: str = "Waiting"
+    label: str
     matched_count: int
 
 

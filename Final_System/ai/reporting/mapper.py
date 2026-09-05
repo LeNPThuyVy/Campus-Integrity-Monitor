@@ -9,7 +9,9 @@ class JsonEventMapper:
     def to_dict(event:Event)->dict:
         result_dict={}
         result_dict["track_id"]=event.track_id
-        result_dict["label"]=event.label
+        result_dict["uniform_label"]=getattr(event, "uniform_label", event.label)
+        result_dict["card_label"]=getattr(event, "card_label", "Waiting")
+        result_dict["label"]=event.label if event.label else f"{result_dict['uniform_label']} | {result_dict['card_label']}"
         if isinstance(event.first_seen,datetime):
             result_dict["first_seen"]=event.first_seen.isoformat()
         else:
@@ -24,15 +26,17 @@ class JsonEventMapper:
     def from_dict(data: dict) -> Event:
         result_event = Event(
             track_id=data["track_id"],
-            label=data["label"],
+            uniform_label=data.get("uniform_label", data.get("label", "Waiting")),
+            card_label=data.get("card_label", "Waiting"),
+            label=data.get("label", ""),
             first_seen=(
                 datetime.fromisoformat(data["first_seen"])
-                if data["first_seen"]
+                if data.get("first_seen")
                 else None
                 ),
             last_seen= (
                 datetime.fromisoformat(data["last_seen"])
-                if data["last_seen"]
+                if data.get("last_seen")
                 else None
                 )
             )

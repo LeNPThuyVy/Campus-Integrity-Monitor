@@ -30,7 +30,18 @@ class InferenceService:
         results=self.voting.vote()
         listDetect=[]
         for key,value in results.items():
-            listDetect.append(self.mapper.mapping_detectionResponse(track_id=key,bbox=bbox_map[key],label=value.label,matched_count=value.matched_count))
+            if key in bbox_map:
+                u_lbl = getattr(value, "uniform_label", value.label)
+                c_lbl = getattr(value, "card_label", "Waiting")
+                combined_lbl = f"{u_lbl} | {c_lbl}"
+                listDetect.append(self.mapper.mapping_detectionResponse(
+                    track_id=key,
+                    bbox=bbox_map[key],
+                    uniform_label=u_lbl,
+                    card_label=c_lbl,
+                    label=combined_lbl,
+                    matched_count=value.matched_count
+                ))
 
         end_time=time.perf_counter()
         execution_time =end_time-start_time

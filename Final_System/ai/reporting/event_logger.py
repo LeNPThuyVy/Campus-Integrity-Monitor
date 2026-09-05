@@ -47,13 +47,24 @@ class EventLogger:
             del self._active_events[key]
 
     def _create_active_event(self,tracking_result:TrackingResult,timestamp: datetime):
-        self._active_events[tracking_result.track_id]=ActiveEvent(track_id=tracking_result.track_id, label= tracking_result.label, first_seen=timestamp, last_seen= timestamp)
+        u_lbl = getattr(tracking_result, "uniform_label", tracking_result.label)
+        c_lbl = getattr(tracking_result, "card_label", "Waiting")
+        self._active_events[tracking_result.track_id]=ActiveEvent(
+            track_id=tracking_result.track_id,
+            uniform_label=u_lbl,
+            card_label=c_lbl,
+            label=tracking_result.label,
+            first_seen=timestamp,
+            last_seen=timestamp
+        )
 
     def _update_active_event(self,new_result: TrackingResult,timestamp: datetime):
         """
         This function update active event in ActiveEvents
         """
         update_value=self._active_events[new_result.track_id]
+        update_value.uniform_label=getattr(new_result, "uniform_label", new_result.label)
+        update_value.card_label=getattr(new_result, "card_label", "Waiting")
         update_value.label=new_result.label
         update_value.last_seen=timestamp        
 
@@ -62,7 +73,14 @@ class EventLogger:
         This function save Event to repo and delete ActiveEvent
         """
         #Save Event
-        new_event=Event(track_id=active_event.track_id,label=active_event.label,first_seen=active_event.first_seen,last_seen=active_event.last_seen)
+        new_event=Event(
+            track_id=active_event.track_id,
+            uniform_label=active_event.uniform_label,
+            card_label=active_event.card_label,
+            label=active_event.label,
+            first_seen=active_event.first_seen,
+            last_seen=active_event.last_seen
+        )
         self._repository.append(new_event=new_event)   
 
 

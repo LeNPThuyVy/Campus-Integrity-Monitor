@@ -54,6 +54,7 @@ class CampusMonitorUI:
         self.total_students  = tk.StringVar(value="0")
         self.uniform_count   = tk.StringVar(value="0")
         self.non_uniform_count = tk.StringVar(value="0")
+        self.card_count      = tk.StringVar(value="0")
         self.waiting_count   = tk.StringVar(value="0")
         self.compliance_rate = tk.StringVar(value="0.0%")
         self.fps_rate        = tk.StringVar(value="0.0 FPS")
@@ -313,9 +314,9 @@ class CampusMonitorUI:
         stats_panel.pack_propagate(False)
 
         self.create_modern_stat_card(stats_panel, "TỔNG SỐ HỌC SINH",         self.total_students,   self.COLOR_BLUE)
-        self.create_modern_stat_card(stats_panel, "ĐÚNG TÁC PHONG",           self.uniform_count,    self.COLOR_GREEN)
+        self.create_modern_stat_card(stats_panel, "ĐÚNG ĐỒNG PHỤC",           self.uniform_count,    self.COLOR_GREEN)
+        self.create_modern_stat_card(stats_panel, "ĐEO THẺ SINH VIÊN",        self.card_count,       "#059669")
         self.create_modern_stat_card(stats_panel, "SAI TÁC PHONG",            self.non_uniform_count, self.COLOR_RED)
-        self.create_modern_stat_card(stats_panel, "ĐANG ĐỢI BIỂU QUYẾT",     self.waiting_count,    self.COLOR_YELLOW)
         self.create_modern_stat_card(stats_panel, "TỶ LỆ CHẤP HÀNH TỐT",     self.compliance_rate,  "#6366F1")
         self.create_modern_stat_card(stats_panel, "TỐC ĐỘ XỬ LÝ (FPS)",      self.fps_rate,         "#0891B2")
 
@@ -332,17 +333,19 @@ class CampusMonitorUI:
         tree_frame = tk.Frame(log_card, bg=self.COLOR_CARD)
         tree_frame.pack(fill="both", expand=True, padx=20, pady=(0, 15))
 
-        columns = ("time", "id", "status", "matched_cnt")
+        columns = ("time", "id", "uniform_status", "card_status", "matched_cnt")
         self.log_tree = ttk.Treeview(tree_frame, columns=columns, show="headings")
-        self.log_tree.heading("time",        text="Thời gian")
-        self.log_tree.heading("id",          text="Track ID")
-        self.log_tree.heading("status",      text="Nhận diện tác phong")
-        self.log_tree.heading("matched_cnt", text="Khung hình trùng khớp")
+        self.log_tree.heading("time",           text="Thời gian")
+        self.log_tree.heading("id",             text="Track ID")
+        self.log_tree.heading("uniform_status", text="Đồng phục")
+        self.log_tree.heading("card_status",    text="Thẻ sinh viên")
+        self.log_tree.heading("matched_cnt",    text="Khung hình trùng khớp")
 
-        self.log_tree.column("time",        width=120, anchor="center")
-        self.log_tree.column("id",          width=100, anchor="center")
-        self.log_tree.column("status",      width=220, anchor="center")
-        self.log_tree.column("matched_cnt", width=160, anchor="center")
+        self.log_tree.column("time",           width=100, anchor="center")
+        self.log_tree.column("id",             width=80,  anchor="center")
+        self.log_tree.column("uniform_status", width=180, anchor="center")
+        self.log_tree.column("card_status",    width=180, anchor="center")
+        self.log_tree.column("matched_cnt",    width=140, anchor="center")
 
         scroll_y = ttk.Scrollbar(tree_frame, orient="vertical", command=self.log_tree.yview)
         self.log_tree.configure(yscrollcommand=scroll_y.set)
@@ -585,24 +588,27 @@ class CampusMonitorUI:
 
             voting_res = results_voting.get(track_id)
             if voting_res:
-                label   = voting_res.label
+                u_label = getattr(voting_res, "uniform_label", voting_res.label)
+                c_label = getattr(voting_res, "card_label", "Waiting")
                 matched = voting_res.matched_count
             else:
-                label   = "Waiting"
+                u_label = "Waiting"
+                c_label = "Waiting"
                 matched = 0
 
-            if label == "Uniform":
-                box_color     = (74, 222, 128)
-                display_label = "Tác phong: OK"
-            elif label == "Non_Uniform":
-                box_color     = (0, 0, 244)
-                display_label = "Tác phong: SAI"
+            # Formatting label strings for UI box
+            u_str = "ĐP: OK" if u_label == "Uniform" else ("ĐP: SAI" if u_label == "Non_Uniform" else "ĐP: ...")
+            c_str = "Thẻ: OK" if c_label == "Card" else ("Thẻ: VẮNG" if c_label == "No_Card" else "Thẻ: ...")
+
+            if u_label == "Uniform" and c_label == "Card":
+                box_color = (74, 222, 128)   # Green
+            elif u_label == "Non_Uniform" or c_label == "No_Card":
+                box_color = (0, 0, 244)     # Red
             else:
-                box_color     = (0, 191, 255)
-                display_label = "Đang chờ..."
+                box_color = (0, 191, 255)   # Yellow/Cyan
 
             cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, 2)
-            text_str = f"ID {track_id} | {display_label}"
+            text_str = f"ID {track_id} | {u_str} | {c_str}"
             (text_w, text_h), _ = cv2.getTextSize(text_str, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
             cv2.rectangle(frame, (x1, y1 - text_h - 10), (x1 + text_w + 10, y1), box_color, -1)
             cv2.putText(frame, text_str, (x1 + 5, y1 - 5),
@@ -619,32 +625,30 @@ class CampusMonitorUI:
 
         # Update log tree
         for track_id, vote_res in results_voting.items():
-            label   = vote_res.label
+            u_lbl = getattr(vote_res, "uniform_label", vote_res.label)
+            c_lbl = getattr(vote_res, "card_label", "Waiting")
             matched = vote_res.matched_count
 
-            if label == "Uniform":
-                status_txt = "Đúng tác phong (OK)"
-            elif label == "Non_Uniform":
-                status_txt = "Sai tác phong (VIOLATION)"
-            else:
-                status_txt = "Đang chờ biểu quyết..."
+            u_status_txt = "Đúng đồng phục" if u_lbl == "Uniform" else ("Sai đồng phục" if u_lbl == "Non_Uniform" else "Đang chờ...")
+            c_status_txt = "Đeo thẻ" if c_lbl == "Card" else ("Không đeo thẻ" if c_lbl == "No_Card" else "Đang chờ...")
 
             already_logged = False
             for child in self.log_tree.get_children():
                 vals = self.log_tree.item(child)["values"]
                 if len(vals) >= 2 and str(vals[1]) == str(track_id):
-                    if vals[2] != status_txt or vals[3] != matched:
-                        self.log_tree.item(child, values=(vals[0], track_id, status_txt, matched))
+                    if vals[2] != u_status_txt or vals[3] != c_status_txt or vals[4] != matched:
+                        self.log_tree.item(child, values=(vals[0], track_id, u_status_txt, c_status_txt, matched))
                     already_logged = True
                     break
 
             if not already_logged:
-                self.log_tree.insert("", 0, values=(current_time_str, track_id, status_txt, matched))
+                self.log_tree.insert("", 0, values=(current_time_str, track_id, u_status_txt, c_status_txt, matched))
 
         # Update stat cards
         self.total_students.set(str(stats["total"]))
         self.uniform_count.set(str(stats["uniform"]))
-        self.non_uniform_count.set(str(stats["non_uniform"]))
+        self.card_count.set(str(stats["card_ok"]))
+        self.non_uniform_count.set(str(stats["total"] - stats["fully_compliant"]))
         self.waiting_count.set(str(stats["waiting"]))
         self.compliance_rate.set(f"{stats['compliance_rate']:.1f}%")
 

@@ -17,17 +17,21 @@ class TrackingResult:
     Object result use for process of event_logger
     """
     track_id:int
-    label: str
+    uniform_label: str = "Waiting"
+    card_label: str = "Waiting"
+    label: str = "Waiting"
 
 @dataclass
 class ActiveEvent:
     """
-    Object model in RAM, could be updated every each frame
+    Object model in RAM, could be updated every frame
     """
     track_id: int
-    label: str
+    uniform_label: str
+    card_label: str
     first_seen: datetime
     last_seen: datetime
+    label: str = ""
 
 @dataclass(frozen=True)
 class Event:
@@ -35,7 +39,9 @@ class Event:
     This is object for Event.JSON. It couldn't be update
     """
     track_id:int
-    label: str
+    uniform_label: str
+    card_label: str
     first_seen: datetime
     last_seen: datetime
+    label: str = ""
 

@@ -22,11 +22,12 @@ def create_voting() -> TemporalVoting:
 
 def create_pipeline() -> Pipeline:
     try:
-        #Load model
+        #Load models
         detector=Detector(my_config.DETECT_PERSON_PATH,my_config.DEVICE,my_config.DETECT_CONF)
-        classifier=Classifier(my_config.CLASSIFY_UNIFORM_PATH,len(my_config.LABELS))
+        uniform_classifier=Classifier(my_config.CLASSIFY_UNIFORM_PATH,len(my_config.UNIFORM_LABELS),labels=my_config.UNIFORM_LABELS)
+        card_classifier=Classifier(my_config.CLASSIFY_CARD_PATH,len(my_config.CARD_LABELS),labels=my_config.CARD_LABELS)
         #Create pipeline
-        pipeline= Pipeline(detector=detector, classifier=classifier)
+        pipeline= Pipeline(detector=detector, uniform_classifier=uniform_classifier, card_classifier=card_classifier)
         print("Create pipeline successfully")
         return pipeline
     except Exception as e:

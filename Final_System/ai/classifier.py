@@ -12,9 +12,9 @@ class Prediction:
 
 class Classifier:
 
-    def __init__(self,model_path, num_class):
+    def __init__(self,model_path, num_class, labels: list[str] = None):
         """
-        Use MobileNetV3 to classify Uniform
+        Use MobileNetV3 to classify image
         There must be have: load model, put model to device, load state model (model after train), eval
         """
         classify_model=timm.create_model(
@@ -27,6 +27,7 @@ class Classifier:
         classify_model.load_state_dict(torch.load(model_path,map_location=self.device))
         classify_model.eval()
         self.model=classify_model
+        self.labels = labels if labels is not None else ai.config.UNIFORM_LABELS
 
 
     def classify(self,image):
@@ -53,7 +54,7 @@ class Classifier:
             #get the highest probability  
             highest_probability=probabilities[0, argmax_index].item()
             #Label: mapping to the lable from the agrmax_index
-            label=ai.config.LABELS[argmax_index]
+            label=self.labels[argmax_index]
             #Mapping to Prediction
             result=Prediction(label=label,confidence=highest_probability)
 

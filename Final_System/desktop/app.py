@@ -21,16 +21,27 @@ class App:
     """
 
     def __init__(self):
-        self.classifier = Classifier(
+        self.uniform_classifier = Classifier(
             model_path=my_config.CLASSIFY_UNIFORM_PATH,
-            num_class=len(my_config.LABELS)
+            num_class=len(my_config.UNIFORM_LABELS),
+            labels=my_config.UNIFORM_LABELS
         )
+        self.card_classifier = Classifier(
+            model_path=my_config.CLASSIFY_CARD_PATH,
+            num_class=len(my_config.CARD_LABELS),
+            labels=my_config.CARD_LABELS
+        )
+        self.classifier = self.uniform_classifier
         self.detector = Detector(
             model_path=my_config.DETECT_PERSON_PATH,
             device=my_config.DEVICE,
             conf=my_config.DETECT_CONF
         )
-        self.pipeline = Pipeline(detector=self.detector, classifier=self.classifier)
+        self.pipeline = Pipeline(
+            detector=self.detector,
+            uniform_classifier=self.uniform_classifier,
+            card_classifier=self.card_classifier
+        )
         self.voting = TemporalVoting()
         self.camera: Camera | None = None
 
@@ -142,26 +153,39 @@ class App:
     def compute_statistics(results_voting: dict) -> dict:
         """
         Derives aggregate statistics from voting results.
-        Returns a dict with keys: total, uniform, non_uniform, waiting, compliance_rate.
+        Returns a dict with keys: total, uniform, non_uniform, card_ok, no_card, fully_compliant, waiting, compliance_rate.
         """
         total = len(results_voting)
-        uniform = non_uniform = waiting = 0
+        uniform = non_uniform = card_ok = no_card = fully_compliant = waiting = 0
 
         for vote_res in results_voting.values():
-            label = vote_res.label
-            if label == "Uniform":
+            u_lbl = getattr(vote_res, "uniform_label", vote_res.label)
+            c_lbl = getattr(vote_res, "card_label", "Waiting")
+
+            if u_lbl == "Uniform":
                 uniform += 1
-            elif label == "Non_Uniform":
+            elif u_lbl == "Non_Uniform":
                 non_uniform += 1
-            else:
+
+            if c_lbl == "Card":
+                card_ok += 1
+            elif c_lbl == "No_Card":
+                no_card += 1
+
+            if u_lbl == "Uniform" and c_lbl == "Card":
+                fully_compliant += 1
+            elif u_lbl == "Waiting" or c_lbl == "Waiting":
                 waiting += 1
 
-        compliance_rate = (uniform / total * 100) if total > 0 else 0.0
+        compliance_rate = (fully_compliant / total * 100) if total > 0 else 0.0
 
         return {
             "total":           total,
             "uniform":         uniform,
             "non_uniform":     non_uniform,
+            "card_ok":         card_ok,
+            "no_card":         no_card,
+            "fully_compliant": fully_compliant,
             "waiting":         waiting,
             "compliance_rate": compliance_rate,
         }

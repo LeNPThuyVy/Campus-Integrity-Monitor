@@ -43,10 +43,13 @@ class PromptBuilder:
             return "DỮ LIỆU SỰ KIỆN:\n HIỆN KHÔNG CÓ DỮ LIỆU SỰ KIỆN!!!!!\n"
         event_data:str ="DỮ LIỆU SỰ KIỆN:\n"
         for i in range(len(events)):
+            u_lbl = getattr(events[i], "uniform_label", events[i].label)
+            c_lbl = getattr(events[i], "card_label", "Waiting")
             event_data+=f"""
             Sự kiện {i+1}:
             - Mã theo dõi: {events[i].track_id}
-            - Phân loại: {events[i].label}
+            - Trạng thái Đồng phục: {u_lbl}
+            - Trạng thái Thẻ sinh viên: {c_lbl}
             - Bắt đầu phát hiện: {events[i].first_seen}
             - Kết thúc phát hiện: {events[i].last_seen}
         """

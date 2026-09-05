@@ -9,7 +9,8 @@ import torch
 CURRENT_FILE=Path(__file__).resolve() #Get current folder path
 ROOT_DIR=CURRENT_FILE  .parent.parent
 DETECT_PERSON_PATH=ROOT_DIR /"models"/"detector.pt"
-CLASSIFY_UNIFORM_PATH = ROOT_DIR /"models"/"classifier.pth"
+CLASSIFY_UNIFORM_PATH = ROOT_DIR /"models"/"mobilenet_best_uniform.pt"
+CLASSIFY_CARD_PATH = ROOT_DIR /"models"/"mobilenet_best_card.pt"
 DETECTOR_MODEL_NAME="YOLO26"
 CLASSIFIER_MODEL_NAME="MobileNetV3"
 EVENT_JSON_PATH=ROOT_DIR / "storage"/ "events.json"
@@ -19,7 +20,9 @@ PROMPT_YAML_PATH= CURRENT_FILE.parent/"reporting"/"prompt"/"report_prompt.yaml"
 #==========================
 #Threshold
 #==========================
-LABELS=["Non_Uniform", "Uniform"]
+UNIFORM_LABELS = ["Non_Uniform", "Uniform"]
+CARD_LABELS = ["No_Card", "Card"]
+LABELS = UNIFORM_LABELS
 DETECT_IMAGE_SIZE=640
 CLASSIFY_IMAGE_SIZE=224
 DETECT_CONF=0.3
