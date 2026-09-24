@@ -2,6 +2,9 @@ import json
 import os
 import logging
 import tkinter as tk
+import threading
+import queue
+import time
 
 from ai.classifier import Classifier
 from ai.detector import Detector
@@ -44,6 +47,11 @@ class App:
         )
         self.voting = TemporalVoting()
         self.camera: Camera | None = None
+
+        self.is_running = False
+        self.frame_queue = queue.Queue(maxsize=2)
+        self.result_queue = queue.Queue(maxsize=2)
+        self.worker_thread = None
 
         # Loaded once at startup; UI sliders may update these values later
         self.params: dict = {}
@@ -110,9 +118,18 @@ class App:
     def start_camera(self, source) -> None:
         """Opens the video source (int index for webcam, str path for file)."""
         self.camera = Camera(source)
+        self.is_running = True
+        self.frame_queue = queue.Queue(maxsize=2)
+        self.result_queue = queue.Queue(maxsize=2)
+        self.worker_thread = threading.Thread(target=self._ai_worker, daemon=True)
+        self.worker_thread.start()
 
     def stop_camera(self) -> None:
         """Releases the active camera / video capture."""
+        self.is_running = False
+        if self.worker_thread:
+            self.worker_thread.join(timeout=1.0)
+            self.worker_thread = None
         if self.camera:
             self.camera.release()
             self.camera = None
@@ -122,6 +139,23 @@ class App:
         if self.camera is None:
             return None
         return self.camera.read()
+
+    def _ai_worker(self):
+        """Background thread to process frames."""
+        while self.is_running:
+            start_time = time.time()
+            frame = self.read_frame()
+            if frame is None:
+                if not self.result_queue.full():
+                    self.result_queue.put(("EOF", None, None, None))
+                break
+            
+            results, results_voting = self.process_frame(frame)
+            
+            if self.result_queue.full():
+                try: self.result_queue.get_nowait()
+                except queue.Empty: pass
+            self.result_queue.put((frame, results, results_voting, start_time))
 
     # ------------------------------------------------------------------
     # AI Pipeline Processing

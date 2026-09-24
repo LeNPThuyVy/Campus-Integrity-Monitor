@@ -60,3 +60,30 @@ class Classifier:
 
         return result
 
+    def classify_batch(self, images: list):
+        """
+        Classify a batch of images
+        """
+        if not images:
+            return []
+        
+        # Preprocess all images
+        processed_images = [Utils.preprocess(image=img, image_size=ai.config.CLASSIFY_IMAGE_SIZE) for img in images]
+        
+        # Stack into a single batch tensor
+        batch_tensor = torch.cat(processed_images, dim=0).to(self.device)
+        
+        with torch.no_grad():
+            logits = self.model(batch_tensor)
+            probabilities = torch.nn.functional.softmax(logits, dim=1)
+            argmax_indices = torch.argmax(probabilities, dim=1)
+            
+            results = []
+            for i in range(len(images)):
+                idx = argmax_indices[i].item()
+                prob = probabilities[i, idx].item()
+                label = self.labels[idx]
+                results.append(Prediction(label=label, confidence=prob))
+                
+        return results
+

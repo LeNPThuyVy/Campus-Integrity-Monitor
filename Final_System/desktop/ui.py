@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 import os
 import time
 import logging
+import queue
 from datetime import datetime
 
 # Configure Logger
@@ -509,53 +510,52 @@ class CampusMonitorUI:
         if not self.is_running:
             return
 
-        start_time = time.time()
-        frame = self.app.read_frame()
-        if frame is None:
-            self.stop_monitoring()
-            self.status_message.set("Dòng video đã kết thúc hoặc mất kết nối camera.")
-            return
+        try:
+            data = self.app.result_queue.get_nowait()
+            if data[0] == "EOF":
+                self.stop_monitoring()
+                self.status_message.set("Dòng video đã kết thúc hoặc mất kết nối camera.")
+                return
+            
+            frame, results, results_voting, start_time = data
+            
+            # Compute FPS using elapsed wall-clock time (EMA smoothing α=0.1)
+            elapsed_sec = time.time() - start_time
+            instant_fps = 1.0 / elapsed_sec if elapsed_sec > 0 else 0.0
+            alpha = 0.1
+            self.fps_avg = alpha * instant_fps + (1 - alpha) * self.fps_avg
+            self.fps_rate.set(f"{self.fps_avg:.1f} FPS")
 
-        # Delegate heavy processing to App
-        results, results_voting = self.app.process_frame(frame)
+            # Draw overlays BEFORE rendering to canvas
+            self.draw_overlay(frame, results, results_voting)
+            self.draw_fps_overlay(frame, self.fps_avg)
+            self.update_statistics(results_voting)
 
-        # Compute FPS using elapsed wall-clock time (EMA smoothing α=0.1)
-        elapsed_sec = time.time() - start_time
-        instant_fps = 1.0 / elapsed_sec if elapsed_sec > 0 else 0.0
-        alpha = 0.1
-        self.fps_avg = alpha * instant_fps + (1 - alpha) * self.fps_avg
-        self.fps_rate.set(f"{self.fps_avg:.1f} FPS")
+            canvas_w = self.screen_canvas.winfo_width()
+            canvas_h = self.screen_canvas.winfo_height()
 
-        # Draw overlays BEFORE rendering to canvas
-        self.draw_overlay(frame, results, results_voting)
-        self.draw_fps_overlay(frame, self.fps_avg)
-        self.update_statistics(results_voting)
+            if canvas_w > 10 and canvas_h > 10:
+                img_h, img_w = frame.shape[:2]
+                scale = min(canvas_w / img_w, canvas_h / img_h)
+                new_w, new_h = int(img_w * scale), int(img_h * scale)
 
-        canvas_w = self.screen_canvas.winfo_width()
-        canvas_h = self.screen_canvas.winfo_height()
+                frame_resized = cv2.resize(frame, (new_w, new_h))
+                frame_rgb     = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
 
-        if canvas_w > 10 and canvas_h > 10:
-            img_h, img_w = frame.shape[:2]
-            scale = min(canvas_w / img_w, canvas_h / img_h)
-            new_w, new_h = int(img_w * scale), int(img_h * scale)
+                pil_image = Image.fromarray(frame_rgb)
+                img_tk    = ImageTk.PhotoImage(image=pil_image)
 
-            frame_resized = cv2.resize(frame, (new_w, new_h))
-            frame_rgb     = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
+                self.screen_canvas.delete("all")
+                x_offset = (canvas_w - new_w) // 2
+                y_offset = (canvas_h - new_h) // 2
+                self.screen_canvas.create_image(x_offset, y_offset, anchor="nw", image=img_tk)
+                self.screen_canvas.image = img_tk
 
-            pil_image = Image.fromarray(frame_rgb)
-            img_tk    = ImageTk.PhotoImage(image=pil_image)
-
-            self.screen_canvas.delete("all")
-            x_offset = (canvas_w - new_w) // 2
-            y_offset = (canvas_h - new_h) // 2
-            self.screen_canvas.create_image(x_offset, y_offset, anchor="nw", image=img_tk)
-            self.screen_canvas.image = img_tk
-
-        elapsed_ms = (time.time() - start_time) * 1000
-        delay = max(1, int(self.frame_delay - elapsed_ms))
+        except queue.Empty:
+            pass
 
         if self.is_running:
-            self.root.after(delay, self.update_frame)
+            self.root.after(self.frame_delay, self.update_frame)
 
     # ------------------------------------------------------------------
     # Drawing Helpers (OpenCV overlays)

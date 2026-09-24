@@ -1,27 +1,21 @@
+import torch
 from torchvision import transforms
-from PIL import Image
 import cv2
 import numpy as np
+
 class Utils:
+    _normalize = transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
+
     @staticmethod
     def preprocess(image,image_size):
         """
-        This function preprocesses before classify 
+        This function preprocesses before classify (Optimized)
         """
-        image_transform=transforms.Compose([
-            transforms.Resize(size=(image_size,image_size)),
-            transforms.ToTensor(),
-            
-            transforms.Normalize(
-                mean=[0.485,0.456,0.406],
-                std=[0.229,0.224,0.225]
-            ),
-        ])
-        image=cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image=Image.fromarray(image)
-        image=image_transform(image)
-        image=image.unsqueeze(0)
-        return image
+        img_resized = cv2.resize(image, (image_size, image_size))
+        img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+        tensor = torch.from_numpy(img_rgb).permute(2, 0, 1).float() / 255.0
+        tensor = Utils._normalize(tensor)
+        return tensor.unsqueeze(0)
     
     @staticmethod
     def get_crop_ratio(person_height_ratio: float) -> float:
