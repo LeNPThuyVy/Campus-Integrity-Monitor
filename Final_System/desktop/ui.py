@@ -512,7 +512,7 @@ class CampusMonitorUI:
 
         try:
             data = self.app.result_queue.get_nowait()
-            if data[0] == "EOF":
+            if isinstance(data[0], str) and data[0] == "EOF":
                 self.stop_monitoring()
                 self.status_message.set("Dòng video đã kết thúc hoặc mất kết nối camera.")
                 return
@@ -553,6 +553,8 @@ class CampusMonitorUI:
 
         except queue.Empty:
             pass
+        except Exception as e:
+            logging.error(f"Error in update_frame: {e}")
 
         if self.is_running:
             self.root.after(self.frame_delay, self.update_frame)

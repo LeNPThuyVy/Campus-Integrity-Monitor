@@ -142,19 +142,34 @@ class App:
 
     def _ai_worker(self):
         """Background thread to process frames."""
+        consecutive_none_count = 0
+        max_none_retries = 10
+
         while self.is_running:
             start_time = time.time()
             frame = self.read_frame()
             if frame is None:
-                if not self.result_queue.full():
-                    self.result_queue.put(("EOF", None, None, None))
-                break
-            
-            results, results_voting = self.process_frame(frame)
-            
+                consecutive_none_count += 1
+                if consecutive_none_count > max_none_retries:
+                    if not self.result_queue.full():
+                        self.result_queue.put(("EOF", None, None, None))
+                    break
+                time.sleep(0.05)
+                continue
+
+            consecutive_none_count = 0
+
+            try:
+                results, results_voting = self.process_frame(frame)
+            except Exception as e:
+                logging.error(f"Error in process_frame: {e}")
+                results, results_voting = [], {}
+
             if self.result_queue.full():
-                try: self.result_queue.get_nowait()
-                except queue.Empty: pass
+                try:
+                    self.result_queue.get_nowait()
+                except queue.Empty:
+                    pass
             self.result_queue.put((frame, results, results_voting, start_time))
 
     # ------------------------------------------------------------------
