@@ -40,6 +40,8 @@ class Pipeline:
         results_detected=self.detector.track(frame)
         for result in results_detected:
             image_cropped=Utils.crop_person(frame=frame,bbox=result.bbox)
+            if image_cropped is None or image_cropped.size == 0:
+                continue
             uniform_pred = self.uniform_classifier.classify(image=image_cropped) if self.uniform_classifier else None
             card_pred = self.card_classifier.classify(image=image_cropped) if self.card_classifier else None
             results.append(PipelineResult(
