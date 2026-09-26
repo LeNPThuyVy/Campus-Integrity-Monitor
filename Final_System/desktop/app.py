@@ -1,0 +1,251 @@
+import json
+import os
+import logging
+import tkinter as tk
+import threading
+import queue
+import time
+
+from ai.classifier import Classifier
+from ai.detector import Detector
+from ai.pipeline import Pipeline
+from ai.temporal_voting import TemporalVoting
+from desktop.camera import Camera
+import ai.config as my_config
+
+CONFIG_FILE_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+
+
+class App:
+    """
+    Application backend logic.
+    Manages AI pipeline, camera, configuration, and real-time statistics.
+    The UI layer (CampusMonitorUI) delegates all processing calls to this class.
+    """
+
+    def __init__(self):
+        self.uniform_classifier = Classifier(
+            model_path=my_config.CLASSIFY_UNIFORM_PATH,
+            num_class=len(my_config.UNIFORM_LABELS),
+            labels=my_config.UNIFORM_LABELS
+        )
+        self.card_classifier = Classifier(
+            model_path=my_config.CLASSIFY_CARD_PATH,
+            num_class=len(my_config.CARD_LABELS),
+            labels=my_config.CARD_LABELS
+        )
+        self.classifier = self.uniform_classifier
+        self.detector = Detector(
+            model_path=my_config.DETECT_PERSON_PATH,
+            device=my_config.DEVICE,
+            conf=my_config.DETECT_CONF
+        )
+        self.pipeline = Pipeline(
+            detector=self.detector,
+            uniform_classifier=self.uniform_classifier,
+            card_classifier=self.card_classifier
+        )
+        self.voting = TemporalVoting()
+        self.camera: Camera | None = None
+
+        self.is_running = False
+        self.frame_queue = queue.Queue(maxsize=2)
+        self.result_queue = queue.Queue(maxsize=2)
+        self.worker_thread = None
+
+        # Loaded once at startup; UI sliders may update these values later
+        self.params: dict = {}
+        self.load_parameters()
+
+    # ------------------------------------------------------------------
+    # Configuration Management
+    # ------------------------------------------------------------------
+
+    def load_parameters(self) -> dict:
+        """Loads configuration from config.json, falling back to ai.config defaults."""
+        self.params = {
+            "DETECT_CONF":               my_config.DETECT_CONF,
+            "CLASSIFY_CONF":             my_config.CLASSIFY_CONF,
+            "IOU_THRESHOLD":             getattr(my_config, "IOU_THRESHOLD", 0.7),
+            "FRAME_SKIP":                my_config.FRAME_SKIP,
+            "LEN_HISTORY":               my_config.LEN_HISTORY,
+            "VOTING_THREDSHOLD":         my_config.VOTING_THREDSHOLD,
+            "MISSING_COUNTER_THRESHOLD": my_config.MISSING_COUNTER_THRESHOLD,
+        }
+
+        if os.path.exists(CONFIG_FILE_PATH):
+            try:
+                with open(CONFIG_FILE_PATH, "r", encoding="utf-8") as f:
+                    saved = json.load(f)
+                    self.params.update(saved)
+            except Exception as e:
+                logging.error(f"Error loading config: {e}")
+
+        self.apply_params_to_config()
+        return self.params
+
+    def save_parameters(self, new_params: dict) -> None:
+        """Persists updated parameters to config.json and applies them immediately."""
+        self.params.update(new_params)
+        try:
+            with open(CONFIG_FILE_PATH, "w", encoding="utf-8") as f:
+                json.dump(self.params, f, indent=4)
+        except Exception as e:
+            logging.error(f"Error saving config: {e}")
+            raise
+
+        self.apply_params_to_config()
+
+    def apply_params_to_config(self) -> None:
+        """Pushes current params into ai.config and live model components."""
+        my_config.DETECT_CONF               = self.params["DETECT_CONF"]
+        my_config.CLASSIFY_CONF             = self.params["CLASSIFY_CONF"]
+        my_config.IOU_THRESHOLD             = self.params["IOU_THRESHOLD"]
+        my_config.FRAME_SKIP                = self.params["FRAME_SKIP"]
+        my_config.LEN_HISTORY               = self.params["LEN_HISTORY"]
+        my_config.VOTING_THREDSHOLD         = self.params["VOTING_THREDSHOLD"]
+        my_config.MISSING_COUNTER_THRESHOLD = self.params["MISSING_COUNTER_THRESHOLD"]
+
+        if self.detector:
+            self.detector.conf = self.params["DETECT_CONF"]
+        if self.voting:
+            self.voting.len_history = self.params["LEN_HISTORY"]
+
+    # ------------------------------------------------------------------
+    # Camera / Stream Control
+    # ------------------------------------------------------------------
+
+    def start_camera(self, source) -> None:
+        """Opens the video source (int index for webcam, str path for file)."""
+        self.camera = Camera(source)
+        self.is_running = True
+        self.frame_queue = queue.Queue(maxsize=2)
+        self.result_queue = queue.Queue(maxsize=2)
+        self.worker_thread = threading.Thread(target=self._ai_worker, daemon=True)
+        self.worker_thread.start()
+
+    def stop_camera(self) -> None:
+        """Releases the active camera / video capture."""
+        self.is_running = False
+        if self.worker_thread:
+            self.worker_thread.join(timeout=1.0)
+            self.worker_thread = None
+        if self.camera:
+            self.camera.release()
+            self.camera = None
+
+    def read_frame(self):
+        """Returns the next frame from the camera, or None if unavailable."""
+        if self.camera is None:
+            return None
+        return self.camera.read()
+
+    def _ai_worker(self):
+        """Background thread to process frames."""
+        consecutive_none_count = 0
+        max_none_retries = 10
+
+        while self.is_running:
+            start_time = time.time()
+            frame = self.read_frame()
+            if frame is None:
+                consecutive_none_count += 1
+                if consecutive_none_count > max_none_retries:
+                    if not self.result_queue.full():
+                        self.result_queue.put(("EOF", None, None, None))
+                    break
+                time.sleep(0.05)
+                continue
+
+            consecutive_none_count = 0
+
+            try:
+                results, results_voting = self.process_frame(frame)
+            except Exception as e:
+                logging.error(f"Error in process_frame: {e}")
+                results, results_voting = [], {}
+
+            if self.result_queue.full():
+                try:
+                    self.result_queue.get_nowait()
+                except queue.Empty:
+                    pass
+            self.result_queue.put((frame, results, results_voting, start_time))
+
+    # ------------------------------------------------------------------
+    # AI Pipeline Processing
+    # ------------------------------------------------------------------
+
+    def process_frame(self, frame):
+        """
+        Runs the detection + classification pipeline on a single frame,
+        feeds results into temporal voting, and returns:
+          - results       : raw pipeline results (list of DetectionResult)
+          - results_voting: voted results per track_id (dict)
+        """
+        results = self.pipeline.run(frame=frame)
+        self.voting.update(results)
+        results_voting = self.voting.vote()
+        return results, results_voting
+
+    # ------------------------------------------------------------------
+    # Statistics
+    # ------------------------------------------------------------------
+
+    def reset_state(self) -> None:
+        """Clears all temporal voting history (called on UI reset)."""
+        if self.voting:
+            self.voting.histories.clear()
+            self.voting.missing_counter.clear()
+
+    @staticmethod
+    def compute_statistics(results_voting: dict) -> dict:
+        """
+        Derives aggregate statistics from voting results.
+        Returns a dict with keys: total, uniform, non_uniform, card_ok, no_card, fully_compliant, waiting, compliance_rate.
+        """
+        total = len(results_voting)
+        uniform = non_uniform = card_ok = no_card = fully_compliant = waiting = 0
+
+        for vote_res in results_voting.values():
+            u_lbl = getattr(vote_res, "uniform_label", vote_res.label)
+            c_lbl = getattr(vote_res, "card_label", "Waiting")
+
+            if u_lbl == "Uniform":
+                uniform += 1
+            elif u_lbl == "Non_Uniform":
+                non_uniform += 1
+
+            if c_lbl == "Card":
+                card_ok += 1
+            elif c_lbl == "No_Card":
+                no_card += 1
+
+            if u_lbl == "Uniform" and c_lbl == "Card":
+                fully_compliant += 1
+            elif u_lbl == "Waiting" or c_lbl == "Waiting":
+                waiting += 1
+
+        compliance_rate = (fully_compliant / total * 100) if total > 0 else 0.0
+
+        return {
+            "total":           total,
+            "uniform":         uniform,
+            "non_uniform":     non_uniform,
+            "card_ok":         card_ok,
+            "no_card":         no_card,
+            "fully_compliant": fully_compliant,
+            "waiting":         waiting,
+            "compliance_rate": compliance_rate,
+        }
+
+    # ------------------------------------------------------------------
+    # Entry Point
+    # ------------------------------------------------------------------
+
+    def run(self) -> None:
+        """Launches the Tkinter UI (imported here to keep UI separate)."""
+        from desktop.ui import CampusMonitorUI
+        root = tk.Tk()
+        CampusMonitorUI(root, self)
+        root.mainloop()

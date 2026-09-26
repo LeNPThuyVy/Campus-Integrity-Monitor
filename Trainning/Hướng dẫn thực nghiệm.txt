@@ -1,0 +1,10 @@
+1. Extract file zip ra
+2. Sau khi extract xong thì trong folder sẽ có chưa file train (uniform_kd_vs_baseline_experiment.ipynb) -->
+Thực hiện mở file, tinh chỉnh lại đường dẫn dataset tương ứng trong máy
+3. Đọc file strategy, thực hiện chỉnh sửa lại file train theo strategy, điền kết quả tương ứng vào file strategy.
+4. Mỗi thí nghiệm thì cần lưu lại thư mục runs để làm kết quả đối chứng (nếu cần)
+5. Hướng dẫn lưu lại file runs:
+  * Chạy hết file train ta sẽ có được file runs
+  * Sau mỗi thí nghiệm nhớ đóng gói file runs thành dạng zip theo cú pháp: "result_tên thí nghiệm.zip" 
+6. Sau khi thực hiện chạy xong thì TẠO NHÁNH MỚI với tên của mình
+7. up file word lên nhánh của mình (KHÔNG UP FILE KẾT QUẢ - FILE ZIP ĐỂ TRÁNH NẶNG NHÁNH)
