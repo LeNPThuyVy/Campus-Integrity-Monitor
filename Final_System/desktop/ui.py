@@ -149,10 +149,11 @@ class CampusMonitorUI:
         right_panel.pack(fill="both", expand=True, side="right")
         self.create_right_panel(right_panel)
 
-    def make_modern_button(self, parent, text, command, bg_color, hover_color, fg_color="white", height=35):
+    def make_modern_button(self, parent, text, command, bg_color, hover_color, fg_color="white", height=35, width=None):
         """Creates a flat modern button with custom active hover state bindings."""
-        btn_frame = tk.Frame(parent, bg=bg_color, height=height)
-        btn_frame.pack_propagate(False)
+        btn_frame = tk.Frame(parent, bg=bg_color, height=height, width=width)
+        if width or height:
+            btn_frame.pack_propagate(False)
 
         btn = tk.Button(btn_frame, text=text, command=command, bg=bg_color, fg=fg_color,
                         relief="flat", bd=0, font=self.font_bold, activebackground=hover_color,
@@ -207,9 +208,8 @@ class CampusMonitorUI:
                                      anchor="w", bg="#F1F5F9", fg=self.COLOR_TEXT_MUTED, font=self.font_body)
         self.lbl_filename.pack(fill="x", side="left", expand=True, padx=(0, 5), ipady=5)
 
-        btn_browse_frame = self.make_modern_button(self.file_frame, "Chọn", self.browse_video, "#64748B", "#475569", height=28)
+        btn_browse_frame = self.make_modern_button(self.file_frame, "Chọn", self.browse_video, "#64748B", "#475569", height=28, width=60)
         btn_browse_frame.pack(side="right")
-        btn_browse_frame.pack_propagate(True)
 
         self.on_source_change()
 
@@ -224,9 +224,8 @@ class CampusMonitorUI:
 
         btn_reset_wrapper = self.make_modern_button(
             control_frame, "Đặt Lại", self.reset_stats,
-            "#EF4444", "#DC2626", height=36)
+            "#EF4444", "#DC2626", height=36, width=80)
         btn_reset_wrapper.pack(side="right", padx=(5, 0))
-        btn_reset_wrapper.pack_propagate(True)
 
         # 2. Configuration Settings Card
         cfg_card = tk.Frame(parent, bg=self.COLOR_CARD,
@@ -246,8 +245,27 @@ class CampusMonitorUI:
             "<Configure>",
             lambda e: cfg_canvas.configure(scrollregion=cfg_canvas.bbox("all"))
         )
-        cfg_canvas.create_window((0, 0), window=scroll_frame, anchor="nw", width=300)
+        canvas_window = cfg_canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
         cfg_canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Dynamic inner width adjustment when canvas is resized
+        def _on_canvas_configure(e):
+            cfg_canvas.itemconfig(canvas_window, width=e.width)
+
+        cfg_canvas.bind("<Configure>", _on_canvas_configure)
+
+        # Mousewheel scrolling support
+        def _on_mousewheel(event):
+            cfg_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def _bind_mousewheel(event):
+            cfg_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        def _unbind_mousewheel(event):
+            cfg_canvas.unbind_all("<MouseWheel>")
+
+        cfg_canvas.bind("<Enter>", _bind_mousewheel)
+        cfg_canvas.bind("<Leave>", _unbind_mousewheel)
 
         cfg_canvas.pack(side="left",  fill="both", expand=True, padx=(15, 0), pady=5)
         scrollbar.pack(side="right", fill="y",    padx=(0, 5),  pady=5)
@@ -269,6 +287,16 @@ class CampusMonitorUI:
         self.slider_classify_conf = add_slider("Độ nhạy phân loại đồng phục (Classify Conf)",        "CLASSIFY_CONF", 0.1, 1.0, 0.05)
         self.slider_iou           = add_slider("Ngưỡng IOU Tracker",                                  "IOU_THRESHOLD", 0.1, 1.0, 0.05)
 
+        # ── YOLO Card Detector controls ───────────────────────────────
+        lbl_card_section = tk.Label(scroll_frame, text="── Phát hiện thẻ (YOLO) ──",
+                                    font=("Segoe UI", 9, "italic"),
+                                    fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_CARD)
+        lbl_card_section.pack(anchor="w", padx=5, pady=(10, 2))
+
+        self.slider_card_conf = add_slider("Độ nhạy phát hiện thẻ (Card Detect Conf)",              "DETECT_CARD_CONF", 0.1, 1.0, 0.05)
+        self.slider_card_iou  = add_slider("Ngưỡng IOU phát hiện thẻ (Card Detect IOU)",             "DETECT_CARD_IOU",  0.1, 1.0, 0.05)
+
+
         # Spinboxes Row
         spin_row = tk.Frame(scroll_frame, bg=self.COLOR_CARD)
         spin_row.pack(fill="x", padx=5, pady=5)
@@ -282,10 +310,11 @@ class CampusMonitorUI:
             spin.grid(row=row+1, column=col, sticky="w", pady=(0, 8), padx=(0, 20))
             return spin
 
-        self.spin_frame_skip   = add_spinbox(0, 0, "Bỏ qua khung hình:", "FRAME_SKIP",                1,  20)
-        self.spin_history_len  = add_spinbox(0, 1, "Độ dài lịch sử:",    "LEN_HISTORY",               5,  50)
-        self.spin_voting_thresh = add_spinbox(2, 0, "Ngưỡng biểu quyết:", "VOTING_THREDSHOLD",         1,  30)
-        self.spin_missing_thresh = add_spinbox(2, 1, "Ngưỡng biến mất:",  "MISSING_COUNTER_THRESHOLD", 1,  20)
+        self.spin_frame_skip      = add_spinbox(0, 0, "Bỏ qua khung hình:", "FRAME_SKIP",                1,  20)
+        self.spin_history_len     = add_spinbox(0, 1, "Độ dài lịch sử:",    "LEN_HISTORY",               5,  50)
+        self.spin_voting_thresh   = add_spinbox(2, 0, "Ngưỡng biểu quyết:", "VOTING_THREDSHOLD",         1,  30)
+        self.spin_missing_thresh  = add_spinbox(2, 1, "Ngưỡng biến mất:",   "MISSING_COUNTER_THRESHOLD", 1,  20)
+        self.spin_card_image_size = add_spinbox(4, 0, "Kích thước ảnh thẻ (px):", "DETECT_CARD_IMAGE_SIZE", 320, 1280)
 
         # Save config button
         save_btn_wrap = self.make_modern_button(scroll_frame, "LƯU CẤU HÌNH", self.save_parameters,
@@ -390,10 +419,13 @@ class CampusMonitorUI:
         self.slider_detect_conf.set(p["DETECT_CONF"])
         self.slider_classify_conf.set(p["CLASSIFY_CONF"])
         self.slider_iou.set(p["IOU_THRESHOLD"])
+        self.slider_card_conf.set(p["DETECT_CARD_CONF"])
+        self.slider_card_iou.set(p["DETECT_CARD_IOU"])
         self.spin_frame_skip.set(p["FRAME_SKIP"])
         self.spin_history_len.set(p["LEN_HISTORY"])
         self.spin_voting_thresh.set(p["VOTING_THREDSHOLD"])
         self.spin_missing_thresh.set(p["MISSING_COUNTER_THRESHOLD"])
+        self.spin_card_image_size.set(p["DETECT_CARD_IMAGE_SIZE"])
 
     def save_parameters(self):
         """Reads widget values and delegates persistence to App."""
@@ -406,6 +438,10 @@ class CampusMonitorUI:
                 "LEN_HISTORY":               int(self.spin_history_len.get()),
                 "VOTING_THREDSHOLD":         int(self.spin_voting_thresh.get()),
                 "MISSING_COUNTER_THRESHOLD": int(self.spin_missing_thresh.get()),
+                # YOLO card detector knobs
+                "DETECT_CARD_CONF":          float(self.slider_card_conf.get()),
+                "DETECT_CARD_IOU":           float(self.slider_card_iou.get()),
+                "DETECT_CARD_IMAGE_SIZE":    int(self.spin_card_image_size.get()),
             }
             self.app.save_parameters(new_params)
             messagebox.showinfo("Thành công", "Đã lưu thông số cấu hình thành công!")
@@ -615,6 +651,29 @@ class CampusMonitorUI:
             cv2.rectangle(frame, (x1, y1 - text_h - 10), (x1 + text_w + 10, y1), box_color, -1)
             cv2.putText(frame, text_str, (x1 + 5, y1 - 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+
+            # Draw Card Bounding Boxes (if detected by YOLO card detector)
+            if getattr(res, "card_detections", None):
+                crop_x1 = max(0, x1)
+                crop_y1 = max(0, y1)
+                for card_det in res.card_detections:
+                    cx1, cy1, cx2, cy2 = map(int, card_det.bbox)
+                    fcx1 = crop_x1 + cx1
+                    fcy1 = crop_y1 + cy1
+                    fcx2 = crop_x1 + cx2
+                    fcy2 = crop_y1 + cy2
+
+                    # Draw card box in Cyan color (BGR)
+                    card_color = (255, 255, 0)
+                    cv2.rectangle(frame, (fcx1, fcy1), (fcx2, fcy2), card_color, 2)
+
+                    # Card label tag with confidence
+                    card_tag = f"Card: {card_det.confidence:.2f}"
+                    (ct_w, ct_h), _ = cv2.getTextSize(card_tag, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
+                    tag_y1 = max(0, fcy1 - ct_h - 6)
+                    cv2.rectangle(frame, (fcx1, tag_y1), (fcx1 + ct_w + 6, fcy1), card_color, -1)
+                    cv2.putText(frame, card_tag, (fcx1 + 3, fcy1 - 3),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
 
     # ------------------------------------------------------------------
     # Statistics Display (UI update from App.compute_statistics)
