@@ -7,6 +7,7 @@ import queue
 import time
 
 from ai.classifier import Classifier
+from ai.card_detector import CardDetector
 from ai.detector import Detector
 from ai.pipeline import Pipeline
 from ai.temporal_voting import TemporalVoting
@@ -29,10 +30,15 @@ class App:
             num_class=len(my_config.UNIFORM_LABELS),
             labels=my_config.UNIFORM_LABELS
         )
-        self.card_classifier = Classifier(
-            model_path=my_config.CLASSIFY_CARD_PATH,
-            num_class=len(my_config.CARD_LABELS),
-            labels=my_config.CARD_LABELS
+        # Card detection is now done by a YOLO detector, not a MobileNetV3 classifier.
+        # The CardDetector returns bounding boxes; Pipeline converts them to a
+        # Prediction-compatible result so voting and UI code stay unchanged.
+        self.card_detector = CardDetector(
+            model_path=my_config.DETECT_CARD_PATH,
+            device=my_config.DEVICE,
+            conf=my_config.DETECT_CARD_CONF,
+            iou=my_config.DETECT_CARD_IOU,
+            image_size=my_config.DETECT_CARD_IMAGE_SIZE
         )
         self.classifier = self.uniform_classifier
         self.detector = Detector(
@@ -43,7 +49,7 @@ class App:
         self.pipeline = Pipeline(
             detector=self.detector,
             uniform_classifier=self.uniform_classifier,
-            card_classifier=self.card_classifier
+            card_detector=self.card_detector
         )
         self.voting = TemporalVoting()
         self.camera: Camera | None = None
@@ -71,6 +77,10 @@ class App:
             "LEN_HISTORY":               my_config.LEN_HISTORY,
             "VOTING_THREDSHOLD":         my_config.VOTING_THREDSHOLD,
             "MISSING_COUNTER_THRESHOLD": my_config.MISSING_COUNTER_THRESHOLD,
+            # YOLO card detector knobs
+            "DETECT_CARD_CONF":          my_config.DETECT_CARD_CONF,
+            "DETECT_CARD_IOU":           my_config.DETECT_CARD_IOU,
+            "DETECT_CARD_IMAGE_SIZE":    my_config.DETECT_CARD_IMAGE_SIZE,
         }
 
         if os.path.exists(CONFIG_FILE_PATH):
@@ -105,9 +115,19 @@ class App:
         my_config.LEN_HISTORY               = self.params["LEN_HISTORY"]
         my_config.VOTING_THREDSHOLD         = self.params["VOTING_THREDSHOLD"]
         my_config.MISSING_COUNTER_THRESHOLD = self.params["MISSING_COUNTER_THRESHOLD"]
+        my_config.DETECT_CARD_CONF          = self.params["DETECT_CARD_CONF"]
+        my_config.DETECT_CARD_IOU           = self.params["DETECT_CARD_IOU"]
+        my_config.DETECT_CARD_IMAGE_SIZE    = self.params["DETECT_CARD_IMAGE_SIZE"]
 
         if self.detector:
             self.detector.conf = self.params["DETECT_CONF"]
+
+        # Push YOLO card detector thresholds to the live model
+        if self.card_detector:
+            self.card_detector.conf       = self.params["DETECT_CARD_CONF"]
+            self.card_detector.iou        = self.params["DETECT_CARD_IOU"]
+            self.card_detector.image_size = self.params["DETECT_CARD_IMAGE_SIZE"]
+
         if self.voting:
             self.voting.len_history = self.params["LEN_HISTORY"]
 
@@ -180,7 +200,7 @@ class App:
         """
         Runs the detection + classification pipeline on a single frame,
         feeds results into temporal voting, and returns:
-          - results       : raw pipeline results (list of DetectionResult)
+          - results       : raw pipeline results (list of PipelineResult)
           - results_voting: voted results per track_id (dict)
         """
         results = self.pipeline.run(frame=frame)

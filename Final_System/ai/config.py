@@ -9,10 +9,11 @@ import torch
 CURRENT_FILE=Path(__file__).resolve() #Get current folder path
 ROOT_DIR=CURRENT_FILE  .parent.parent
 DETECT_PERSON_PATH=ROOT_DIR /"models"/"detector.pt"
-CLASSIFY_UNIFORM_PATH = ROOT_DIR /"models"/"mobilenet_best_uniform.pt"
-CLASSIFY_CARD_PATH = ROOT_DIR /"models"/"mobilenet_best_card.pt"
+CLASSIFY_UNIFORM_PATH = ROOT_DIR /"models"/"kd_student_seed42_best_ver2.pt"
+DETECT_CARD_PATH     = ROOT_DIR /"models"/"card_detector.pt"
 DETECTOR_MODEL_NAME="YOLO26"
 CLASSIFIER_MODEL_NAME="MobileNetV3"
+CARD_DETECTOR_MODEL_NAME="YOLO"
 EVENT_JSON_PATH=ROOT_DIR / "storage"/ "events.json"
 PROMPT_YAML_PATH= CURRENT_FILE.parent/"reporting"/"prompt"/"report_prompt.yaml"
 
@@ -25,8 +26,13 @@ CARD_LABELS = ["No_Card", "Card"]
 LABELS = UNIFORM_LABELS
 DETECT_IMAGE_SIZE=640
 CLASSIFY_IMAGE_SIZE=224
-DETECT_CONF=0.3
-CLASSIFY_CONF=0.4
+DETECT_CONF=0.5
+CLASSIFY_CONF=0.8
+
+#YOLO card detector tuning
+DETECT_CARD_CONF=0.5
+DETECT_CARD_IOU=0.45
+DETECT_CARD_IMAGE_SIZE=320
 
 
 
@@ -52,9 +58,9 @@ IOU_THRESHOLD=0.7
 #Voting
 #==========================
 FRAME_SKIP=5
-LEN_HISTORY=20
-VOTING_THREDSHOLD=7
-HISTORY_THRESHOLD=12
+LEN_HISTORY=30
+VOTING_THREDSHOLD=25
+HISTORY_THRESHOLD=20
 MISSING_COUNTER_THRESHOLD=5
 
 
