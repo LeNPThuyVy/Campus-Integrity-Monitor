@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cim
+      POSTGRES_PASSWORD: cim_password   # change before using on a shared network
+      POSTGRES_DB: cim
+    ports:
+      - "5432:5432"
+    volumes:
+      - cim_pgdata:/var/lib/postgresql/data
+
+volumes:
+  cim_pgdata:

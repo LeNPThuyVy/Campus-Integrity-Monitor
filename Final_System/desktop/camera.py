@@ -3,6 +3,7 @@ import logging
 
 class Camera:
     def __init__(self, source = 0):
+        self.source = source
         self.cap=cv2.VideoCapture(source)
         if not self.cap.isOpened():
             raise RuntimeError("Can't access to the camera!")

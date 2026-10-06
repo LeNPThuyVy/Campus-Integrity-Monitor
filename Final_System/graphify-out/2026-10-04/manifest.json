@@ -12,10 +12,10 @@
     "semantic_hash": "cd94c0e108c6748b9c7c7c5510bff976"
   },
   "ai/config.py": {
-    "mtime": 1791169976.3924088,
-    "seen": 1791171178.9398015,
-    "ast_hash": "40ae093270e7c603a86a9e768cc9b233",
-    "semantic_hash": "40ae093270e7c603a86a9e768cc9b233"
+    "mtime": 1790836260.310558,
+    "seen": 1790858983.0467615,
+    "ast_hash": "1e83e9883cf2e5f3426219e4fdd7d3c5",
+    "semantic_hash": "1e83e9883cf2e5f3426219e4fdd7d3c5"
   },
   "ai/detector.py": {
     "mtime": 1785307390.7016177,
@@ -30,10 +30,10 @@
     "semantic_hash": "c40e42789f108451c5d9d0514eb17bba"
   },
   "ai/pipeline.py": {
-    "mtime": 1791170033.5347502,
-    "seen": 1791171178.9413064,
-    "ast_hash": "b5f151e823eac711e559ad99687d336d",
-    "semantic_hash": "b5f151e823eac711e559ad99687d336d"
+    "mtime": 1790218338.6745281,
+    "seen": 1790858983.0467615,
+    "ast_hash": "ca18ab7c463ed6fc1b5440d6667fdd30",
+    "semantic_hash": "ca18ab7c463ed6fc1b5440d6667fdd30"
   },
   "ai/reporting/event_logger.py": {
     "mtime": 1788416762.5147736,
@@ -96,10 +96,10 @@
     "semantic_hash": "d751713988987e9331980363e24189ce"
   },
   "ai/temporal_voting.py": {
-    "mtime": 1791169999.7250414,
-    "seen": 1791171178.9443214,
-    "ast_hash": "9b50dd5595a3be3719b6c768d2227223",
-    "semantic_hash": "9b50dd5595a3be3719b6c768d2227223"
+    "mtime": 1788416709.0422158,
+    "seen": 1790858983.0467615,
+    "ast_hash": "debb12e9af9ab4b6c53e33bcaf84a07f",
+    "semantic_hash": "debb12e9af9ab4b6c53e33bcaf84a07f"
   },
   "api/__init__.py": {
     "mtime": 1785997543.589043,
@@ -114,10 +114,10 @@
     "semantic_hash": "1a377a3b20b9a25714d231ac2e2ffc19"
   },
   "api/factories.py": {
-    "mtime": 1791129156.9051402,
-    "seen": 1791171178.9477482,
-    "ast_hash": "0f33c14c36cfb29a7b7e0befbe10bb6e",
-    "semantic_hash": "0f33c14c36cfb29a7b7e0befbe10bb6e"
+    "mtime": 1788416721.1561189,
+    "seen": 1790858983.0467615,
+    "ast_hash": "bc98e07b38f0e52a65aec4978396bf59",
+    "semantic_hash": "bc98e07b38f0e52a65aec4978396bf59"
   },
   "api/main.py": {
     "mtime": 1785307399.1461673,
@@ -150,28 +150,28 @@
     "semantic_hash": "9e1be0028406954153e527a81465945f"
   },
   "desktop/app.py": {
-    "mtime": 1791170081.3986242,
-    "seen": 1791171178.949753,
-    "ast_hash": "5f2592a78035538ffa07f434ae7c2ce0",
-    "semantic_hash": "5f2592a78035538ffa07f434ae7c2ce0"
+    "mtime": 1790218900.4433155,
+    "seen": 1790858983.0467615,
+    "ast_hash": "5cd8da112685ee8161bcc61b5c71a7c2",
+    "semantic_hash": "5cd8da112685ee8161bcc61b5c71a7c2"
   },
   "desktop/camera.py": {
-    "mtime": 1791170067.4065819,
-    "seen": 1791171178.949753,
-    "ast_hash": "f4c35d2a022a5e600067aea87a3c3e87",
-    "semantic_hash": "f4c35d2a022a5e600067aea87a3c3e87"
+    "mtime": 1785307407.690898,
+    "seen": 1790858983.0467615,
+    "ast_hash": "d270ea35752c86f683b127d8da4d45fd",
+    "semantic_hash": "d270ea35752c86f683b127d8da4d45fd"
   },
   "desktop/config.json": {
-    "mtime": 1791123478.6627564,
-    "seen": 1791124204.1668928,
-    "ast_hash": "c4ff692761e6e868cd0321d5b76173cc",
-    "semantic_hash": "c4ff692761e6e868cd0321d5b76173cc"
+    "mtime": 1790836739.1631038,
+    "seen": 1790858983.0467615,
+    "ast_hash": "a43294d88b2291f5eb1e2a0d6b2c7f26",
+    "semantic_hash": "a43294d88b2291f5eb1e2a0d6b2c7f26"
   },
   "desktop/ui.py": {
-    "mtime": 1791170244.1151893,
-    "seen": 1791171178.9507494,
-    "ast_hash": "6893453190e197e48596abf529ffece8",
-    "semantic_hash": "6893453190e197e48596abf529ffece8"
+    "mtime": 1790218895.904307,
+    "seen": 1790858983.0467615,
+    "ast_hash": "062e42acd9f442ad3ee6786db125ac69",
+    "semantic_hash": "062e42acd9f442ad3ee6786db125ac69"
   },
   "main.py": {
     "mtime": 1788590478.6760497,
@@ -214,11 +214,5 @@
     "seen": 1790858983.0467615,
     "ast_hash": "c768a93d6b782ab3d96bb4e80f62aee9",
     "semantic_hash": "c768a93d6b782ab3d96bb4e80f62aee9"
-  },
-  "ai/card_detector.py": {
-    "mtime": 1790867783.7895212,
-    "seen": 1791124204.1638799,
-    "ast_hash": "ea08a4a483ab3bcb6fead6bcf70e91ed",
-    "semantic_hash": "ea08a4a483ab3bcb6fead6bcf70e91ed"
   }
 }

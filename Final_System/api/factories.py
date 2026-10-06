@@ -3,6 +3,7 @@ This file will create objects for app
 """
 
 from ai.classifier import Classifier
+from ai.card_detector import CardDetector
 from ai.detector import Detector
 from ai.temporal_voting import TemporalVoting
 from ai.pipeline import Pipeline
@@ -23,11 +24,17 @@ def create_voting() -> TemporalVoting:
 def create_pipeline() -> Pipeline:
     try:
         #Load models
-        detector=Detector(my_config.DETECT_PERSON_PATH,my_config.DEVICE,my_config.DETECT_CONF)
-        uniform_classifier=Classifier(my_config.CLASSIFY_UNIFORM_PATH,len(my_config.UNIFORM_LABELS),labels=my_config.UNIFORM_LABELS)
-        card_classifier=Classifier(my_config.CLASSIFY_CARD_PATH,len(my_config.CARD_LABELS),labels=my_config.CARD_LABELS)
+        detector = Detector(my_config.DETECT_PERSON_PATH, my_config.DEVICE, my_config.DETECT_CONF)
+        uniform_classifier = Classifier(my_config.CLASSIFY_UNIFORM_PATH, len(my_config.UNIFORM_LABELS), labels=my_config.UNIFORM_LABELS)
+        card_detector = CardDetector(
+            model_path=my_config.DETECT_CARD_PATH,
+            device=my_config.DEVICE,
+            conf=my_config.DETECT_CARD_CONF,
+            iou=my_config.DETECT_CARD_IOU,
+            image_size=my_config.DETECT_CARD_IMAGE_SIZE
+        )
         #Create pipeline
-        pipeline= Pipeline(detector=detector, uniform_classifier=uniform_classifier, card_classifier=card_classifier)
+        pipeline = Pipeline(detector=detector, uniform_classifier=uniform_classifier, card_detector=card_detector)
         print("Create pipeline successfully")
         return pipeline
     except Exception as e:

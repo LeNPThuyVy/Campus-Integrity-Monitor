@@ -4,6 +4,8 @@ It sets up environment and opens the door for incoming requests.
 """
 from fastapi import FastAPI
 from api.routes import router
+from api.event_routes import router as event_router
+from api.event_setup import setup_event_services
 from contextlib import asynccontextmanager
 from api.factories import create_service,create_mapper
 
@@ -12,6 +14,7 @@ from api.factories import create_service,create_mapper
 async def lifespan(app: FastAPI):
     app.state.get_service= create_service()
     app.state.get_mapper=create_mapper()
+    setup_event_services(app)
     yield # Server is running
 
 
@@ -24,3 +27,4 @@ app=FastAPI(
 )
 
 app.include_router(router)
+app.include_router(event_router)

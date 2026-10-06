@@ -1,12 +1,14 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import cv2
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageFont, ImageDraw
+import numpy as np
 import os
 import time
 import logging
 import queue
 from datetime import datetime
+import ai.config
 
 # Configure Logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -61,6 +63,7 @@ class CampusMonitorUI:
         self.fps_rate        = tk.StringVar(value="0.0 FPS")
         self.last_fps_time   = time.time()
         self.fps_avg         = 0.0
+        self._log_tree_row_ids = {}
 
         self.setup_styles()
         self.create_widgets()
@@ -85,6 +88,18 @@ class CampusMonitorUI:
         self.font_bold     = ("Segoe UI", 10, "bold")
         self.font_stat_val = ("Segoe UI", 18, "bold")
         self.font_stat_lbl = ("Segoe UI", 8,  "bold")
+
+        # PIL Fonts for OpenCV overlay with Vietnamese UTF-8 support
+        try:
+            self.pil_font = ImageFont.truetype("arial.ttf", 13)
+            self.pil_card_font = ImageFont.truetype("arial.ttf", 11)
+        except Exception:
+            try:
+                self.pil_font = ImageFont.truetype("segoeui.ttf", 13)
+                self.pil_card_font = ImageFont.truetype("segoeui.ttf", 11)
+            except Exception:
+                self.pil_font = ImageFont.load_default()
+                self.pil_card_font = ImageFont.load_default()
 
         # Styling global widgets
         self.style.configure(".",            background=self.COLOR_BG,   foreground=self.COLOR_TEXT_MAIN, font=self.font_body)
@@ -283,9 +298,10 @@ class CampusMonitorUI:
             slider.pack(fill="x", padx=5, pady=(0, 8))
             return slider
 
-        self.slider_detect_conf   = add_slider("Độ nhạy phát hiện người (Detect Conf)",              "DETECT_CONF",   0.1, 1.0, 0.05)
-        self.slider_classify_conf = add_slider("Độ nhạy phân loại đồng phục (Classify Conf)",        "CLASSIFY_CONF", 0.1, 1.0, 0.05)
-        self.slider_iou           = add_slider("Ngưỡng IOU Tracker",                                  "IOU_THRESHOLD", 0.1, 1.0, 0.05)
+        self.slider_detect_conf      = add_slider("Độ nhạy phát hiện người (Detect Conf)",              "DETECT_CONF",              0.1, 1.0, 0.05)
+        self.slider_classify_conf    = add_slider("Độ nhạy phân loại đồng phục (Classify Conf)",        "CLASSIFY_CONF",            0.1, 1.0, 0.05)
+        self.slider_iou              = add_slider("Ngưỡng IOU Tracker",                                  "IOU_THRESHOLD",            0.1, 1.0, 0.05)
+        self.slider_min_height_ratio = add_slider("Ngưỡng bỏ qua người ở xa (Min Height Ratio)",        "MIN_PERSON_HEIGHT_RATIO",  0.05, 0.40, 0.01)
 
         # ── YOLO Card Detector controls ───────────────────────────────
         lbl_card_section = tk.Label(scroll_frame, text="── Phát hiện thẻ (YOLO) ──",
@@ -306,15 +322,17 @@ class CampusMonitorUI:
                            fg=self.COLOR_TEXT_MAIN, bg=self.COLOR_CARD)
             lbl.grid(row=row, column=col, sticky="w", pady=(5, 2))
             spin = ttk.Spinbox(spin_row, from_=from_i, to=to_i, width=6)
-            spin.set(self.app.params[param_key])
+            initial_val = self.app.params.get(param_key, from_i)
+            spin.set(initial_val)
             spin.grid(row=row+1, column=col, sticky="w", pady=(0, 8), padx=(0, 20))
             return spin
 
         self.spin_frame_skip      = add_spinbox(0, 0, "Bỏ qua khung hình:", "FRAME_SKIP",                1,  20)
         self.spin_history_len     = add_spinbox(0, 1, "Độ dài lịch sử:",    "LEN_HISTORY",               5,  50)
-        self.spin_voting_thresh   = add_spinbox(2, 0, "Ngưỡng biểu quyết:", "VOTING_THREDSHOLD",         1,  30)
-        self.spin_missing_thresh  = add_spinbox(2, 1, "Ngưỡng biến mất:",   "MISSING_COUNTER_THRESHOLD", 1,  20)
-        self.spin_card_image_size = add_spinbox(4, 0, "Kích thước ảnh thẻ (px):", "DETECT_CARD_IMAGE_SIZE", 320, 1280)
+        self.spin_voting_high     = add_spinbox(2, 0, "Ngưỡng biểu quyết (Bật):", "VOTING_HIGH_THRESHOLD", 1,  45)
+        self.spin_voting_low      = add_spinbox(2, 1, "Ngưỡng giữ nhãn (Tắt):",   "VOTING_LOW_THRESHOLD",  1,  45)
+        self.spin_missing_thresh  = add_spinbox(4, 0, "Ngưỡng biến mất:",   "MISSING_COUNTER_THRESHOLD", 1,  20)
+        self.spin_card_image_size = add_spinbox(4, 1, "Kích thước ảnh thẻ (px):", "DETECT_CARD_IMAGE_SIZE", 320, 1280)
 
         # Save config button
         save_btn_wrap = self.make_modern_button(scroll_frame, "LƯU CẤU HÌNH", self.save_parameters,
@@ -419,24 +437,29 @@ class CampusMonitorUI:
         self.slider_detect_conf.set(p["DETECT_CONF"])
         self.slider_classify_conf.set(p["CLASSIFY_CONF"])
         self.slider_iou.set(p["IOU_THRESHOLD"])
+        self.slider_min_height_ratio.set(p.get("MIN_PERSON_HEIGHT_RATIO", 0.10))
         self.slider_card_conf.set(p["DETECT_CARD_CONF"])
         self.slider_card_iou.set(p["DETECT_CARD_IOU"])
         self.spin_frame_skip.set(p["FRAME_SKIP"])
         self.spin_history_len.set(p["LEN_HISTORY"])
-        self.spin_voting_thresh.set(p["VOTING_THREDSHOLD"])
+        self.spin_voting_high.set(p.get("VOTING_HIGH_THRESHOLD"))
+        self.spin_voting_low.set(p.get("VOTING_LOW_THRESHOLD", 10))
         self.spin_missing_thresh.set(p["MISSING_COUNTER_THRESHOLD"])
         self.spin_card_image_size.set(p["DETECT_CARD_IMAGE_SIZE"])
 
     def save_parameters(self):
         """Reads widget values and delegates persistence to App."""
         try:
+            high_thresh = int(self.spin_voting_high.get())
             new_params = {
                 "DETECT_CONF":               float(self.slider_detect_conf.get()),
                 "CLASSIFY_CONF":             float(self.slider_classify_conf.get()),
                 "IOU_THRESHOLD":             float(self.slider_iou.get()),
+                "MIN_PERSON_HEIGHT_RATIO":   float(self.slider_min_height_ratio.get()),
                 "FRAME_SKIP":                int(self.spin_frame_skip.get()),
                 "LEN_HISTORY":               int(self.spin_history_len.get()),
-                "VOTING_THREDSHOLD":         int(self.spin_voting_thresh.get()),
+                "VOTING_HIGH_THRESHOLD":     high_thresh,
+                "VOTING_LOW_THRESHOLD":      int(self.spin_voting_low.get()),
                 "MISSING_COUNTER_THRESHOLD": int(self.spin_missing_thresh.get()),
                 # YOLO card detector knobs
                 "DETECT_CARD_CONF":          float(self.slider_card_conf.get()),
@@ -531,6 +554,7 @@ class CampusMonitorUI:
         self.fps_rate.set("0.0 FPS")
         self.fps_avg = 0.0
         self.last_fps_time = time.time()
+        self._log_tree_row_ids.clear()
 
         for item in self.log_tree.get_children():
             self.log_tree.delete(item)
@@ -619,6 +643,12 @@ class CampusMonitorUI:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
 
     def draw_overlay(self, frame, results, results_voting):
+        if not results:
+            return
+
+        text_items = []  # List of tuples: (text, pos_xy, fg_rgb, bg_rgb, font)
+        card_conf = getattr(ai.config, "DETECT_CARD_CONF", 0.25)
+
         for res in results:
             track_id  = res.track_id
             bbox      = res.bbox
@@ -628,52 +658,73 @@ class CampusMonitorUI:
             if voting_res:
                 u_label = getattr(voting_res, "uniform_label", voting_res.label)
                 c_label = getattr(voting_res, "card_label", "Waiting")
-                matched = voting_res.matched_count
             else:
                 u_label = "Waiting"
                 c_label = "Waiting"
-                matched = 0
 
             # Formatting label strings for UI box
             u_str = "ĐP: OK" if u_label == "Uniform" else ("ĐP: SAI" if u_label == "Non_Uniform" else "ĐP: ...")
             c_str = "Thẻ: OK" if c_label == "Card" else ("Thẻ: VẮNG" if c_label == "No_Card" else "Thẻ: ...")
 
             if u_label == "Uniform" and c_label == "Card":
-                box_color = (74, 222, 128)   # Green
+                box_color = (128, 222, 74)     # BGR (Green)
+                bg_color_rgb = (74, 222, 128)  # RGB
             elif u_label == "Non_Uniform" or c_label == "No_Card":
-                box_color = (0, 0, 244)     # Red
+                box_color = (44, 0, 244)       # BGR (Red)
+                bg_color_rgb = (244, 0, 44)    # RGB
             else:
-                box_color = (0, 191, 255)   # Yellow/Cyan
+                box_color = (255, 191, 0)      # BGR (Yellow/Cyan)
+                bg_color_rgb = (0, 191, 255)   # RGB
 
             cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, 2)
             text_str = f"ID {track_id} | {u_str} | {c_str}"
-            (text_w, text_h), _ = cv2.getTextSize(text_str, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
-            cv2.rectangle(frame, (x1, y1 - text_h - 10), (x1 + text_w + 10, y1), box_color, -1)
-            cv2.putText(frame, text_str, (x1 + 5, y1 - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+            text_items.append((text_str, (x1, max(0, y1 - 22)), (255, 255, 255), bg_color_rgb, self.pil_font))
 
             # Draw Card Bounding Boxes (if detected by YOLO card detector)
-            if getattr(res, "card_detections", None):
+            card_dets = getattr(res, "card_detections", None)
+            if card_dets:
                 crop_x1 = max(0, x1)
                 crop_y1 = max(0, y1)
-                for card_det in res.card_detections:
+                for card_det in card_dets:
+                    if card_det.confidence < card_conf:
+                        continue
                     cx1, cy1, cx2, cy2 = map(int, card_det.bbox)
                     fcx1 = crop_x1 + cx1
                     fcy1 = crop_y1 + cy1
                     fcx2 = crop_x1 + cx2
                     fcy2 = crop_y1 + cy2
 
-                    # Draw card box in Cyan color (BGR)
+                    # Draw card box in Cyan color (BGR: 255, 255, 0)
                     card_color = (255, 255, 0)
                     cv2.rectangle(frame, (fcx1, fcy1), (fcx2, fcy2), card_color, 2)
 
                     # Card label tag with confidence
-                    card_tag = f"Card: {card_det.confidence:.2f}"
-                    (ct_w, ct_h), _ = cv2.getTextSize(card_tag, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
-                    tag_y1 = max(0, fcy1 - ct_h - 6)
-                    cv2.rectangle(frame, (fcx1, tag_y1), (fcx1 + ct_w + 6, fcy1), card_color, -1)
-                    cv2.putText(frame, card_tag, (fcx1 + 3, fcy1 - 3),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+                    card_tag = f"Thẻ: {card_det.confidence:.2f}"
+                    tag_y1 = max(0, fcy1 - 20)
+                    text_items.append((card_tag, (fcx1, tag_y1), (0, 0, 0), (255, 255, 0), self.pil_card_font))
+
+        # Render all Unicode text tags in 1 pass using PIL for crisp Vietnamese rendering
+        if text_items:
+            img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(img_rgb)
+            draw = ImageDraw.Draw(pil_img)
+
+            for text, (x, y), fg, bg, font in text_items:
+                if hasattr(font, "getbbox"):
+                    bbox_t = font.getbbox(text)
+                    tw = bbox_t[2] - bbox_t[0]
+                    th = bbox_t[3] - bbox_t[1]
+                else:
+                    tw, th = draw.textsize(text, font=font)
+
+                if bg is not None:
+                    draw.rectangle([x, y, x + tw + 10, y + th + 6], fill=bg)
+                    draw.text((x + 5, y + 2), text, font=font, fill=fg)
+                else:
+                    draw.text((x, y), text, font=font, fill=fg)
+
+            frame_bgr = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+            np.copyto(frame, frame_bgr)
 
     # ------------------------------------------------------------------
     # Statistics Display (UI update from App.compute_statistics)
@@ -684,7 +735,7 @@ class CampusMonitorUI:
         stats = self.app.compute_statistics(results_voting)
         current_time_str = datetime.now().strftime("%H:%M:%S")
 
-        # Update log tree
+        # Update log tree using O(1) row lookup
         for track_id, vote_res in results_voting.items():
             u_lbl = getattr(vote_res, "uniform_label", vote_res.label)
             c_lbl = getattr(vote_res, "card_label", "Waiting")
@@ -693,17 +744,25 @@ class CampusMonitorUI:
             u_status_txt = "Đúng đồng phục" if u_lbl == "Uniform" else ("Sai đồng phục" if u_lbl == "Non_Uniform" else "Đang chờ...")
             c_status_txt = "Đeo thẻ" if c_lbl == "Card" else ("Không đeo thẻ" if c_lbl == "No_Card" else "Đang chờ...")
 
-            already_logged = False
-            for child in self.log_tree.get_children():
+            if track_id in self._log_tree_row_ids:
+                child = self._log_tree_row_ids[track_id]
                 vals = self.log_tree.item(child)["values"]
-                if len(vals) >= 2 and str(vals[1]) == str(track_id):
-                    if vals[2] != u_status_txt or vals[3] != c_status_txt or vals[4] != matched:
-                        self.log_tree.item(child, values=(vals[0], track_id, u_status_txt, c_status_txt, matched))
-                    already_logged = True
-                    break
+                if len(vals) >= 5 and (vals[2] != u_status_txt or vals[3] != c_status_txt or vals[4] != matched):
+                    self.log_tree.item(child, values=(vals[0], track_id, u_status_txt, c_status_txt, matched))
+            else:
+                child = self.log_tree.insert("", 0, values=(current_time_str, track_id, u_status_txt, c_status_txt, matched))
+                self._log_tree_row_ids[track_id] = child
 
-            if not already_logged:
-                self.log_tree.insert("", 0, values=(current_time_str, track_id, u_status_txt, c_status_txt, matched))
+        # Prune log tree entries if > 100 items to prevent Tkinter Treeview memory leak/lag
+        max_tree_rows = 100
+        children = self.log_tree.get_children()
+        if len(children) > max_tree_rows:
+            for child in children[max_tree_rows:]:
+                vals = self.log_tree.item(child)["values"]
+                if vals and len(vals) > 1:
+                    tid = vals[1]
+                    self._log_tree_row_ids.pop(tid, None)
+                self.log_tree.delete(child)
 
         # Update stat cards
         self.total_students.set(str(stats["total"]))
