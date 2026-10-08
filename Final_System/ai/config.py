@@ -26,12 +26,14 @@ UNIFORM_LABELS = ["Non_Uniform", "Uniform"]
 CARD_LABELS = ["No_Card", "Card"]
 LABELS = UNIFORM_LABELS
 DETECT_IMAGE_SIZE=640
+PERSON_IMAGE_SIZE=416
+USE_OPENVINO=False
 CLASSIFY_IMAGE_SIZE=224
 DETECT_CONF=0.5
 CLASSIFY_CONF=0.8
 
 # Distance filtering: skip uniform & card evaluation if person height ratio < threshold (e.g. 10% of frame height)
-MIN_PERSON_HEIGHT_RATIO=0.10
+MIN_PERSON_HEIGHT_RATIO=0.06
 
 #YOLO card detector tuning
 DETECT_CARD_CONF=0.25
@@ -50,17 +52,23 @@ DEVICE= (
 #==========================
 #Tracker 
 #==========================
-IOU_THRESHOLD=0.7
+# IOU_THRESHOLD is not used anymore in voting v2
 
 #==========================
-#Voting (Hysteresis Dual-Threshold)
+#Voting (Hysteresis Dual-Threshold) / Voting v2
 #==========================
-FRAME_SKIP=5
 LEN_HISTORY=30
-VOTING_HIGH_THRESHOLD=25
-VOTING_LOW_THRESHOLD=15
 HISTORY_THRESHOLD=30
 MISSING_COUNTER_THRESHOLD=15
+
+# Voting v2 Params
+MIN_SAMPLES=3
+MIN_SAMPLES_FINAL=3
+CONFIRM_SCORE=2.5
+CLASSIFY_CADENCE_NEW=1
+CLASSIFY_CADENCE_CONFIRMED=15
+CARD_ROI=(0.1, 0.6)
+
 
 
 

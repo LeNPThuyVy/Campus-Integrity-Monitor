@@ -3,6 +3,7 @@ This file runs first. It creates the main FastAPI application instance and conne
 It sets up environment and opens the door for incoming requests.
 """
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from api.routes import router
 from api.event_routes import router as event_router
 from api.event_setup import setup_event_services
@@ -24,6 +25,14 @@ app=FastAPI(
     description="This is an API can help you classify students in campus who is wearing Uniform, who isn't",
     version="1.0.0",
     lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(router)

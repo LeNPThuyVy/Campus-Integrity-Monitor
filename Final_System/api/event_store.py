@@ -24,6 +24,15 @@ class EventStore:
         """
         metadata.create_all(self._engine)
 
+    def get_admin_password_hash(self, username: str) -> str | None:
+        with self._engine.connect() as conn:
+            from sqlalchemy import text
+            row = conn.execute(
+                text("SELECT password_hash FROM admin_users WHERE username = :u"),
+                {"u": username}
+            ).first()
+        return row[0] if row else None
+
     # ------------------------------------------------------------------
     # Devices
     # ------------------------------------------------------------------
@@ -104,8 +113,16 @@ class EventStore:
             conn.execute(update(events).where(events.c.event_uuid == event_uuid).values(
                 image_key=image_key, image_status=status))
 
+    def set_review(self, event_uuid: str, status: str, username: str) -> bool:
+        with self._engine.begin() as conn:
+            res = conn.execute(update(events).where(events.c.event_uuid == event_uuid).values(
+                review_status=status, reviewed_by=username, reviewed_at=datetime.now()
+            ))
+            return res.rowcount > 0
+
     def list_events(self, start: datetime, end: datetime, device_id: str | None = None,
-                    violation_only: bool = False, limit: int = 100, offset: int = 0) -> list[dict]:
+                    violation_only: bool = False, review_status: str | None = None,
+                    limit: int = 100, offset: int = 0) -> list[dict]:
         """
         Newest first, paginated, for the web page
         """
@@ -114,6 +131,8 @@ class EventStore:
             statement = statement.where(events.c.device_id == device_id)
         if violation_only:
             statement = statement.where(events.c.is_violation.is_(True))
+        if review_status:
+            statement = statement.where(events.c.review_status == review_status)
         statement = statement.order_by(events.c.first_seen.desc()).limit(limit).offset(offset)
         with self._engine.connect() as conn:
             rows = conn.execute(statement).all()
@@ -126,7 +145,11 @@ class EventStore:
         statement = select(
             events.c.event_uuid, events.c.device_id, events.c.session_id, events.c.track_id,
             events.c.uniform_label, events.c.card_label, events.c.first_seen, events.c.last_seen
-        ).where(events.c.first_seen >= start, events.c.first_seen < end)
+        ).where(
+            events.c.first_seen >= start, 
+            events.c.first_seen < end,
+            events.c.review_status != "rejected"
+        )
         with self._engine.connect() as conn:
             rows = conn.execute(statement).all()
         return [

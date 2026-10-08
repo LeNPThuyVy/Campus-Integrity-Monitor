@@ -38,7 +38,7 @@ class Pipeline:
         self.card_detector      = card_detector
         self.classifier         = self.uniform_classifier
 
-    def run(self, frame, skip_classification: bool = False) -> list[PipelineResult]:
+    def run(self, frame, frame_count: int = 0, last_classified: dict = None, current_labels: dict = None) -> list[PipelineResult]:
         """
         The process would be:
         1. Detect people in frame
@@ -58,6 +58,11 @@ class Pipeline:
         eval_indices  = []
 
         image_h = frame.shape[0] if frame is not None else 0
+        last_classified = last_classified if last_classified is not None else {}
+        current_labels = current_labels if current_labels is not None else {}
+
+        cadence_new = getattr(my_config, "CLASSIFY_CADENCE_NEW", 2)
+        cadence_confirmed = getattr(my_config, "CLASSIFY_CADENCE_CONFIRMED", 15)
 
         for result in results_detected:
             image_cropped = Utils.crop_person(frame=frame, bbox=result.bbox)
@@ -70,9 +75,16 @@ class Pipeline:
                 person_h = max(0, y2 - y1)
                 person_height_ratio = person_h / image_h if image_h > 0 else 0.0
 
-                min_ratio = getattr(my_config, "MIN_PERSON_HEIGHT_RATIO", 0.1)
+                min_ratio = getattr(my_config, "MIN_PERSON_HEIGHT_RATIO", 0.06)
                 if person_height_ratio >= min_ratio:
-                    eval_indices.append(len(valid_crops) - 1)
+                    tid = result.track_id
+                    lbl = current_labels.get(tid, "Waiting")
+                    last_f = last_classified.get(tid, -999)
+                    
+                    cadence = cadence_confirmed if lbl != "Waiting" else cadence_new
+                    if frame_count - last_f >= cadence:
+                        eval_indices.append(len(valid_crops) - 1)
+                        last_classified[tid] = frame_count
 
         if not valid_crops:
             return []
@@ -80,7 +92,7 @@ class Pipeline:
         uniform_preds = [None] * len(valid_crops)
         card_detections_batch = [None] * len(valid_crops)
 
-        if not skip_classification and eval_indices:
+        if eval_indices:
             eval_crops = [valid_crops[i] for i in eval_indices]
 
             # Uniform classification (MobileNetV3 batch)
@@ -91,9 +103,22 @@ class Pipeline:
 
             # Card detection (YOLO batch)
             if self.card_detector:
-                eval_card_detections = self.card_detector.detect_batch(eval_crops)
+                card_roi = getattr(my_config, "CARD_ROI", (0.1, 0.6))
+                card_crops = []
+                for crop in eval_crops:
+                    h, w = crop.shape[:2]
+                    top = int(h * card_roi[0])
+                    bottom = int(h * card_roi[1])
+                    card_crops.append(crop[top:bottom, :])
+                    
+                eval_card_detections = self.card_detector.detect_batch(card_crops)
                 for idx, crop_i in enumerate(eval_indices):
-                    card_detections_batch[crop_i] = eval_card_detections[idx]
+                    top_offset = int(valid_crops[crop_i].shape[0] * card_roi[0])
+                    detections = []
+                    for d in eval_card_detections[idx]:
+                        shifted_bbox = [d.bbox[0], d.bbox[1] + top_offset, d.bbox[2], d.bbox[3] + top_offset]
+                        detections.append(CardDetection(bbox=shifted_bbox, confidence=d.confidence))
+                    card_detections_batch[crop_i] = detections
 
         for i, result in enumerate(valid_results):
             results.append(PipelineResult(

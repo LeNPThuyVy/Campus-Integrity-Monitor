@@ -1,15 +1,17 @@
 services:
-  postgres:
-    image: postgres:16
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile.report
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: cim
-      POSTGRES_PASSWORD: cim_password   # change before using on a shared network
-      POSTGRES_DB: cim
     ports:
-      - "5432:5432"
+      - "8000:8000"
+    env_file:
+      - .env
     volumes:
-      - cim_pgdata:/var/lib/postgresql/data
-
-volumes:
-  cim_pgdata:
+      - ./models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

@@ -82,9 +82,12 @@ class App:
         self.camera: Camera | None = None
 
         self.is_running = False
-        self.frame_queue = queue.Queue(maxsize=2)
+        self.frame_queue = queue.Queue(maxsize=1)
         self.result_queue = queue.Queue(maxsize=2)
+        self.io_queue = queue.Queue(maxsize=50)
         self.worker_thread = None
+        self.capture_thread = None
+        self.io_thread = None
 
         # Loaded once at startup; UI sliders may update these values later
         self.params: dict = {}
@@ -99,13 +102,14 @@ class App:
         self.params = {
             "DETECT_CONF":               my_config.DETECT_CONF,
             "CLASSIFY_CONF":             my_config.CLASSIFY_CONF,
-            "IOU_THRESHOLD":             getattr(my_config, "IOU_THRESHOLD", 0.7),
-            "FRAME_SKIP":                my_config.FRAME_SKIP,
             "LEN_HISTORY":               my_config.LEN_HISTORY,
-            "VOTING_HIGH_THRESHOLD":     getattr(my_config, "VOTING_HIGH_THRESHOLD", 22),
-            "VOTING_LOW_THRESHOLD":      getattr(my_config, "VOTING_LOW_THRESHOLD", 10),
             "MIN_PERSON_HEIGHT_RATIO":   getattr(my_config, "MIN_PERSON_HEIGHT_RATIO", 0.10),
             "MISSING_COUNTER_THRESHOLD": my_config.MISSING_COUNTER_THRESHOLD,
+            "MIN_SAMPLES":               getattr(my_config, "MIN_SAMPLES", 3),
+            "CONFIRM_SCORE":             getattr(my_config, "CONFIRM_SCORE", 2.5),
+            "CARD_ROI_TOP":              getattr(my_config, "CARD_ROI", (0.1, 0.6))[0],
+            "CARD_ROI_BOT":              getattr(my_config, "CARD_ROI", (0.1, 0.6))[1],
+            "CLASSIFY_CADENCE_CONFIRMED":getattr(my_config, "CLASSIFY_CADENCE_CONFIRMED", 15),
             # YOLO card detector knobs
             "DETECT_CARD_CONF":          my_config.DETECT_CARD_CONF,
             "DETECT_CARD_IOU":           my_config.DETECT_CARD_IOU,
@@ -138,14 +142,14 @@ class App:
     def apply_params_to_config(self) -> None:
         """Pushes current params into ai.config and live model components."""
         my_config.DETECT_CONF               = self.params["DETECT_CONF"]
-        my_config.CLASSIFY_CONF             = self.params["CLASSIFY_CONF"]
-        my_config.IOU_THRESHOLD             = self.params["IOU_THRESHOLD"]
-        my_config.FRAME_SKIP                = self.params["FRAME_SKIP"]
+        my_config.CLASSIFY_CONF             = self.params.get("CLASSIFY_CONF", 0.8)
         my_config.LEN_HISTORY               = self.params["LEN_HISTORY"]
-        my_config.VOTING_HIGH_THRESHOLD     = self.params.get("VOTING_HIGH_THRESHOLD")
-        my_config.VOTING_LOW_THRESHOLD      = self.params.get("VOTING_LOW_THRESHOLD", 10)
         my_config.MIN_PERSON_HEIGHT_RATIO   = self.params.get("MIN_PERSON_HEIGHT_RATIO", 0.10)
         my_config.MISSING_COUNTER_THRESHOLD = self.params["MISSING_COUNTER_THRESHOLD"]
+        my_config.MIN_SAMPLES               = self.params.get("MIN_SAMPLES", 3)
+        my_config.CONFIRM_SCORE             = self.params.get("CONFIRM_SCORE", 2.5)
+        my_config.CARD_ROI                  = (self.params.get("CARD_ROI_TOP", 0.1), self.params.get("CARD_ROI_BOT", 0.6))
+        my_config.CLASSIFY_CADENCE_CONFIRMED= self.params.get("CLASSIFY_CADENCE_CONFIRMED", 15)
         my_config.DETECT_CARD_CONF          = self.params["DETECT_CARD_CONF"]
         my_config.DETECT_CARD_IOU           = self.params["DETECT_CARD_IOU"]
         my_config.DETECT_CARD_IMAGE_SIZE    = self.params["DETECT_CARD_IMAGE_SIZE"]
@@ -173,8 +177,20 @@ class App:
         self.event_logger.session_id = str(uuid.uuid4())
         if self.sync_worker:
             self.sync_worker.start()
-        self.frame_queue = queue.Queue(maxsize=2)
+        self.frame_queue = queue.Queue(maxsize=1)
         self.result_queue = queue.Queue(maxsize=2)
+        self.io_queue = queue.Queue(maxsize=50)
+        self.latest_frame = None
+        self.latest_ai = ([], {}, 0.0)
+        self.ai_fps = 0.0
+        self.last_ai_time = time.perf_counter()
+        
+        self.capture_thread = threading.Thread(target=self._capture_worker, daemon=True)
+        self.capture_thread.start()
+        
+        self.io_thread = threading.Thread(target=self._io_worker, daemon=True)
+        self.io_thread.start()
+        
         self.worker_thread = threading.Thread(target=self._ai_worker, daemon=True)
         self.worker_thread.start()
 
@@ -184,6 +200,13 @@ class App:
         if self.worker_thread:
             self.worker_thread.join(timeout=1.0)
             self.worker_thread = None
+        if getattr(self, "capture_thread", None):
+            self.capture_thread.join(timeout=1.0)
+            self.capture_thread = None
+        if getattr(self, "io_thread", None):
+            self.io_queue.put(None)
+            self.io_thread.join(timeout=2.0)
+            self.io_thread = None
         # Save events that are still open, the AI thread has stopped so it is safe
         self.event_logger.flush()
         if self.camera:
@@ -196,36 +219,78 @@ class App:
             return None
         return self.camera.read()
 
+    def _capture_worker(self):
+        """Background thread to strictly read frames from camera/video."""
+        is_file_source = self.camera and isinstance(getattr(self.camera, "source", None), str)
+        target_delay = 0.033 # ~30fps
+        while self.is_running:
+            t0 = time.time()
+            frame = self.read_frame()
+            if frame is None:
+                time.sleep(0.01)
+                continue
+            
+            # Keep only the freshest frame in queue for AI thread
+            if self.frame_queue.full():
+                try:
+                    self.frame_queue.get_nowait()
+                except queue.Empty:
+                    pass
+            self.frame_queue.put((frame, t0))
+            self.latest_frame = frame
+            
+            if is_file_source:
+                elapsed = time.time() - t0
+                if elapsed < target_delay:
+                    time.sleep(target_delay - elapsed)
+
+    def _io_worker(self):
+        """Background thread for saving evidence and SQLite logs to avoid blocking AI."""
+        while self.is_running or not self.io_queue.empty():
+            try:
+                item = self.io_queue.get(timeout=0.1)
+                if item is None:
+                    break
+                tracking_results, timestamp, finalized = item
+                self.event_logger.process(results=tracking_results, timestamp=timestamp)
+                self.io_queue.task_done()
+            except queue.Empty:
+                pass
+
     def _ai_worker(self):
         """Background thread to process frames."""
         consecutive_none_count = 0
-        max_none_retries = 10
+        max_none_retries = 20
         frame_count = 0
+        last_classified = {}
 
         while self.is_running:
-            start_time = time.time()
-            frame = self.read_frame()
-            if frame is None:
+            try:
+                frame, start_time = self.frame_queue.get(timeout=0.1)
+                consecutive_none_count = 0
+            except queue.Empty:
                 consecutive_none_count += 1
                 if consecutive_none_count > max_none_retries:
                     if not self.result_queue.full():
                         self.result_queue.put(("EOF", None, None, None))
-                    break
-                time.sleep(0.05)
                 continue
 
-            consecutive_none_count = 0
             frame_count += 1
 
-            frame_skip = getattr(my_config, "FRAME_SKIP", 1)
-            # Run tracking on EVERY frame to keep IDs stable, but skip heavy classification on skipped frames
-            skip_classification = (frame_skip > 1) and (frame_count % frame_skip != 0)
-
             try:
-                results, results_voting = self.process_frame(frame, skip_classification=skip_classification)
+                results, results_voting = self.process_frame(frame, frame_count, last_classified)
             except Exception as e:
                 logging.error(f"Error in process_frame: {e}")
                 results, results_voting = [], {}
+
+            now = time.perf_counter()
+            elapsed_ai = now - getattr(self, "last_ai_time", now)
+            self.last_ai_time = now
+            if elapsed_ai > 0:
+                instant_ai_fps = 1.0 / elapsed_ai
+                self.ai_fps = 0.1 * instant_ai_fps + 0.9 * getattr(self, "ai_fps", 0.0)
+                
+            self.latest_ai = (results, results_voting, time.time())
 
             if self.result_queue.full():
                 try:
@@ -234,47 +299,41 @@ class App:
                     pass
             self.result_queue.put((frame, results, results_voting, start_time))
 
-            # Pacing delay for video files to prevent 100% CPU lock / GUI freezing
-            is_file_source = self.camera and isinstance(getattr(self.camera, "source", None), str)
-            if is_file_source:
-                elapsed = time.time() - start_time
-                target_delay = 0.030  # ~33 FPS
-                if elapsed < target_delay:
-                    time.sleep(target_delay - elapsed)
-
     # ------------------------------------------------------------------
     # AI Pipeline Processing
     # ------------------------------------------------------------------
 
-    def process_frame(self, frame, skip_classification: bool = False):
+    def process_frame(self, frame, frame_count: int, last_classified: dict):
         """
-        Runs the detection + classification pipeline on a single frame,
-        feeds results into temporal voting, and returns:
-          - results       : raw pipeline results (list of PipelineResult)
-          - results_voting: voted results per track_id (dict)
+        Runs the detection + classification pipeline on a single frame.
         """
-        results = self.pipeline.run(frame=frame, skip_classification=skip_classification)
+        results = self.pipeline.run(frame=frame, frame_count=frame_count, last_classified=last_classified, current_labels=self.voting.current_uniform_labels)
         self.voting.update(results)
         results_voting = self.voting.vote()
+        
+        # Get finalized votes for tracks that disappeared
+        finalized = self.voting.get_finalized_and_remove()
+        
         try:
-            self._log_events(frame, results, results_voting)
+            self._log_events(frame, results, results_voting, finalized)
         except Exception as e:
             logging.error(f"Error in _log_events: {e}")
+            
         return results, results_voting
 
-    def _log_events(self, frame, results, results_voting: dict) -> None:
+    def _log_events(self, frame, results, results_voting: dict, finalized: dict) -> None:
         """
-        Converts voted results into TrackingResult and feeds EventLogger.
-        Tracks that are still Waiting for both labels are skipped (too short to judge).
-        Only violating tracks that have no evidence image yet get cropped.
+        Converts voted results into TrackingResult and pushes to IO thread.
         """
         bbox_map = {result.track_id: result.bbox for result in results}
         tracking_results = []
-        for track_id, vote_res in results_voting.items():
+        
+        for track_id, vote_res in list(results_voting.items()) + list(finalized.items()):
             u_lbl = getattr(vote_res, "uniform_label", vote_res.label)
             c_lbl = getattr(vote_res, "card_label", "Waiting")
             if u_lbl == "Waiting" and c_lbl == "Waiting":
                 continue
+                
             bbox = bbox_map.get(track_id)
             image = None
             if (bbox is not None
@@ -283,6 +342,7 @@ class App:
                 image = Utils.crop_person(frame=frame, bbox=bbox)
                 if image.size == 0:
                     image = None
+                    
             tracking_results.append(TrackingResult(
                 track_id=track_id,
                 uniform_label=u_lbl,
@@ -291,7 +351,14 @@ class App:
                 bbox=bbox,
                 image=image
             ))
-        self.event_logger.process(results=tracking_results, timestamp=datetime.now(timezone.utc))
+            
+        try:
+            self.io_queue.put_nowait((tracking_results, datetime.now(timezone.utc), finalized))
+        except queue.Full:
+            now = time.time()
+            if now - getattr(self, "_last_io_queue_warn", 0) > 10:
+                logging.warning("IO queue is full, dropping tick")
+                self._last_io_queue_warn = now
 
     # ------------------------------------------------------------------
     # Statistics

@@ -5,7 +5,8 @@ import io
 import re
 from datetime import datetime
 from docx import Document
-from docx.shared import Cm
+from docx.shared import Cm, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
 def _add_table(document: Document, headers: list[str], rows: list[list]) -> None:
@@ -39,7 +40,7 @@ def _add_analysis(document: Document, analysis_text: str) -> None:
             document.add_paragraph(line)
 
 
-def build_docx(stats: dict, analysis_text: str, images: list[tuple[str, bytes]] | None = None) -> bytes:
+def build_docx(stats: dict, analysis_text: str, images: list[tuple[str, bytes]] | None = None, analysis_failed: bool = False) -> bytes:
     """
     images: list of (caption, jpeg bytes) shown as evidence, can be empty
     Returns the content of the .docx file
@@ -47,8 +48,25 @@ def build_docx(stats: dict, analysis_text: str, images: list[tuple[str, bytes]] 
     document=Document()
     document.add_heading("BÁO CÁO TÌNH HÌNH THỰC HIỆN ĐỒNG PHỤC VÀ THẺ SINH VIÊN",level=1)
     period=stats["period"]
-    document.add_paragraph(f"Kỳ báo cáo: {period['type']} (từ {period['start']} đến {period['end']})")
+    
+    # "Kỳ báo cáo: Ngày 07/10/2026 | Tuần 40 (06–12/10/2026) | Tháng 10/2026"
+    period_str = ""
+    if period['type'] == 'day':
+        period_str = f"Ngày {period['start'][:10]}"
+    elif period['type'] == 'week':
+        period_str = f"Tuần {datetime.strptime(period['start'][:10], '%Y-%m-%d').isocalendar()[1]} ({period['start'][:10]} - {period['end'][:10]})"
+    elif period['type'] == 'month':
+        dt = datetime.strptime(period['start'][:10], '%Y-%m-%d')
+        period_str = f"Tháng {dt.month}/{dt.year}"
+    
+    document.add_paragraph(f"Kỳ báo cáo: {period_str}")
     document.add_paragraph(f"Ngày lập báo cáo: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+
+    if analysis_failed:
+        p = document.add_paragraph()
+        run = p.add_run("CẢNH BÁO: Quá trình phân tích tự động bằng AI đã gặp lỗi. Chỉ có số liệu được hiển thị.")
+        run.font.color.rgb = RGBColor(255, 0, 0)
+        run.bold = True
 
     document.add_heading("Số liệu tổng hợp",level=2)
     _add_table(document,["Chỉ số","Giá trị"],[
@@ -60,6 +78,12 @@ def build_docx(stats: dict, analysis_text: str, images: list[tuple[str, bytes]] 
     ])
     document.add_paragraph("Lưu ý: hệ thống không nhận diện danh tính, một sinh viên có thể tạo nhiều lượt ghi nhận.")
 
+    if stats.get("previous"):
+        prev = stats["previous"]
+        diff = stats["violations"] - prev["violations"]
+        trend = "tăng" if diff > 0 else "giảm" if diff < 0 else "không đổi"
+        document.add_paragraph(f"So với kỳ trước: {trend} {abs(diff)} lượt vi phạm (kỳ trước: {prev['violations']} lượt).")
+
     document.add_heading("Theo địa điểm",level=2)
     _add_table(document,["Địa điểm","Tổng lượt","Vi phạm","Tỷ lệ"],[
         [item["location"],item["total"],item["violations"],f"{item['violation_rate']}%"] for item in stats["by_location"]
@@ -68,6 +92,18 @@ def build_docx(stats: dict, analysis_text: str, images: list[tuple[str, bytes]] 
     _add_table(document,["Giờ","Tổng lượt","Vi phạm","Tỷ lệ"],[
         [f"{item['hour']}h",item["total"],item["violations"],f"{item['violation_rate']}%"] for item in stats["by_hour"]
     ])
+    
+    if stats["period"]["type"] in ("week", "month"):
+        document.add_heading("Theo ngày trong tuần",level=2)
+        _add_table(document,["Thứ","Tổng lượt","Vi phạm","Tỷ lệ"],[
+            [item["weekday"],item["total"],item["violations"],f"{item['violation_rate']}%"] for item in stats.get("by_weekday", [])
+        ])
+        
+    if stats["period"]["type"] == "month":
+        document.add_heading("Theo ngày trong tháng",level=2)
+        _add_table(document,["Ngày","Tổng lượt","Vi phạm","Tỷ lệ"],[
+            [item["date"],item["total"],item["violations"],f"{item['violation_rate']}%"] for item in stats.get("by_day", [])
+        ])
 
     document.add_heading("Phân tích",level=2)
     _add_analysis(document,analysis_text)

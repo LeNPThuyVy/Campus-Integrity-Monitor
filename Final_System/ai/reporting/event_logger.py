@@ -9,6 +9,24 @@ from pathlib import Path
 from ai.reporting.event_repository import EventRepository
 import uuid
 
+MERGE_IOU = 0.3
+MERGE_WINDOW = timedelta(seconds=3)
+
+def _iou(box1, box2):
+    if box1 is None or box2 is None:
+        return 0.0
+    x1, y1, x2, y2 = box1
+    x1_, y1_, x2_, y2_ = box2
+    xi1 = max(x1, x1_)
+    yi1 = max(y1, y1_)
+    xi2 = min(x2, x2_)
+    yi2 = min(y2, y2_)
+    inter_area = max(0, xi2 - xi1) * max(0, yi2 - yi1)
+    box1_area = (x2 - x1) * (y2 - y1)
+    box2_area = (x2_ - x1_) * (y2_ - y1_)
+    union_area = box1_area + box2_area - inter_area
+    return inter_area / union_area if union_area > 0 else 0.0
+
 
 class EventLogger:
     def __init__(self,repository: EventRepository, timeout: timedelta, device_id: str = "", session_id: str = "", image_dir: Path | None = None):
@@ -35,9 +53,10 @@ class EventLogger:
         * Not exist: Create
         * Exist: Call _update_active_event()
         """
+        new_ids = {r.track_id for r in new_results}
         for result in new_results:
             if result.track_id not in self._active_events:
-                self._create_active_event(tracking_result=result,timestamp=timestamp)
+                self._create_active_event(tracking_result=result,timestamp=timestamp, new_ids=new_ids)
             else:
                 self._update_active_event(new_result=result,timestamp=timestamp)
 
@@ -55,9 +74,24 @@ class EventLogger:
         for key in expired_key:
             del self._active_events[key]
 
-    def _create_active_event(self,tracking_result:TrackingResult,timestamp: datetime):
+    def _create_active_event(self,tracking_result:TrackingResult,timestamp: datetime, new_ids: set[int]):
         u_lbl = getattr(tracking_result, "uniform_label", tracking_result.label)
         c_lbl = getattr(tracking_result, "card_label", "Waiting")
+        v_type = get_violation_type(u_lbl, c_lbl)
+
+        # Merge with an orphaned event of the same violation type
+        for old_id, old_event in list(self._active_events.items()):
+            if old_id not in new_ids:
+                old_v_type = get_violation_type(old_event.uniform_label, old_event.card_label)
+                if old_v_type == v_type and (timestamp - old_event.last_seen) <= MERGE_WINDOW:
+                    if old_event.bbox and tracking_result.bbox and _iou(old_event.bbox, tracking_result.bbox) >= MERGE_IOU:
+                        # Hijack the old event
+                        old_event.track_id = tracking_result.track_id
+                        self._active_events[tracking_result.track_id] = old_event
+                        del self._active_events[old_id]
+                        self._update_active_event(new_result=tracking_result, timestamp=timestamp)
+                        return
+
         active_event=ActiveEvent(
             track_id=tracking_result.track_id,
             uniform_label=u_lbl,
@@ -65,7 +99,8 @@ class EventLogger:
             label=tracking_result.label,
             first_seen=timestamp,
             last_seen=timestamp,
-            event_uuid=str(uuid.uuid4())
+            event_uuid=str(uuid.uuid4()),
+            bbox=tracking_result.bbox
         )
         self._active_events[tracking_result.track_id]=active_event
         self._capture_image(active_event=active_event,tracking_result=tracking_result)
@@ -78,7 +113,9 @@ class EventLogger:
         update_value.uniform_label=getattr(new_result, "uniform_label", new_result.label)
         update_value.card_label=getattr(new_result, "card_label", "Waiting")
         update_value.label=new_result.label
-        update_value.last_seen=timestamp        
+        update_value.last_seen=timestamp
+        if new_result.bbox is not None:
+            update_value.bbox = new_result.bbox        
         self._capture_image(active_event=update_value,tracking_result=new_result)
 
     def flush(self):

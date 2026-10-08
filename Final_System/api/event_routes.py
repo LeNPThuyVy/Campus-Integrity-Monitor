@@ -15,6 +15,12 @@ from api.event_store import EventStore
 from api.object_store import ObjectStore
 from ai.reporting.report_service import ReportService
 from ai.reporting.report_stats import build_statistics, get_period_range, get_previous_range, LOCAL_TZ
+from api.event_schemas import (
+    LoginRequest, LoginResponse, ReviewRequest
+)
+from api.auth import verify_password, create_access_token, decode_access_token
+import csv
+from io import StringIO
 
 router = APIRouter(prefix="/v1")
 
@@ -49,10 +55,18 @@ def get_device(x_api_key: str = Header(default=""), store: EventStore = Depends(
     return device
 
 
-def require_admin(request: Request, x_api_key: str = Header(default="")) -> None:
+def require_admin(request: Request, x_api_key: str = Header(default=""), authorization: str = Header(default="")) -> str:
+    # Accept either API Key or Bearer token
     admin_key = getattr(request.app.state, "admin_api_key", "")
-    if not admin_key or not secrets.compare_digest(x_api_key, admin_key):
-        raise HTTPException(status_code=401, detail="Invalid admin API key")
+    if x_api_key and admin_key and secrets.compare_digest(x_api_key, admin_key):
+        return "admin_api_key"
+    
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+        payload = decode_access_token(token)
+        return payload.get("sub", "unknown")
+    
+    raise HTTPException(status_code=401, detail="Invalid admin credentials")
 
 
 def _build_image_key(event: dict) -> str:
@@ -133,14 +147,14 @@ def confirm_image(event_uuid: str, body: ImageConfirmRequest, device: dict = Dep
 
 @router.get("/events", response_model=list[EventOut], dependencies=[Depends(require_admin)])
 def list_events(start: datetime, end: datetime, device_id: str | None = None, violation_only: bool = False,
-                limit: int = 100, offset: int = 0, store: EventStore = Depends(get_event_store)):
+                review_status: str | None = None, limit: int = 100, offset: int = 0, store: EventStore = Depends(get_event_store)):
     if limit < 1 or limit > 500:
         raise HTTPException(status_code=400, detail="limit must be between 1 and 500")
     location_map = store.get_location_map()
     rows = store.list_events(start=_utc(start), end=_utc(end), device_id=device_id,
-                             violation_only=violation_only, limit=limit, offset=offset)
+                             violation_only=violation_only, review_status=review_status, limit=limit, offset=offset)
     return [EventOut(location=location_map.get(row["device_id"]), **{
-        key: row[key] for key in EventOut.model_fields if key != "location"
+        key: row[key] for key in row.keys() if key != "location"
     }) for row in rows]
 
 
@@ -204,3 +218,64 @@ def create_report(request: Request, period: str = "day", date: date | None = Non
     file_name = f"report_{period}_{start:%Y%m%d}.docx"
     return Response(content=content, media_type=DOCX_MEDIA_TYPE,
                     headers={"Content-Disposition": f'attachment; filename="{file_name}"'})
+
+# ----------------------------------------------------------------------
+# NEW API ROUTES (Phase 4 & 5)
+# ----------------------------------------------------------------------
+
+@router.post("/auth/login", response_model=LoginResponse)
+def login(body: LoginRequest, request: Request, store: EventStore = Depends(get_event_store)):
+    hashed = store.get_admin_password_hash(body.username)
+    if not hashed or not verify_password(body.password, hashed):
+        raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc mật khẩu không đúng")
+    
+    token = create_access_token(data={"sub": body.username})
+    
+    # Log access
+    with store._engine.begin() as conn:
+        from sqlalchemy import text
+        conn.execute(text("INSERT INTO access_logs (username, ip_address, user_agent, action) VALUES (:u, :ip, :ua, :a)"),
+                     {"u": body.username, "ip": request.client.host if request.client else "unknown", 
+                      "ua": request.headers.get("user-agent", "unknown"), "a": "login"})
+    
+    return LoginResponse(access_token=token)
+
+
+@router.patch("/events/{event_uuid}/review")
+def review_event(event_uuid: str, body: ReviewRequest, username: str = Depends(require_admin), store: EventStore = Depends(get_event_store)):
+    success = store.set_review(event_uuid, body.status, username)
+    if not success:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return {"status": "success", "review_status": body.status}
+
+
+@router.get("/events/export", dependencies=[Depends(require_admin)])
+def export_events(start: datetime, end: datetime, store: EventStore = Depends(get_event_store)):
+    rows = store.list_events(start=_utc(start), end=_utc(end), limit=100000)
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["event_uuid", "device_id", "first_seen", "uniform_label", "card_label", "review_status", "reviewed_by"])
+    
+    for r in rows:
+        writer.writerow([r["event_uuid"], r["device_id"], r["first_seen"], r["uniform_label"], r["card_label"], r.get("review_status", ""), r.get("reviewed_by", "")])
+    
+    return Response(content=output.getvalue(), media_type="text/csv", 
+                    headers={"Content-Disposition": f'attachment; filename="events_export.csv"'})
+
+
+@router.get("/health/devices", dependencies=[Depends(require_admin)])
+def device_health(store: EventStore = Depends(get_event_store)):
+    with store._engine.connect() as conn:
+        from sqlalchemy import text
+        rows = conn.execute(text("SELECT device_id, location, created_at FROM devices")).all()
+    return [{"device_id": r[0], "location": r[1], "registered_at": r[2]} for r in rows]
+
+
+@router.post("/maintenance/retention", dependencies=[Depends(require_admin)])
+def cleanup_retention(days: int = 30, store: EventStore = Depends(get_event_store)):
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    with store._engine.begin() as conn:
+        from sqlalchemy import text
+        res = conn.execute(text("DELETE FROM events WHERE first_seen < :c"), {"c": cutoff})
+    return {"deleted_rows": res.rowcount}

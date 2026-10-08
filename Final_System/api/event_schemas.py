@@ -52,6 +52,20 @@ class EventOut(BaseModel):
     first_seen: datetime
     last_seen: datetime
     image_status: str
+    review_status: str | None = None
+    reviewed_by: str | None = None
+    reviewed_at: datetime | None = None
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+class ReviewRequest(BaseModel):
+    status: str = Field(..., pattern="^(pending|approved|rejected)$")
 
 
 class DeviceRegisterRequest(BaseModel):

@@ -2,6 +2,7 @@ from ultralytics import YOLO
 from dataclasses import dataclass
 import numpy as np
 import logging
+import ai.config as my_config
 
 @dataclass
 class TrackResult:
@@ -35,7 +36,9 @@ class Detector:
             tracker="botsort.yaml",
             classes=[0],
             conf=self.conf,
-            persist=True
+            persist=True,
+            imgsz=getattr(my_config, "PERSON_IMAGE_SIZE", 416),
+            verbose=False
         ) 
         boxes=tracking_result[0].boxes
         results=[]

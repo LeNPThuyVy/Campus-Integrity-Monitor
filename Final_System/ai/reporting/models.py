@@ -53,6 +53,7 @@ class ActiveEvent:
     label: str = ""
     event_uuid: str = ""
     image_path: str = ""
+    bbox: list[float] | None = None
 
 @dataclass(frozen=True)
 class Event:

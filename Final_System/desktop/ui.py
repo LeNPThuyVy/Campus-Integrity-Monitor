@@ -300,8 +300,10 @@ class CampusMonitorUI:
 
         self.slider_detect_conf      = add_slider("Độ nhạy phát hiện người (Detect Conf)",              "DETECT_CONF",              0.1, 1.0, 0.05)
         self.slider_classify_conf    = add_slider("Độ nhạy phân loại đồng phục (Classify Conf)",        "CLASSIFY_CONF",            0.1, 1.0, 0.05)
-        self.slider_iou              = add_slider("Ngưỡng IOU Tracker",                                  "IOU_THRESHOLD",            0.1, 1.0, 0.05)
         self.slider_min_height_ratio = add_slider("Ngưỡng bỏ qua người ở xa (Min Height Ratio)",        "MIN_PERSON_HEIGHT_RATIO",  0.05, 0.40, 0.01)
+        self.slider_confirm_score    = add_slider("Ngưỡng điểm xác nhận (Confirm Score)",               "CONFIRM_SCORE",            1.0, 5.0, 0.1)
+        self.slider_card_roi_top     = add_slider("Vùng tìm thẻ (Trên %)",                              "CARD_ROI_TOP",             0.0, 0.5, 0.05)
+        self.slider_card_roi_bot     = add_slider("Vùng tìm thẻ (Dưới %)",                              "CARD_ROI_BOT",             0.5, 1.0, 0.05)
 
         # ── YOLO Card Detector controls ───────────────────────────────
         lbl_card_section = tk.Label(scroll_frame, text="── Phát hiện thẻ (YOLO) ──",
@@ -327,12 +329,11 @@ class CampusMonitorUI:
             spin.grid(row=row+1, column=col, sticky="w", pady=(0, 8), padx=(0, 20))
             return spin
 
-        self.spin_frame_skip      = add_spinbox(0, 0, "Bỏ qua khung hình:", "FRAME_SKIP",                1,  20)
+        self.spin_min_samples     = add_spinbox(0, 0, "Khung hình tối thiểu:", "MIN_SAMPLES",               1,  10)
         self.spin_history_len     = add_spinbox(0, 1, "Độ dài lịch sử:",    "LEN_HISTORY",               5,  50)
-        self.spin_voting_high     = add_spinbox(2, 0, "Ngưỡng biểu quyết (Bật):", "VOTING_HIGH_THRESHOLD", 1,  45)
-        self.spin_voting_low      = add_spinbox(2, 1, "Ngưỡng giữ nhãn (Tắt):",   "VOTING_LOW_THRESHOLD",  1,  45)
-        self.spin_missing_thresh  = add_spinbox(4, 0, "Ngưỡng biến mất:",   "MISSING_COUNTER_THRESHOLD", 1,  20)
-        self.spin_card_image_size = add_spinbox(4, 1, "Kích thước ảnh thẻ (px):", "DETECT_CARD_IMAGE_SIZE", 320, 1280)
+        self.spin_cadence         = add_spinbox(2, 0, "Chu kỳ phân loại:", "CLASSIFY_CADENCE_CONFIRMED", 1,  45)
+        self.spin_missing_thresh  = add_spinbox(2, 1, "Ngưỡng biến mất:",   "MISSING_COUNTER_THRESHOLD", 1,  20)
+        self.spin_card_image_size = add_spinbox(4, 0, "Kích thước ảnh thẻ (px):", "DETECT_CARD_IMAGE_SIZE", 320, 1280)
 
         # Save config button
         save_btn_wrap = self.make_modern_button(scroll_frame, "LƯU CẤU HÌNH", self.save_parameters,
@@ -435,31 +436,34 @@ class CampusMonitorUI:
         """Push app.params values into the slider / spinbox widgets."""
         p = self.app.params
         self.slider_detect_conf.set(p["DETECT_CONF"])
-        self.slider_classify_conf.set(p["CLASSIFY_CONF"])
-        self.slider_iou.set(p["IOU_THRESHOLD"])
+        self.slider_classify_conf.set(p.get("CLASSIFY_CONF", 0.8))
         self.slider_min_height_ratio.set(p.get("MIN_PERSON_HEIGHT_RATIO", 0.10))
+        self.slider_confirm_score.set(p.get("CONFIRM_SCORE", 2.5))
+        self.slider_card_roi_top.set(p.get("CARD_ROI_TOP", 0.1))
+        self.slider_card_roi_bot.set(p.get("CARD_ROI_BOT", 0.6))
+        
         self.slider_card_conf.set(p["DETECT_CARD_CONF"])
         self.slider_card_iou.set(p["DETECT_CARD_IOU"])
-        self.spin_frame_skip.set(p["FRAME_SKIP"])
+        
+        self.spin_min_samples.set(p.get("MIN_SAMPLES", 3))
         self.spin_history_len.set(p["LEN_HISTORY"])
-        self.spin_voting_high.set(p.get("VOTING_HIGH_THRESHOLD"))
-        self.spin_voting_low.set(p.get("VOTING_LOW_THRESHOLD", 10))
+        self.spin_cadence.set(p.get("CLASSIFY_CADENCE_CONFIRMED", 15))
         self.spin_missing_thresh.set(p["MISSING_COUNTER_THRESHOLD"])
         self.spin_card_image_size.set(p["DETECT_CARD_IMAGE_SIZE"])
 
     def save_parameters(self):
         """Reads widget values and delegates persistence to App."""
         try:
-            high_thresh = int(self.spin_voting_high.get())
             new_params = {
                 "DETECT_CONF":               float(self.slider_detect_conf.get()),
                 "CLASSIFY_CONF":             float(self.slider_classify_conf.get()),
-                "IOU_THRESHOLD":             float(self.slider_iou.get()),
                 "MIN_PERSON_HEIGHT_RATIO":   float(self.slider_min_height_ratio.get()),
-                "FRAME_SKIP":                int(self.spin_frame_skip.get()),
+                "CONFIRM_SCORE":             float(self.slider_confirm_score.get()),
+                "CARD_ROI_TOP":              float(self.slider_card_roi_top.get()),
+                "CARD_ROI_BOT":              float(self.slider_card_roi_bot.get()),
                 "LEN_HISTORY":               int(self.spin_history_len.get()),
-                "VOTING_HIGH_THRESHOLD":     high_thresh,
-                "VOTING_LOW_THRESHOLD":      int(self.spin_voting_low.get()),
+                "MIN_SAMPLES":               int(self.spin_min_samples.get()),
+                "CLASSIFY_CADENCE_CONFIRMED":int(self.spin_cadence.get()),
                 "MISSING_COUNTER_THRESHOLD": int(self.spin_missing_thresh.get()),
                 # YOLO card detector knobs
                 "DETECT_CARD_CONF":          float(self.slider_card_conf.get()),
@@ -571,25 +575,40 @@ class CampusMonitorUI:
             return
 
         try:
-            data = self.app.result_queue.get_nowait()
-            if isinstance(data[0], str) and data[0] == "EOF":
-                self.stop_monitoring()
-                self.status_message.set("Dòng video đã kết thúc hoặc mất kết nối camera.")
+            try:
+                data = self.app.result_queue.get_nowait()
+                if isinstance(data[0], str) and data[0] == "EOF":
+                    self.stop_monitoring()
+                    self.status_message.set("Dòng video đã kết thúc hoặc mất kết nối camera.")
+                    return
+            except queue.Empty:
+                pass
+            
+            frame = getattr(self.app, "latest_frame", None)
+            if frame is None:
+                self.root.after(self.frame_delay, self.update_frame)
                 return
+                
+            frame = frame.copy()
             
-            frame, results, results_voting, start_time = data
-            
-            # Compute FPS using elapsed wall-clock time (EMA smoothing α=0.1)
-            elapsed_sec = time.time() - start_time
+            # Compute Display FPS using elapsed wall-clock time (EMA smoothing α=0.1)
+            now = time.time()
+            elapsed_sec = now - self.last_fps_time
+            self.last_fps_time = now
             instant_fps = 1.0 / elapsed_sec if elapsed_sec > 0 else 0.0
             alpha = 0.1
             self.fps_avg = alpha * instant_fps + (1 - alpha) * self.fps_avg
-            self.fps_rate.set(f"{self.fps_avg:.1f} FPS")
+            
+            ai_fps = getattr(self.app, "ai_fps", 0.0)
+            self.fps_rate.set(f"Disp: {self.fps_avg:.1f} | AI: {ai_fps:.1f}")
 
-            # Draw overlays BEFORE rendering to canvas
-            self.draw_overlay(frame, results, results_voting)
-            self.draw_fps_overlay(frame, self.fps_avg)
-            self.update_statistics(results_voting)
+            # Draw overlays from latest AI result if not too old (< 0.5s)
+            results, results_voting, ai_time = getattr(self.app, "latest_ai", ([], {}, 0.0))
+            if now - ai_time < 0.5:
+                self.draw_overlay(frame, results, results_voting)
+                self.update_statistics(results_voting)
+                
+            self.draw_fps_overlay(frame, self.fps_avg, ai_fps)
 
             canvas_w = self.screen_canvas.winfo_width()
             canvas_h = self.screen_canvas.winfo_height()
@@ -611,8 +630,6 @@ class CampusMonitorUI:
                 self.screen_canvas.create_image(x_offset, y_offset, anchor="nw", image=img_tk)
                 self.screen_canvas.image = img_tk
 
-        except queue.Empty:
-            pass
         except Exception as e:
             logging.error(f"Error in update_frame: {e}")
 
@@ -623,9 +640,9 @@ class CampusMonitorUI:
     # Drawing Helpers (OpenCV overlays)
     # ------------------------------------------------------------------
 
-    def draw_fps_overlay(self, frame, fps):
+    def draw_fps_overlay(self, frame, fps, ai_fps=0.0):
         """Draws a sleek FPS counter chip in the top-left corner of the frame."""
-        fps_text = f"FPS: {fps:.1f}"
+        fps_text = f"Disp: {fps:.1f} | AI: {ai_fps:.1f}"
 
         if fps >= 20:
             chip_color = (0, 180, 80)    # Green

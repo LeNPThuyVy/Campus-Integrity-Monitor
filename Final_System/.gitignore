@@ -1,2 +1,10 @@
 # Local runtime data of each device (outbox database and evidence images)
 /storage/
+ai/reporting/storage/
+
+video_sample/
+
+task/
+
+.env
+graphify-out/
