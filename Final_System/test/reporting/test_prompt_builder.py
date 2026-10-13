@@ -1,123 +1,33 @@
-from ai.reporting.prompt_builder import PromptBuilder
-from ai.reporting.models import Event
 from datetime import datetime
+
+import pytest
+
 import ai.config as my_config
+from ai.reporting.models import Event
+from ai.reporting.prompt_builder import PromptBuilder
 
 
-eventsA = []
-
-eventsB = [
-    Event(
-        track_id=1,
-        label="Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=2,
-        label="Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=3,
-        label="Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-        Event(
-        track_id=4,
-        label="Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=5,
-        label="Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    )
-
-]
-
-eventsC = [
-    Event(
-        track_id=1,
-        label="Non-Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=2,
-        label="Non-Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=3,
-        label="Non-Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=4,
-        label="Non-Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=5,
-        label="Non-Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    )
-
-]
-
-eventsD = [
-    Event(
-        track_id=1,
-        label="Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=2,
-        label="Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-        Event(
-        track_id=3,
-        label="Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=4,
-        label="Non-Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=5,
-        label="Non-Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-    Event(
-        track_id=6,
-        label="Uniform",
-        first_seen=datetime.now(),
-        last_seen=datetime.now()
-    ),
-
-]
+def make_event(track_id, uniform_label, card_label):
+    now = datetime(2026, 10, 13, 8, 0, 0)
+    return Event(track_id=track_id, uniform_label=uniform_label, card_label=card_label,
+                 label=f"{uniform_label} | {card_label}", first_seen=now, last_seen=now)
 
 
+@pytest.fixture
+def builder():
+    return PromptBuilder(prompt_yaml_path=my_config.PROMPT_YAML_PATH)
 
-builder = PromptBuilder(prompt_yaml_path=my_config.PROMPT_YAML_PATH)
 
-prompt = builder.build(eventsA)
+def test_empty_events_prompt_says_no_data(builder):
+    prompt = builder.build([])
+    assert "HIỆN KHÔNG CÓ DỮ LIỆU SỰ KIỆN" in prompt
+    assert "TÓM TẮT" in prompt and "KIẾN NGHỊ" in prompt
 
-print(prompt)
+
+def test_events_are_listed_with_uniform_and_card_status(builder):
+    events = [make_event(1, "Uniform", "Card"), make_event(2, "Non_Uniform", "No_Card")]
+    prompt = builder.build(events)
+    assert prompt.count("Sự kiện") >= 2
+    assert "Trạng thái Đồng phục: Non_Uniform" in prompt
+    assert "Trạng thái Thẻ sinh viên: No_Card" in prompt
+    assert "Mã theo dõi: 2" in prompt

@@ -1,10 +1,19 @@
-# Campus Integrity Monitor - Docker Optimized Requirements
+# Campus Integrity Monitor - Python requirements (API + Desktop)
 
 # Web & API Framework
 fastapi>=0.100.0
 uvicorn>=0.20.0
 pydantic>=2.0.0
 python-multipart>=0.0.6
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# SQL Server (requires the Microsoft ODBC Driver 17/18 for SQL Server on the machine)
+pyodbc>=5.0.0
+
+# Report export (Excel / PDF with Vietnamese text)
+openpyxl>=3.1.0
+fpdf2>=2.7.0
 
 # Deep Learning & Computer Vision
 torch>=2.0.0
@@ -12,17 +21,15 @@ torchvision>=0.15.0
 ultralytics>=8.0.0
 timm>=0.9.0
 
-# Image & Data Processing (Headless for Docker)
+# Image & Data Processing (Headless for Docker; the Desktop UI uses Tkinter + Pillow)
 opencv-python-headless>=4.8.0
 pillow>=9.5.0
 numpy>=1.24.0,<2.0.0
-
-# Event logging, sync to central server, reporting
-requests>=2.31.0
-python-dotenv>=1.0.0
 pyyaml>=6.0
-sqlalchemy>=2.0.0
-psycopg[binary]>=3.1.0
-boto3>=1.34.0
-python-docx>=1.1.0
-google-genai>=1.0.0
+
+# Tests
+pytest>=7.0.0
+httpx>=0.24.0
+
+# Optional: AI-written narrative reports (ai/reporting/gemini_service.py)
+# google-genai>=1.0.0
