@@ -13,7 +13,9 @@ from api.event_schemas import (
 )
 from api.event_store import EventStore
 from api.object_store import ObjectStore
-from ai.reporting.report_service import ReportService
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ai.reporting.report_service import ReportService
 from ai.reporting.report_stats import build_statistics, get_period_range, get_previous_range, LOCAL_TZ
 from api.event_schemas import (
     LoginRequest, LoginResponse, ReviewRequest
@@ -158,6 +160,17 @@ def list_events(start: datetime, end: datetime, device_id: str | None = None, vi
     }) for row in rows]
 
 
+@router.get("/events/{event_uuid}", response_model=EventOut, dependencies=[Depends(require_admin)])
+def get_event_detail(event_uuid: str, store: EventStore = Depends(get_event_store)):
+    event = store.get_event(event_uuid)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    location_map = store.get_location_map()
+    return EventOut(location=location_map.get(event["device_id"]), **{
+        key: event[key] for key in event.keys() if key != "location"
+    })
+
+
 @router.get("/events/{event_uuid}/image-url", response_model=ImageUrlResponse, dependencies=[Depends(require_admin)])
 def get_image_url(event_uuid: str, store: EventStore = Depends(get_event_store),
                   object_store: ObjectStore = Depends(get_object_store)):
@@ -231,12 +244,10 @@ def login(body: LoginRequest, request: Request, store: EventStore = Depends(get_
     
     token = create_access_token(data={"sub": body.username})
     
-    # Log access
-    with store._engine.begin() as conn:
-        from sqlalchemy import text
-        conn.execute(text("INSERT INTO access_logs (username, ip_address, user_agent, action) VALUES (:u, :ip, :ua, :a)"),
-                     {"u": body.username, "ip": request.client.host if request.client else "unknown", 
-                      "ua": request.headers.get("user-agent", "unknown"), "a": "login"})
+    # Log access safely
+    ip_address = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    store.log_access(username=body.username, ip_address=ip_address, user_agent=user_agent, action="login")
     
     return LoginResponse(access_token=token)
 
@@ -250,15 +261,22 @@ def review_event(event_uuid: str, body: ReviewRequest, username: str = Depends(r
 
 
 @router.get("/events/export", dependencies=[Depends(require_admin)])
-def export_events(start: datetime, end: datetime, store: EventStore = Depends(get_event_store)):
+def export_events(start: datetime, end: datetime, include_rejected: bool = False, store: EventStore = Depends(get_event_store)):
     rows = store.list_events(start=_utc(start), end=_utc(end), limit=100000)
+    if not include_rejected:
+        rows = [r for r in rows if r.get("review_status") != "rejected"]
     
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["event_uuid", "device_id", "first_seen", "uniform_label", "card_label", "review_status", "reviewed_by"])
+    writer.writerow(["event_uuid", "device_id", "first_seen", "uniform_label", "card_label", "is_violation", "violation_type", "image_status", "review_status", "reviewed_by"])
     
     for r in rows:
-        writer.writerow([r["event_uuid"], r["device_id"], r["first_seen"], r["uniform_label"], r["card_label"], r.get("review_status", ""), r.get("reviewed_by", "")])
+        writer.writerow([
+            r["event_uuid"], r["device_id"], r["first_seen"],
+            r["uniform_label"], r["card_label"], r.get("is_violation", False),
+            r.get("violation_type", ""), r.get("image_status", "none"),
+            r.get("review_status", ""), r.get("reviewed_by", "")
+        ])
     
     return Response(content=output.getvalue(), media_type="text/csv", 
                     headers={"Content-Disposition": f'attachment; filename="events_export.csv"'})
@@ -266,16 +284,22 @@ def export_events(start: datetime, end: datetime, store: EventStore = Depends(ge
 
 @router.get("/health/devices", dependencies=[Depends(require_admin)])
 def device_health(store: EventStore = Depends(get_event_store)):
-    with store._engine.connect() as conn:
-        from sqlalchemy import text
-        rows = conn.execute(text("SELECT device_id, location, created_at FROM devices")).all()
-    return [{"device_id": r[0], "location": r[1], "registered_at": r[2]} for r in rows]
+    return store.list_devices()
 
 
 @router.post("/maintenance/retention", dependencies=[Depends(require_admin)])
-def cleanup_retention(days: int = 30, store: EventStore = Depends(get_event_store)):
+def cleanup_retention(request: Request, days: int = 30, store: EventStore = Depends(get_event_store)):
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    with store._engine.begin() as conn:
-        from sqlalchemy import text
-        res = conn.execute(text("DELETE FROM events WHERE first_seen < :c"), {"c": cutoff})
-    return {"deleted_rows": res.rowcount}
+    
+    # 1. Clean orphan images from cloud storage
+    object_store = getattr(request.app.state, "object_store", None)
+    deleted_images = 0
+    if object_store is not None:
+        orphan_keys = store.get_orphan_image_keys_before(cutoff)
+        if orphan_keys:
+            object_store.delete_many(orphan_keys)
+            deleted_images = len(orphan_keys)
+            
+    # 2. Delete database rows
+    deleted_rows = store.delete_events_before(cutoff)
+    return {"deleted_rows": deleted_rows, "deleted_images": deleted_images}

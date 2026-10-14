@@ -24,6 +24,14 @@ class ObjectStore(ABC):
     def get_bytes(self, key: str) -> bytes:
         pass
 
+    @abstractmethod
+    def delete(self, key: str) -> None:
+        pass
+
+    @abstractmethod
+    def delete_many(self, keys: list[str]) -> None:
+        pass
+
 
 class R2ObjectStore(ObjectStore):
     def __init__(self, account_id: str, access_key_id: str, secret_access_key: str, bucket: str):
@@ -74,3 +82,25 @@ class R2ObjectStore(ObjectStore):
 
     def get_bytes(self, key: str) -> bytes:
         return self._client.get_object(Bucket=self._bucket, Key=key)["Body"].read()
+
+    def delete(self, key: str) -> None:
+        from botocore.exceptions import ClientError
+        try:
+            self._client.delete_object(Bucket=self._bucket, Key=key)
+        except ClientError:
+            pass
+
+    def delete_many(self, keys: list[str]) -> None:
+        if not keys:
+            return
+        from botocore.exceptions import ClientError
+        chunk_size = 1000
+        for i in range(0, len(keys), chunk_size):
+            chunk = keys[i:i + chunk_size]
+            try:
+                self._client.delete_objects(
+                    Bucket=self._bucket,
+                    Delete={"Objects": [{"Key": k} for k in chunk], "Quiet": True}
+                )
+            except ClientError:
+                pass

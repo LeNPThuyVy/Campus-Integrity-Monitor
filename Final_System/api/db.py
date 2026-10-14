@@ -2,7 +2,7 @@
 Database tables of the central server (SQLAlchemy Core).
 Works on PostgreSQL (production). SQLite is only used in unit tests.
 """
-from sqlalchemy import MetaData, Table, Column, Text, Integer, Boolean, DateTime, ForeignKey, Index, create_engine
+from sqlalchemy import MetaData, Table, Column, Text, Integer, Boolean, DateTime, ForeignKey, Index, create_engine, func
 from sqlalchemy.engine import Engine
 
 metadata = MetaData()
@@ -12,6 +12,7 @@ devices = Table(
     Column("device_id", Text, primary_key=True),
     Column("location", Text, nullable=False),
     Column("api_key_hash", Text, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
 )
 
 events = Table(
@@ -39,14 +40,15 @@ admin_users = Table(
     "admin_users", metadata,
     Column("username", Text, primary_key=True),
     Column("password_hash", Text, nullable=False),
-    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
 )
 
 access_logs = Table(
     "access_logs", metadata,
     Column("log_id", Integer, primary_key=True, autoincrement=True),
-    Column("timestamp", DateTime(timezone=True), nullable=False),
+    Column("timestamp", DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column("ip_address", Text),
+    Column("user_agent", Text),
     Column("action", Text, nullable=False),
     Column("username", Text),
 )

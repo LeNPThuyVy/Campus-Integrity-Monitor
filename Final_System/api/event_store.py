@@ -2,12 +2,12 @@
 All database operations of events and devices on the central server
 """
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import select, update, insert
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.engine import Engine
 from ai.reporting.models import Event, get_violation_type
-from api.db import metadata, devices, events
+from api.db import metadata, devices, events, access_logs
 
 
 def hash_api_key(api_key: str) -> str:
@@ -116,7 +116,7 @@ class EventStore:
     def set_review(self, event_uuid: str, status: str, username: str) -> bool:
         with self._engine.begin() as conn:
             res = conn.execute(update(events).where(events.c.event_uuid == event_uuid).values(
-                review_status=status, reviewed_by=username, reviewed_at=datetime.now()
+                review_status=status, reviewed_by=username, reviewed_at=datetime.now(timezone.utc)
             ))
             return res.rowcount > 0
 
@@ -172,8 +172,36 @@ class EventStore:
         """
         statement = select(events.c.event_uuid, events.c.device_id, events.c.first_seen, events.c.image_key).where(
             events.c.first_seen >= start, events.c.first_seen < end,
-            events.c.is_violation.is_(True), events.c.image_status == "uploaded"
+            events.c.is_violation.is_(True), events.c.image_status == "uploaded",
+            events.c.review_status != "rejected"
         ).order_by(events.c.first_seen.desc()).limit(limit)
         with self._engine.connect() as conn:
             rows = conn.execute(statement).all()
         return [dict(row._mapping) for row in rows]
+
+    def log_access(self, username: str, ip_address: str, user_agent: str, action: str) -> None:
+        with self._engine.begin() as conn:
+            conn.execute(insert(access_logs).values(
+                username=username, ip_address=ip_address, user_agent=user_agent, action=action
+            ))
+
+    def list_devices(self) -> list[dict]:
+        with self._engine.connect() as conn:
+            rows = conn.execute(select(devices.c.device_id, devices.c.location, devices.c.created_at)).all()
+        return [{"device_id": r.device_id, "location": r.location, "registered_at": r.created_at} for r in rows]
+
+    def get_orphan_image_keys_before(self, cutoff: datetime) -> list[str]:
+        statement = select(events.c.image_key).where(
+            events.c.first_seen < cutoff,
+            events.c.image_key.isnot(None),
+            events.c.image_status == "uploaded"
+        )
+        with self._engine.connect() as conn:
+            rows = conn.execute(statement).all()
+        return [r.image_key for r in rows if r.image_key]
+
+    def delete_events_before(self, cutoff: datetime) -> int:
+        from sqlalchemy import delete
+        with self._engine.begin() as conn:
+            res = conn.execute(delete(events).where(events.c.first_seen < cutoff))
+            return res.rowcount

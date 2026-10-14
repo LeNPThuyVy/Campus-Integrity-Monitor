@@ -123,4 +123,8 @@ class SyncWorker:
             timeout=self._timeout
         )
         confirm_response.raise_for_status()
+        try:
+            file_path.unlink(missing_ok=True)
+        except Exception as e:
+            logging.warning(f"Could not remove local image file {file_path}: {e}")
         return "uploaded"

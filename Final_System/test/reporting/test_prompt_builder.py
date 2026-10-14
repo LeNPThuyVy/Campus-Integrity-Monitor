@@ -9,30 +9,40 @@ eventsA = []
 eventsB = [
     Event(
         track_id=1,
+        uniform_label="Uniform",
+        card_label="Card",
         label="Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=2,
+        uniform_label="Uniform",
+        card_label="Card",
         label="Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=3,
+        uniform_label="Uniform",
+        card_label="Card",
         label="Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
         Event(
         track_id=4,
+        uniform_label="Uniform",
+        card_label="Card",
         label="Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=5,
+        uniform_label="Uniform",
+        card_label="Card",
         label="Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
@@ -43,31 +53,41 @@ eventsB = [
 eventsC = [
     Event(
         track_id=1,
-        label="Non-Uniform",
+        uniform_label="Non_Uniform",
+        card_label="Card",
+        label="Non_Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=2,
-        label="Non-Uniform",
+        uniform_label="Non_Uniform",
+        card_label="Card",
+        label="Non_Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=3,
-        label="Non-Uniform",
+        uniform_label="Non_Uniform",
+        card_label="Card",
+        label="Non_Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=4,
-        label="Non-Uniform",
+        uniform_label="Non_Uniform",
+        card_label="Card",
+        label="Non_Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=5,
-        label="Non-Uniform",
+        uniform_label="Non_Uniform",
+        card_label="Card",
+        label="Non_Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     )
@@ -77,36 +97,48 @@ eventsC = [
 eventsD = [
     Event(
         track_id=1,
+        uniform_label="Uniform",
+        card_label="Card",
         label="Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=2,
+        uniform_label="Uniform",
+        card_label="Card",
         label="Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
         Event(
         track_id=3,
+        uniform_label="Uniform",
+        card_label="Card",
         label="Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=4,
-        label="Non-Uniform",
+        uniform_label="Non_Uniform",
+        card_label="Card",
+        label="Non_Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=5,
-        label="Non-Uniform",
+        uniform_label="Non_Uniform",
+        card_label="Card",
+        label="Non_Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
     ),
     Event(
         track_id=6,
+        uniform_label="Uniform",
+        card_label="Card",
         label="Uniform",
         first_seen=datetime.now(),
         last_seen=datetime.now()
