@@ -10,9 +10,11 @@ env/
 .env
 *.log
 .pytest_cache/
+.env
 storage/
-video_sample/
-graphify-out/
-task/
+desktop/config.json
+desktop/outbox/
 test/
-train/
+models/teacher_best.pth
+models/vit_best_card.pt
+models/vit_best_uniform.pt

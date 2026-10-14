@@ -24,7 +24,7 @@ class Classifier:
         )
         self.device=torch.device(ai.config.DEVICE)
         classify_model = classify_model.to(self.device)
-        classify_model.load_state_dict(torch.load(model_path,map_location=self.device))
+        classify_model.load_state_dict(torch.load(model_path,map_location=self.device,weights_only=True))
         classify_model.eval()
         self.model=classify_model
         self.labels = labels if labels is not None else ai.config.UNIFORM_LABELS

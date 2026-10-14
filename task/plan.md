@@ -1,69 +1,96 @@
-## Mô tả mục tiêu (Goal Description)
-Cấu trúc lại giao diện (UI) hiện tại của dự án để chuẩn hóa theo mô hình ứng dụng web PHP. Mục tiêu chính là làm cho các tệp giao diện trở nên gọn gàng, chia sẻ chung một Layout (từ `phanquyen.html`) để các lập trình viên backend (Dev) dễ dàng tích hợp, phát triển các chức năng xử lý PHP về sau mà không bị trùng lặp code HTML.
+# Kế Hoạch Giải Quyết Conflict Merge Nhánh Website (Commit 1e9b605 vào thuy)
 
-## Phê duyệt từ người dùng (User Review Required)
-- Các file `.html` hiện tại sẽ được đổi đuôi thành `.php` để hỗ trợ hàm `include` trong PHP.
-- Đối với tệp `login.html` (Trang đăng nhập), thông thường trang này không sử dụng Sidebar (Menu trái) và Header điều hướng như các trang quản lý. Kế hoạch hiện tại là trang đăng nhập vẫn giữ thiết kế riêng biệt của nó nhưng sẽ dùng chung file CSS và cấu hình Tailwind. 
-- Các file HTML ngoài `phanquyen.html` (như `home.html`, `ql_sinhvien.html`, ...) sẽ bị cắt bỏ toàn bộ phần Sidebar, Header, Head, và Footer lặp lại, chỉ giữ lại phần nội dung (Main content) và bao bọc bởi `include 'includes/header.php';` và `include 'includes/footer.php';`.
+## Mục tiêu (Goal Description)
+Hiện tại dự án đang trong quá trình merge commit `1e9b605` (`Update website features` của bạn Hào) vào nhánh `thuy` (sau khi đã tích hợp thành công nhánh `Qui`).
+Có **16 file** trong thư mục [`Website/ui/`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/) đang rơi vào trạng thái conflict (`both added`).
 
-## Câu hỏi mở (Open Questions)
-- Mọi trang UI sẽ được để trong `Website/ui/`. Có muốn tạo thêm một file `index.php` ở thư mục gốc (hoặc tự động chuyển hướng về `home.php`) không?
-- CSS và script cấu hình Tailwind hiện tại đang nằm trực tiếp trong thẻ `<head>`. Kế hoạch là tách chúng ra thành `assets/css/style.css` và `assets/js/tailwind.config.js`.
-
-## Thay đổi đề xuất (Proposed Changes)
-Các file sẽ được phân chia lại theo các Module rõ ràng.
-
-### Khởi tạo thư mục và tài nguyên dùng chung (Assets & Includes)
-Tạo cấu trúc thư mục mới để tách biệt CSS, JS và các thành phần Layout:
-- Tạo thư mục `Website/ui/assets/css/` và `Website/ui/assets/js/`.
-- Tạo thư mục `Website/ui/includes/`.
-
-#### [NEW] Website/ui/assets/css/style.css
-Chứa toàn bộ mã CSS nằm trong thẻ `<style>` của các file HTML hiện tại.
-
-#### [NEW] Website/ui/assets/js/tailwind.config.js
-Chứa script cấu hình màu sắc, typography của thư viện Tailwind đang được đặt trong thẻ `<script id="tailwind-config">`.
-
-#### [NEW] Website/ui/includes/header.php
-Sử dụng layout chuẩn từ `phanquyen.html`. File này sẽ chứa:
-- Khai báo `<!DOCTYPE html>`, thẻ `<head>` bao gồm việc nhúng thư viện, font chữ, nhúng `style.css` và `tailwind.config.js`.
-- Thẻ mở `<body>`.
-- Thành phần `<aside>` (Danh mục điều hướng bên trái).
-- Thành phần `<header>` (Thanh điều hướng top nav).
-- Thẻ mở `<main>` để chuẩn bị chứa nội dung từ các file con.
-
-#### [NEW] Website/ui/includes/footer.php
-Chứa:
-- Các thẻ đóng `</main>`, `</div>`, `</body>`, `</html>`.
-- Các file JavaScript chung (nếu có).
+Kế hoạch này phân tích nguồn gốc của sự khác biệt giữa hai nhánh, so sánh chi tiết từng nhóm file và đề xuất chiến lược giải quyết chuẩn xác nhất để không làm hỏng tính năng đã phát triển của toàn hệ thống.
 
 ---
 
-### Chuyển đổi và tinh gọn các trang giao diện (Pages)
-Biến đổi các trang hiện tại để loại bỏ mã thừa và kế thừa Layout mới.
+## 1. Nguồn Gốc và Bản Chất Của Conflict
 
-#### [MODIFY] Website/ui/phanquyen.html -> [NEW] Website/ui/phanquyen.php
-File này sẽ cực kỳ tinh gọn, chỉ còn lại nội dung đặc thù của chức năng phân quyền.
+| Nhánh / Phiên bản | Nguồn gốc | Đặc điểm mã nguồn |
+|---|---|---|
+| **Nhánh `thuy` (HEAD - Stage 2)** | Đã tích hợp nhánh của Qui (`427b9d5`) | **Phiên bản hoàn thiện và tích hợp đầy đủ:**<br>• Đã kết nối với FastAPI Server v2.0 và SQL Server.<br>• Có hệ thống xác thực JWT (`auth.php`), phân quyền RBAC (`ADMIN`, `USER`).<br>• Có giao diện hoàn chỉnh cho **Home Dashboard, Danh sách vi phạm, Quản lý tài khoản, Báo cáo & Biểu đồ**.<br>• Phân hệ Sinh viên đã liên kết trực tiếp với vi phạm AI (`student_violation_add/list/delete`).<br>• Phân hệ Danh mục đã đồng bộ `MA_LOI` và `DANG_SU_DUNG` với mô hình AI. |
+| **Commit `1e9b605` (Stage 3 - Hào)** | Rẽ nhánh từ commit cũ `2aaf4ae` (ngày 26/09/2026) | **Bản nháp độc lập trước khi có backend:**<br>• Lúc Hào làm, hệ thống chưa có API, chưa có bảng tài khoản và chưa có cơ chế xác thực.<br>• Do đó, Hào đặt mã lỗi **HTTP 503** (`website_render_unavailable`) cho 4 trang chính: `home.php`, `list_vipham.php`, `phanquyen.php`, `reporting.php`.<br>• Dùng trực tiếp `getenv()` thay vì `includes/env.php`.<br>• Chưa có liên kết giữa Sinh viên và bảng Vi phạm. |
 
-#### [MODIFY] Website/ui/home.html -> [NEW] Website/ui/home.php
-#### [MODIFY] Website/ui/list_vipham.html -> [NEW] Website/ui/list_vipham.php
-#### [MODIFY] Website/ui/ql_sinhvien.html -> [NEW] Website/ui/ql_sinhvien.php
-#### [MODIFY] Website/ui/reporting.html -> [NEW] Website/ui/reporting.php
-Cắt bỏ toàn bộ phần cấu hình HTML, `<aside>`, `<header>`. Áp dụng cấu trúc `include` tương tự như file `phanquyen.php`.
+---
 
-#### [MODIFY] Website/ui/login.html -> [NEW] Website/ui/login.php
-Sẽ được chuyển sang `.php` và dọn dẹp các mã CSS/JS để tham chiếu đến `assets`. Sẽ không chứa layout chung (header/footer có sidebar) vì là trang đăng nhập.
+## 2. Chi Tiết Phân Tích Từng Nhóm File & Đề Xuất Giữ Lại
 
-#### [DELETE] Website/ui/*.html (Sau khi chuyển đổi xong)
-Xóa bỏ các file HTML cũ.
+### Nhóm 1: Các trang chính bị Hào đặt HTTP 503 tạm thời (4 files)
+- [`Website/ui/home.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/home.php)
+- [`Website/ui/list_vipham.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/list_vipham.php)
+- [`Website/ui/phanquyen.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/phanquyen.php)
+- [`Website/ui/reporting.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/reporting.php)
 
-## Kế hoạch kiểm thử (Verification Plan)
-Để đảm bảo các thay đổi không phá hỏng giao diện hiện tại:
+> [!IMPORTANT]
+> **QUYẾT ĐỊNH: GIỮ NGUYÊN BẢN CỦA HEAD (Stage 2).**
+> - **Lý do (Strategy):** Bản của Hào chỉ có 12 dòng hiển thị thông báo "chưa khả dụng do chưa có API". Bản của HEAD là bản đã code hoàn chỉnh giao diện dashboard, bộ lọc theo ngày/tuần/tháng/học kỳ, bảng vi phạm, quản lý camera, biểu đồ Chart.js và xuất file Word/PDF/CSV.
+> - **Ảnh hưởng:** Giữ được toàn bộ tính năng cốt lõi của website. Nếu lấy bản của Hào, website sẽ bị quay ngược về trạng thái báo lỗi 503.
 
-### Kiểm thử thủ công (Manual Verification)
-1. Cài đặt và khởi chạy một Local PHP Server.
-2. Mở trình duyệt và truy cập: `http://localhost:8000/phanquyen.php`.
-3. Kiểm tra xem giao diện có hiển thị giống hệt như bản `.html` trước đó không (Sidebar, màu sắc, font chữ).
-4. Nhấp thử vào các file khác như `home.php`, `ql_sinhvien.php` và xác nhận việc kế thừa layout diễn ra chính xác, không bị vỡ bố cục.
-5. Kiểm tra `login.php` độc lập.
-6. Xác nhận kích thước các tệp con rất nhỏ và gọn gàng.
+---
+
+### Nhóm 2: Khung giao diện Header, Footer và Xác thực (4 files)
+- [`Website/ui/includes/header.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/includes/header.php)
+- [`Website/ui/includes/footer.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/includes/footer.php)
+- [`Website/ui/login.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/login.php)
+- [`Website/ui/logout.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/logout.php)
+
+> [!IMPORTANT]
+> **QUYẾT ĐỊNH: GIỮ NGUYÊN BẢN CỦA HEAD (Stage 2).**
+> - **Lý do (Strategy):** 
+>   - `header.php` ở HEAD tích hợp menu tài khoản (hiển thị tên, vai trò Admin/Giám thị, link đổi mật khẩu, form logout CSRF). Bản của Hào các nút bấm bị disable hoặc trỏ cứng.
+>   - `footer.php` ở HEAD có vùng hiển thị thông báo toast, dialog xác nhận (`confirm-dialog`) và nạp `common.js`.
+>   - `login.php` và `logout.php` ở HEAD kết nối trực tiếp với API JWT backend, có chống brute-force và phân quyền.
+> - **Ảnh hưởng:** Đảm bảo luồng đăng nhập, bảo mật và trải nghiệm người dùng liền mạch.
+
+---
+
+### Nhóm 3: Phân hệ Quản lý Sinh viên & Danh mục (8 files)
+- [`Website/ui/includes/catalog_module.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/includes/catalog_module.php)
+- [`Website/ui/includes/student_module.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/includes/student_module.php)
+- [`Website/ui/api/catalogs.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/api/catalogs.php)
+- [`Website/ui/api/students.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/api/students.php)
+- [`Website/ui/assets/js/catalogs.js`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/assets/js/catalogs.js)
+- [`Website/ui/assets/js/students.js`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/assets/js/students.js)
+- [`Website/ui/danh_muc.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/danh_muc.php)
+- [`Website/ui/ql_sinhvien.php`](file:///t:/OneDrive/Backup/My_Document/GRADUATION_PROJECT_GITHUB_MANAGAMENT/Campus-Integrity-Monitor/Website/ui/ql_sinhvien.php)
+
+> [!IMPORTANT]
+> **QUYẾT ĐỊNH: GIỮ NGUYÊN BẢN CỦA HEAD (Stage 2).**
+> - **Lý do (Strategy):**
+>   - Bản ở HEAD thực chất đã **kế thừa toàn bộ logic nghiệp vụ ban đầu của Hào** nhưng đã được hoàn thiện thêm:
+>     1. Đọc cấu hình kết nối DB qua `env.php` (dùng chung file `.env` thống nhất với API).
+>     2. Kiểm tra quyền Admin khi thay đổi loại vi phạm `LOI_VIPHAM`.
+>     3. Bổ sung trường `MA_LOI` và `DANG_SU_DUNG` vào danh mục lỗi để ăn khớp với mã lỗi AI từ Camera.
+>     4. Tích hợp `student_violation_add`, `student_violation_list`, `student_violation_delete` để khi xem chi tiết 1 sinh viên, giám thị xem và gán được lịch sử vi phạm trực tiếp trên giao diện (`window.CIMStudentViolations.show`).
+>     5. Thêm bảo vệ trang `cim_require_page()` ngăn chặn truy cập trái phép khi chưa đăng nhập.
+> - **Ảnh hưởng:** Hệ thống vừa giữ được đầy đủ tính năng CRUD sinh viên / danh mục / import Excel mà Hào viết, vừa tương thích 100% với toàn bộ phần còn lại của dự án.
+
+---
+
+## 3. Các File Mới Được Thêm Vào Từ Nhánh Của Hào (Đã Tự Động Merge Thành Công)
+Các đóng góp độc lập của Hào không bị conflict và được tự động giữ lại trong repo:
+- `SQL_Querysql.sql`: Các câu lệnh truy vấn mẫu.
+- `Website/tests/catalog_module_test.php`: Unit test cho catalog module.
+- `Website/tests/student_module_test.php`: Unit test cho student module.
+- `Website/ui/student-import-guide.md`: Hướng dẫn import sinh viên.
+
+---
+
+## 4. Kế Hoạch Thực Hiện (Execution Plan)
+
+1. **Checkout giữ phiên bản của HEAD (ours) cho 16 file conflict**:
+   ```powershell
+   git checkout --ours Website/ui/api/catalogs.php Website/ui/api/students.php Website/ui/assets/js/catalogs.js Website/ui/assets/js/students.js Website/ui/danh_muc.php Website/ui/home.php Website/ui/includes/catalog_module.php Website/ui/includes/footer.php Website/ui/includes/header.php Website/ui/includes/student_module.php Website/ui/list_vipham.php Website/ui/login.php Website/ui/logout.php Website/ui/phanquyen.php Website/ui/ql_sinhvien.php Website/ui/reporting.php
+   ```
+2. **Đưa toàn bộ 16 file vào staging**:
+   ```powershell
+   git add Website/ui/
+   ```
+3. **Kiểm tra xác minh**:
+   - Chạy `git status` xác nhận không còn file nào unmerged.
+   - Chạy bộ test Python: `py -3.12 -m pytest Final_System/test/reporting/test_prompt_builder.py` để đảm bảo hệ thống không bị ảnh hưởng.
+   - Dọn dẹp các script phân tích tạm thời trong `task/`.

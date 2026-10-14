@@ -1,6 +1,7 @@
 from ai.reporting.json_repository import JsonRepository
 from ai.reporting.event_logger import EventLogger
 from pathlib import Path
+import tempfile
 import unittest  
 from datetime import timedelta,datetime
 from ai.reporting.models import TrackingResult
@@ -14,10 +15,14 @@ class TestEventLogger(unittest.TestCase):
     """
 
     def setUp(self):
-        file_path=Path("ai/reporting/storage/test_events.json")
-        file_path.unlink(missing_ok=True)
+        # Use a temporary file so the test never rewrites a file tracked by Git.
+        self._tmp = tempfile.TemporaryDirectory()
+        file_path=Path(self._tmp.name) / "test_events.json"
         repo = JsonRepository(file_path=file_path)
         self.event_logger=EventLogger(repository=repo,timeout=timedelta(seconds=4))
+
+    def tearDown(self):
+        self._tmp.cleanup()
 
     def test_create_new_track(self):
         #Check first state of active_event

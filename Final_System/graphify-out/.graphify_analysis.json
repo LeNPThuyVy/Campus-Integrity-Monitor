@@ -1,0 +1,449 @@
+{
+  "communities": {
+    "0": [
+      "ai_classifier",
+      "ai_classifier_classifier",
+      "ai_classifier_classifier_init",
+      "ai_classifier_rationale_16",
+      "ai_config",
+      "ai_detector",
+      "ai_detector_detector",
+      "ai_detector_detector_init",
+      "ai_detector_detector_track",
+      "ai_detector_py_ndarray",
+      "ai_detector_rationale_14",
+      "ai_detector_rationale_29",
+      "ai_detector_trackresult",
+      "ai_my_utils",
+      "ai_my_utils_utils",
+      "ai_pipeline",
+      "ai_pipeline_pipeline",
+      "ai_pipeline_pipeline_init",
+      "ai_temporal_voting",
+      "ai_temporal_voting_rationale_15",
+      "ai_temporal_voting_rationale_49",
+      "ai_temporal_voting_temporalvoting",
+      "ai_temporal_voting_temporalvoting_init",
+      "ai_temporal_voting_temporalvoting_vote",
+      "ai_temporal_voting_votingresult",
+      "api_factories",
+      "api_factories_create_pipeline",
+      "api_factories_create_voting",
+      "api_factories_rationale_1",
+      "api_service",
+      "api_service_inferenceservice",
+      "api_service_inferenceservice_init",
+      "api_service_rationale_1",
+      "collections",
+      "cv2",
+      "dataclasses",
+      "desktop_app",
+      "desktop_app_app_init",
+      "desktop_camera",
+      "desktop_ui",
+      "json",
+      "logging",
+      "numpy",
+      "pil",
+      "queue",
+      "threading",
+      "time",
+      "timm",
+      "timm_data",
+      "tkinter",
+      "torch",
+      "torchvision",
+      "ultralytics"
+    ],
+    "1": [
+      "ai_reporting_event_logger",
+      "ai_reporting_event_logger_rationale_1",
+      "ai_reporting_event_repository",
+      "ai_reporting_event_repository_eventrepository",
+      "ai_reporting_event_repository_eventrepository_append",
+      "ai_reporting_event_repository_eventrepository_get_all",
+      "ai_reporting_event_repository_py_abc",
+      "ai_reporting_event_repository_rationale_11",
+      "ai_reporting_event_repository_rationale_18",
+      "ai_reporting_json_repository",
+      "ai_reporting_json_repository_jsonrepository",
+      "ai_reporting_json_repository_jsonrepository_append",
+      "ai_reporting_json_repository_jsonrepository_get_all",
+      "ai_reporting_json_repository_jsonrepository_init",
+      "ai_reporting_json_repository_py_path",
+      "ai_reporting_json_repository_rationale_35",
+      "ai_reporting_mapper",
+      "ai_reporting_mapper_jsoneventmapper",
+      "ai_reporting_mapper_jsoneventmapper_from_dict",
+      "ai_reporting_mapper_jsoneventmapper_to_dict",
+      "ai_reporting_models",
+      "ai_reporting_models_event",
+      "ai_reporting_models_rationale_1",
+      "ai_reporting_models_rationale_38",
+      "ai_reporting_prompt_builder",
+      "ai_reporting_prompt_builder_promptbuilder",
+      "ai_reporting_prompt_builder_promptbuilder_build",
+      "ai_reporting_prompt_builder_promptbuilder_build_context",
+      "ai_reporting_prompt_builder_promptbuilder_build_event_section",
+      "ai_reporting_prompt_builder_promptbuilder_build_system_instruction",
+      "ai_reporting_prompt_builder_promptbuilder_build_task",
+      "ai_reporting_prompt_builder_promptbuilder_init",
+      "ai_reporting_prompt_builder_py_path",
+      "ai_reporting_prompt_builder_rationale_11",
+      "ai_reporting_prompt_builder_rationale_19",
+      "ai_reporting_prompt_builder_rationale_33",
+      "ai_reporting_prompt_builder_rationale_39",
+      "ai_reporting_prompt_builder_rationale_59",
+      "pathlib",
+      "test_reporting_test_api_gemini",
+      "test_reporting_test_event_logger",
+      "test_reporting_test_json_repo",
+      "test_reporting_test_prompt_builder",
+      "unittest",
+      "yaml"
+    ],
+    "2": [
+      "api_dependencies",
+      "api_dependencies_get_mapper",
+      "api_dependencies_get_service",
+      "api_dependencies_py_request",
+      "api_dependencies_rationale_1",
+      "api_factories_create_mapper",
+      "api_factories_create_service",
+      "api_main",
+      "api_main_lifespan",
+      "api_main_rationale_1",
+      "api_mapper",
+      "api_mapper_mapper",
+      "api_mapper_mapper_mapping_bbox",
+      "api_mapper_mapper_mapping_bytes_to_ndarray",
+      "api_mapper_mapper_mapping_detectionresponse",
+      "api_mapper_mapper_mapping_inferenceresponse",
+      "api_mapper_mapper_mapping_model_info",
+      "api_routes",
+      "api_routes_predict",
+      "api_routes_py_request",
+      "api_routes_rationale_1",
+      "api_schemas",
+      "api_schemas_bbox",
+      "api_schemas_detectionresponse",
+      "api_schemas_inferenceresponse",
+      "api_schemas_modelinfo",
+      "api_schemas_rationale_1",
+      "basemodel",
+      "contextlib",
+      "fastapi",
+      "fastapi_params",
+      "post",
+      "pydantic",
+      "traceback",
+      "uploadfile"
+    ],
+    "3": [
+      "desktop_ui_campusmonitorui",
+      "desktop_ui_campusmonitorui_browse_video",
+      "desktop_ui_campusmonitorui_create_left_panel",
+      "desktop_ui_campusmonitorui_create_left_panel_add_slider",
+      "desktop_ui_campusmonitorui_create_left_panel_add_spinbox",
+      "desktop_ui_campusmonitorui_create_modern_stat_card",
+      "desktop_ui_campusmonitorui_create_right_panel",
+      "desktop_ui_campusmonitorui_create_widgets",
+      "desktop_ui_campusmonitorui_draw_fps_overlay",
+      "desktop_ui_campusmonitorui_draw_overlay",
+      "desktop_ui_campusmonitorui_init",
+      "desktop_ui_campusmonitorui_make_modern_button",
+      "desktop_ui_campusmonitorui_make_modern_button_on_enter",
+      "desktop_ui_campusmonitorui_make_modern_button_on_leave",
+      "desktop_ui_campusmonitorui_on_close",
+      "desktop_ui_campusmonitorui_on_source_change",
+      "desktop_ui_campusmonitorui_reset_stats",
+      "desktop_ui_campusmonitorui_save_parameters",
+      "desktop_ui_campusmonitorui_setup_styles",
+      "desktop_ui_campusmonitorui_start_monitoring",
+      "desktop_ui_campusmonitorui_stop_monitoring",
+      "desktop_ui_campusmonitorui_sync_sliders_from_params",
+      "desktop_ui_campusmonitorui_toggle_monitoring",
+      "desktop_ui_campusmonitorui_update_frame",
+      "desktop_ui_campusmonitorui_update_statistics",
+      "desktop_ui_rationale_153",
+      "desktop_ui_rationale_364",
+      "desktop_ui_rationale_388",
+      "desktop_ui_rationale_399",
+      "desktop_ui_rationale_489",
+      "desktop_ui_rationale_567",
+      "desktop_ui_rationale_624"
+    ],
+    "4": [
+      "desktop_app_app",
+      "desktop_app_app_ai_worker",
+      "desktop_app_app_apply_params_to_config",
+      "desktop_app_app_compute_statistics",
+      "desktop_app_app_load_parameters",
+      "desktop_app_app_process_frame",
+      "desktop_app_app_read_frame",
+      "desktop_app_app_reset_state",
+      "desktop_app_app_run",
+      "desktop_app_app_save_parameters",
+      "desktop_app_app_start_camera",
+      "desktop_app_app_stop_camera",
+      "desktop_app_rationale_100",
+      "desktop_app_rationale_119",
+      "desktop_app_rationale_128",
+      "desktop_app_rationale_138",
+      "desktop_app_rationale_144",
+      "desktop_app_rationale_180",
+      "desktop_app_rationale_196",
+      "desktop_app_rationale_20",
+      "desktop_app_rationale_203",
+      "desktop_app_rationale_247",
+      "desktop_app_rationale_65",
+      "desktop_app_rationale_88",
+      "desktop_camera_camera",
+      "desktop_camera_camera_init",
+      "desktop_camera_camera_read",
+      "desktop_camera_camera_release",
+      "main"
+    ],
+    "5": [
+      "ai_reporting_event_logger_eventlogger",
+      "ai_reporting_event_logger_eventlogger_create_active_event",
+      "ai_reporting_event_logger_eventlogger_finalize_event",
+      "ai_reporting_event_logger_eventlogger_finalize_timeout_events",
+      "ai_reporting_event_logger_eventlogger_init",
+      "ai_reporting_event_logger_eventlogger_process",
+      "ai_reporting_event_logger_eventlogger_update_active_event",
+      "ai_reporting_event_logger_eventlogger_update_all",
+      "ai_reporting_event_logger_rationale_23",
+      "ai_reporting_event_logger_rationale_36",
+      "ai_reporting_event_logger_rationale_62",
+      "ai_reporting_event_logger_rationale_72",
+      "ai_reporting_models_activeevent",
+      "ai_reporting_models_rationale_16",
+      "ai_reporting_models_rationale_26",
+      "ai_reporting_models_trackingresult",
+      "datetime",
+      "test_reporting_test_event_logger_rationale_9",
+      "test_reporting_test_event_logger_testeventlogger",
+      "test_reporting_test_event_logger_testeventlogger_setup",
+      "test_reporting_test_event_logger_testeventlogger_test_create_new_track",
+      "test_reporting_test_event_logger_testeventlogger_test_timeout",
+      "test_reporting_test_event_logger_testeventlogger_test_update_track",
+      "timedelta"
+    ],
+    "6": [
+      "ai_classifier_classifier_classify",
+      "ai_classifier_classifier_classify_batch",
+      "ai_classifier_prediction",
+      "ai_classifier_rationale_34",
+      "ai_classifier_rationale_64",
+      "ai_my_utils_py_ndarray",
+      "ai_my_utils_rationale_11",
+      "ai_my_utils_rationale_22",
+      "ai_my_utils_rationale_34",
+      "ai_my_utils_utils_crop_person",
+      "ai_my_utils_utils_get_crop_ratio",
+      "ai_my_utils_utils_preprocess",
+      "ai_pipeline_pipeline_run",
+      "ai_pipeline_pipelineresult",
+      "ai_pipeline_pipelineresult_post_init",
+      "ai_pipeline_rationale_30",
+      "ai_pipeline_rationale_9",
+      "ai_temporal_voting_rationale_25",
+      "ai_temporal_voting_rationale_83",
+      "ai_temporal_voting_temporalvoting_remove_track_id",
+      "ai_temporal_voting_temporalvoting_update"
+    ],
+    "7": [
+      "ai_reporting_gemini_service",
+      "ai_reporting_gemini_service_geminiservice",
+      "ai_reporting_gemini_service_geminiservice_generate",
+      "ai_reporting_gemini_service_geminiservice_init",
+      "ai_reporting_gemini_service_rationale_9",
+      "ai_reporting_llm_service",
+      "ai_reporting_llm_service_llmservice",
+      "ai_reporting_llm_service_llmservice_generate",
+      "ai_reporting_llm_service_py_abc",
+      "dotenv",
+      "google",
+      "os"
+    ],
+    "8": [
+      "api_service_inferenceservice_predict",
+      "api_service_py_ndarray",
+      "api_service_rationale_19"
+    ],
+    "9": [
+      "ai_init"
+    ],
+    "10": [
+      "api_init"
+    ],
+    "11": [
+      "test_init"
+    ],
+    "12": [
+      "test_reporting_init"
+    ]
+  },
+  "cohesion": {
+    "0": 0.08200290275761973,
+    "1": 0.09292929292929293,
+    "2": 0.11428571428571428,
+    "3": 0.0967741935483871,
+    "4": 0.0812807881773399,
+    "5": 0.14492753623188406,
+    "6": 0.1,
+    "7": 0.21212121212121213,
+    "8": 0.6666666666666666,
+    "9": 1.0,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0
+  },
+  "gods": [
+    {
+      "id": "desktop_ui_campusmonitorui",
+      "label": "CampusMonitorUI",
+      "degree": 24
+    },
+    {
+      "id": "ai_reporting_models_event",
+      "label": "Event",
+      "degree": 23
+    },
+    {
+      "id": "desktop_app_app",
+      "label": "App",
+      "degree": 21
+    },
+    {
+      "id": "api_mapper_mapper",
+      "label": "Mapper",
+      "degree": 19
+    },
+    {
+      "id": "ai_pipeline_pipeline",
+      "label": "Pipeline",
+      "degree": 14
+    },
+    {
+      "id": "ai_temporal_voting_temporalvoting",
+      "label": "TemporalVoting",
+      "degree": 14
+    },
+    {
+      "id": "ai_classifier_classifier",
+      "label": "Classifier",
+      "degree": 13
+    },
+    {
+      "id": "api_service_inferenceservice",
+      "label": "InferenceService",
+      "degree": 12
+    },
+    {
+      "id": "ai_reporting_event_logger_eventlogger",
+      "label": "EventLogger",
+      "degree": 12
+    },
+    {
+      "id": "ai_detector_detector",
+      "label": "Detector",
+      "degree": 11
+    }
+  ],
+  "surprises": [
+    {
+      "source": "App",
+      "target": "Classifier",
+      "source_files": [
+        "desktop/app.py",
+        "ai/classifier.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "App",
+      "target": "Detector",
+      "source_files": [
+        "desktop/app.py",
+        "ai/detector.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "App",
+      "target": "Pipeline",
+      "source_files": [
+        "desktop/app.py",
+        "ai/pipeline.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "App",
+      "target": "TemporalVoting",
+      "source_files": [
+        "desktop/app.py",
+        "ai/temporal_voting.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "TestEventLogger",
+      "target": "JsonRepository",
+      "source_files": [
+        "test/reporting/test_event_logger.py",
+        "ai/reporting/json_repository.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `CampusMonitorUI` connect `CampusMonitorUI` to `app.py`, `App`?",
+      "why": "High betweenness centrality (0.240) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `App` connect `App` to `app.py`, `CampusMonitorUI`?",
+      "why": "High betweenness centrality (0.195) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `Event` connect `Event` to `EventLogger`?",
+      "why": "High betweenness centrality (0.120) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 4 inferred relationships involving `Event` (e.g. with `EventRepository` and `JsonRepository`) actually correct?",
+      "why": "`Event` has 4 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 6 inferred relationships involving `App` (e.g. with `Classifier` and `Detector`) actually correct?",
+      "why": "`App` has 6 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 7 inferred relationships involving `Mapper` (e.g. with `get_mapper()` and `BBox`) actually correct?",
+      "why": "`Mapper` has 7 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 5 inferred relationships involving `Pipeline` (e.g. with `Classifier` and `Detector`) actually correct?",
+      "why": "`Pipeline` has 5 INFERRED edges - model-reasoned connections that need verification."
+    }
+  ]
+}
