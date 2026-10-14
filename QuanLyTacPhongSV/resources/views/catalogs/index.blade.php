@@ -5,7 +5,7 @@
   <div class="flex flex-col gap-1 py-space-md">
     <h1 class="font-headline-xl text-headline-xl text-on-surface">Quản lý danh mục</h1>
     <p class="font-body-md text-body-md text-on-surface-variant">
-      Quản lý Khoa, Ngành, Lớp và Loại vi phạm theo các bảng hiện có trong SQL Server.
+      Quản lý Khoa, Ngành, Lớp, Loại vi phạm và Học kỳ theo các bảng hiện có trong SQL Server.
     </p>
   </div>
 
@@ -22,6 +22,7 @@
           <option value="NGANH">Ngành</option>
           <option value="LOP">Lớp</option>
           <option value="LOI_VIPHAM">Loại vi phạm</option>
+          <option value="HOCKY">Học kỳ</option>
         </select>
       </label>
       <button class="h-10 rounded-lg bg-surface-container px-space-md font-label-md" id="catalog-refresh" type="button">

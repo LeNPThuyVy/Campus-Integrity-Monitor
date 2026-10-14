@@ -1,3 +1,8 @@
+@php
+  $logoPath = file_exists(public_path('assets/images/logo.jpg')) 
+      ? asset('assets/images/logo.jpg') 
+      : (file_exists(public_path('assets/images/logo.png')) ? asset('assets/images/logo.png') : asset('assets/favicon.svg'));
+@endphp
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -6,7 +11,7 @@
   <title>Đăng nhập · Quản lý tác phong sinh viên</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-  <link rel="icon" href="{{ asset('assets/favicon.svg') }}" type="image/svg+xml">
+  <link rel="icon" href="{{ $logoPath }}" type="image/jpeg">
   <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
   <script src="{{ asset('assets/js/tailwind.config.js') }}"></script>
@@ -19,8 +24,8 @@
   <div class="w-full max-w-[1040px] grid grid-cols-1 lg:grid-cols-12 rounded-xl shadow-xl overflow-hidden bg-surface-container-lowest">
     <div class="relative hidden lg:flex lg:col-span-5 flex-col justify-between p-space-xl bg-primary text-on-primary overflow-hidden">
       <div class="relative z-20 flex items-center gap-space-sm">
-        <div class="w-10 h-10 rounded-lg bg-surface-container-lowest text-primary flex items-center justify-center shadow-md">
-          <span class="material-symbols-outlined">school</span>
+        <div class="w-11 h-11 rounded-xl bg-surface-container-lowest flex items-center justify-center shadow-md overflow-hidden p-1 shrink-0">
+          <img src="{{ $logoPath }}" alt="Logo trường" class="w-full h-full object-contain rounded-lg">
         </div>
         <div class="flex flex-col">
           <span class="font-headline-sm text-headline-sm uppercase tracking-wide">Trường Đại học Công Thương TP.HCM</span>
