@@ -10,3 +10,9 @@ env/
 .env
 *.log
 .pytest_cache/
+storage/
+video_sample/
+graphify-out/
+task/
+test/
+train/
