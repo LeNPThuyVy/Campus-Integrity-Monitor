@@ -1,10 +1,12 @@
-﻿# Shared helpers for the start/check scripts.
+# Shared helpers for the start/check scripts.
 $script:RepoRoot = Split-Path -Parent $PSScriptRoot
 $script:FinalSystem = Join-Path $script:RepoRoot "Final_System"
 
 function Get-CimPhp {
     $local = Join-Path $script:RepoRoot "tools\php\php.exe"
     if (Test-Path $local) { return $local }
+    $laragon = Get-ChildItem "C:\laragon\bin\php" -Filter "php.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($laragon) { return $laragon.FullName }
     $command = Get-Command php -ErrorAction SilentlyContinue
     if ($command) { return $command.Source }
     throw "Không tìm thấy PHP. Chạy: powershell -ExecutionPolicy Bypass -File scripts\setup-php-windows.ps1"
