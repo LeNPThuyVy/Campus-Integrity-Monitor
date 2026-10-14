@@ -1,6 +1,14 @@
 @php
   $userRole = session('role', 'CTSV');
   $userName = session('display_name') ?: session('username', 'Chưa xác thực');
+  if (str_contains((string)$userName, '?')) {
+      $userName = match ($userRole) {
+          'ADMIN' => 'Quản trị viên',
+          'CTSV' => 'Nhân viên CTSV',
+          default => session('username', 'Người dùng'),
+      };
+      session(['display_name' => $userName]);
+  }
   $userRoleLabel = match ($userRole) {
       'ADMIN' => 'Quản trị viên',
       'CTSV' => 'Nhân viên CTSV',
@@ -18,6 +26,10 @@
       ['route' => 'facilities', 'path' => '/camera-khuvuc', 'icon' => 'videocam', 'label' => 'Camera & khu vực', 'roles' => ['ADMIN', 'CTSV']],
       ['route' => 'accounts', 'path' => '/phanquyen', 'icon' => 'admin_panel_settings', 'label' => 'Tài khoản & phân quyền', 'roles' => ['ADMIN']],
   ];
+
+  $logoPath = file_exists(public_path('assets/images/logo.jpg')) 
+      ? asset('assets/images/logo.jpg') 
+      : (file_exists(public_path('assets/images/logo.png')) ? asset('assets/images/logo.png') : asset('assets/favicon.svg'));
 @endphp
 <!DOCTYPE html>
 <html lang="vi">
@@ -29,7 +41,7 @@
   <title>{{ $pageTitle }} · CTSV</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-  <link rel="icon" href="{{ asset('assets/favicon.svg') }}" type="image/svg+xml">
+  <link rel="icon" href="{{ $logoPath }}" type="image/jpeg">
   <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
   <script src="{{ asset('assets/js/tailwind.config.js') }}"></script>
@@ -40,8 +52,8 @@
 <aside class="fixed left-0 top-0 z-50 flex h-full w-[260px] -translate-x-full flex-col justify-between bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-transform duration-200 select-none lg:translate-x-0" id="sidebar">
   <div class="flex flex-col">
     <div class="p-space-md flex items-center gap-space-sm bg-surface-container-low">
-      <div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center shrink-0 shadow-sm">
-        <span class="material-symbols-outlined text-on-primary text-[22px]">videocam</span>
+      <div class="w-10 h-10 rounded-xl bg-surface-container-lowest flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-0.5 border border-surface-container">
+        <img src="{{ $logoPath }}" alt="Logo trường" class="w-full h-full object-contain rounded-lg">
       </div>
       <div class="flex flex-col min-w-0">
         <span class="font-headline-sm text-headline-sm text-primary uppercase tracking-tight truncate">Quản lý tác phong</span>

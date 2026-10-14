@@ -38,11 +38,24 @@
       ],
       columns: ['MA_LOI', 'TEN_LOI', 'DIEM_TRU', 'DANG_SU_DUNG'],
     },
+    HOCKY: {
+      title: 'Học kỳ',
+      adminOnly: true,
+      fields: [
+        { name: 'MA_HK', label: 'Mã học kỳ (VD: HK1-2026)', maxLength: 20, code: true },
+        { name: 'TEN_HK', label: 'Tên học kỳ (VD: Học kỳ 1 (2026-2027))', maxLength: 100 },
+        { name: 'NGAY_BAT_DAU', label: 'Ngày bắt đầu (YYYY-MM-DD)', maxLength: 10 },
+        { name: 'NGAY_KET_THUC', label: 'Ngày kết thúc (YYYY-MM-DD)', maxLength: 10 },
+        { name: 'HIEN_TAI', label: 'Học kỳ hiện tại', choices: [['1', 'Có (Đang diễn ra)'], ['0', 'Không']] },
+      ],
+      columns: ['MA_HK', 'TEN_HK', 'NGAY_BAT_DAU', 'NGAY_KET_THUC', 'HIEN_TAI'],
+    },
   };
   const state = { catalogs: {}, csrfToken: '', id: null, role: null };
   const columnLabels = {
     MA_KHOA: 'Mã khoa', TEN_KHOA: 'Tên khoa', MA_NGANH: 'Mã ngành', TEN_NGANH: 'Tên ngành', MA_LOP: 'Mã lớp',
     MA_LOI: 'Mã AI', TEN_LOI: 'Tên lỗi', DIEM_TRU: 'Điểm tham khảo', DANG_SU_DUNG: 'Trạng thái',
+    MA_HK: 'Mã HK', TEN_HK: 'Tên học kỳ', NGAY_BAT_DAU: 'Bắt đầu', NGAY_KET_THUC: 'Kết thúc', HIEN_TAI: 'Hiện tại',
   };
   const canEdit = (entity) => !definitions[entity].adminOnly || state.role === 'ADMIN';
   const byId = (id) => document.getElementById(id);
@@ -138,6 +151,7 @@
 
   function displayValue(entity, item, column) {
     if (column === 'DANG_SU_DUNG') return Number(item.DANG_SU_DUNG) === 1 ? 'Đang sử dụng' : 'Ngừng sử dụng';
+    if (column === 'HIEN_TAI') return Number(item.HIEN_TAI) === 1 ? 'Đang diễn ra' : 'Không';
     if (column === 'MA_LOI') return item.MA_LOI || '—';
     if (column === 'TEN_KHOA' && entity === 'NGANH') return item.TEN_KHOA;
     if (column === 'MA_KHOA' && entity === 'LOP') return item.MA_KHOA;
