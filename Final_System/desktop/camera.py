@@ -3,23 +3,27 @@ import logging
 
 class Camera:
     def __init__(self, source = 0):
-        self.source = source
         self.cap=cv2.VideoCapture(source)
-        if isinstance(source, int):
-            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self._failures = 0
         if not self.cap.isOpened():
+            self.cap.release()
             raise RuntimeError("Can't access to the camera!")
-        
+
     def read(self):
         state,frame=self.cap.read()
-        if state:
+        if state and frame is not None and frame.size > 0:
+            self._failures = 0
             return frame
-        else:
-            logging.error("Fail to read frame from the camera!")
-            return None
-    
+        if self._failures == 0:
+            # Logged once per failure streak (end of a video file also lands here).
+            logging.warning("Fail to read frame from the camera / video source.")
+        self._failures += 1
+        return None
+
     def release(self):
         self.cap.release()
-        cv2.destroyAllWindows()
+        try:
+            cv2.destroyAllWindows()
+        except cv2.error:
+            # opencv-python-headless has no GUI backend; nothing to destroy.
+            pass

@@ -1,5 +1,13 @@
-<?php include 'includes/header.php'; ?>
-<div class="flex flex-col w-full pb-space-xl">
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/includes/auth.php';
+$cimUser = cim_require_page();
+$pageTitle = 'Quản lý sinh viên';
+include __DIR__ . '/includes/header.php';
+?>
+<div class="flex flex-col w-full pb-space-xl" id="student-module">
+<div class="hidden mb-space-md rounded-lg px-space-md py-3 font-label-md" id="student-status" role="status"></div>
 <!-- Top Section: Header, Summary Badges & Quick Action Controls -->
 <div class="flex flex-col xl:flex-row items-start xl:items-end justify-between gap-space-md py-space-md">
 <div class="flex flex-col gap-1 max-w-2xl">
@@ -16,7 +24,7 @@
 <span class="material-symbols-outlined text-[18px]">upload_file</span>
 <span class="">Nhập từ Excel</span>
 </button>
-<button class="flex items-center gap-space-xs px-3.5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all shadow-sm">
+<button class="flex items-center gap-space-xs px-3.5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all shadow-sm" id="export-students-btn">
 <span class="material-symbols-outlined text-[18px]">file_download</span>
 <span class="">Xuất danh sách</span>
 </button>
@@ -37,12 +45,12 @@
 </div>
 </div>
 <div class="mt-space-md flex items-baseline gap-2">
-<span class="font-headline-xl text-[28px] text-on-surface tracking-tight font-bold">12,450</span>
-<span class="font-label-sm text-label-sm text-secondary font-medium">SV chính quy</span>
+<span class="font-headline-xl text-[28px] text-on-surface tracking-tight font-bold" id="student-count-stat">—</span>
+<span class="font-label-sm text-label-sm text-secondary font-medium">Sinh viên trong CSDL</span>
 </div>
 <div class="mt-space-xs flex items-center gap-1.5 text-on-surface-variant font-body-sm text-body-sm">
-<span class="text-secondary font-medium flex items-center text-[11px]"><span class="material-symbols-outlined text-[14px]">trending_up</span> +4.2%</span>
-<span class="">so với học kỳ I</span>
+<span class="text-secondary font-medium flex items-center text-[11px]"><span class="material-symbols-outlined text-[14px]">database</span> SQL</span>
+<span class="">dữ liệu hiện tại</span>
 </div>
 <div class="absolute -bottom-6 -right-6 w-20 h-20 bg-primary/5 rounded-full pointer-events-none"></div>
 </div>
@@ -55,11 +63,11 @@
 </div>
 </div>
 <div class="mt-space-md flex items-baseline gap-2">
-<span class="font-headline-xl text-[28px] text-on-surface tracking-tight font-bold">8</span>
+<span class="font-headline-xl text-[28px] text-on-surface tracking-tight font-bold" id="faculty-count-stat">—</span>
 <span class="font-label-sm text-label-sm text-on-surface-variant">Khoa đào tạo</span>
 </div>
 <div class="mt-space-xs text-on-surface-variant font-body-sm text-body-sm truncate">
-        CNTT chiếm 34%
+        Tổng số khoa trong CSDL
       </div>
 </div>
 <!-- Stat 3: Classes -->
@@ -71,11 +79,11 @@
 </div>
 </div>
 <div class="mt-space-md flex items-baseline gap-2">
-<span class="font-headline-xl text-[28px] text-on-surface tracking-tight font-bold">142</span>
+<span class="font-headline-xl text-[28px] text-on-surface tracking-tight font-bold" id="class-count-stat">—</span>
 <span class="font-label-sm text-label-sm text-on-surface-variant">Lớp sinh hoạt</span>
 </div>
 <div class="mt-space-xs text-on-surface-variant font-body-sm text-body-sm truncate">
-        Trung bình 88 SV/lớp
+        Tổng số lớp trong CSDL
       </div>
 </div>
 <!-- Mini Chart: Distribution by Department/Class -->
@@ -87,18 +95,13 @@
 <!-- Search Input -->
 <div class="lg:col-span-4 relative">
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span>
-<input class="w-full h-10 pl-9 pr-3 rounded-lg bg-surface-container-low text-on-surface placeholder:text-outline font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none transition-all shadow-inner" placeholder="Tìm kiếm theo MSSV hoặc Họ tên sinh viên..." type="text">
+<input class="w-full h-10 pl-9 pr-3 rounded-lg bg-surface-container-low text-on-surface placeholder:text-outline font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none transition-all shadow-inner" id="student-search" placeholder="Tìm kiếm theo MSSV hoặc Họ tên sinh viên..." type="search">
 </div>
 <!-- Khoa Dropdown -->
 <div class="lg:col-span-3">
 <div class="relative">
-<select class="w-full h-10 pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md appearance-none focus:outline-none cursor-pointer">
+<select class="w-full h-10 pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md appearance-none focus:outline-none cursor-pointer" id="filter-khoa">
 <option value="">-- Tất cả Khoa --</option>
-<option selected="" value="cntt">Khoa Công nghệ thông tin</option>
-<option value="kt">Khoa Kinh tế &amp; Quản trị</option>
-<option value="ck">Khoa Cơ khí - Động lực</option>
-<option value="nn">Khoa Ngoại ngữ</option>
-<option value="dt">Khoa Điện tử - Viễn thông</option>
 </select>
 <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline pointer-events-none">expand_more</span>
 </div>
@@ -106,13 +109,8 @@
 <!-- Lớp Dropdown -->
 <div class="lg:col-span-3">
 <div class="relative">
-<select class="w-full h-10 pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md appearance-none focus:outline-none cursor-pointer">
-<option value="">-- Tất cả Lớp --</option>
-<option value="21DTH01">21DTH01 (K2021)</option>
-<option value="21DTH02">21DTH02 (K2021)</option>
-<option value="22DTH01">22DTH01 (K2022)</option>
-<option value="22DTH02">22DTH02 (K2022)</option>
-<option value="23DTH01">23DTH01 (K2023)</option>
+<select class="w-full h-10 pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md appearance-none focus:outline-none cursor-pointer" id="filter-nganh">
+<option value="">-- Tất cả Ngành --</option>
 </select>
 <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline pointer-events-none">expand_more</span>
 </div>
@@ -120,11 +118,8 @@
 <!-- Trạng thái Dropdown -->
 <div class="lg:col-span-2">
 <div class="relative">
-<select class="w-full h-10 pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md appearance-none focus:outline-none cursor-pointer">
-<option value="all">Trạng thái: Tất cả</option>
-<option selected="" value="active">Đang học</option>
-<option value="reserve">Bảo lưu</option>
-<option value="graduated">Tốt nghiệp</option>
+<select class="w-full h-10 pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md appearance-none focus:outline-none cursor-pointer" id="filter-lop">
+<option value="">-- Tất cả Lớp --</option>
 </select>
 <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline pointer-events-none">filter_list</span>
 </div>
@@ -148,307 +143,20 @@
 <th class="px-space-md w-28 text-right">Thao tác</th>
 </tr>
 </thead>
-<tbody class="divide-y divide-surface-container-low font-body-md text-body-md text-on-surface">
-<!-- Row 1: Compliant (0 infractions) -->
-<tr class="h-12 hover:bg-surface-container-low/70 transition-colors group">
-<td class="px-space-md text-center font-data-mono text-outline">01</td>
-<td class="px-space-md font-data-mono font-semibold text-primary">
-<a class="hover:underline" href="javascript:void(0)">21110823</a>
-</td>
-<td class="px-space-md">
-<div class="flex items-center gap-space-sm">
-<div class="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed font-headline-sm text-headline-sm flex items-center justify-center font-semibold shrink-0">
-                  NA
-                </div>
-<div class="flex flex-col min-w-0">
-<span class="font-label-lg text-label-lg text-on-surface group-hover:text-primary transition-colors">Nguyễn An An</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant truncate">anan.nguyen@student.edu.vn</span>
-</div>
-</div>
-</td>
-<td class="px-space-md font-label-md text-label-md">21DTH01</td>
-<td class="px-space-md text-on-surface-variant truncate">Công nghệ thông tin</td>
-<td class="px-space-md font-data-mono text-on-surface-variant">K2021</td>
-<td class="px-space-md">
-<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm text-[11px] bg-secondary-container/40 text-on-secondary-container">
-<span class="material-symbols-outlined text-[13px]">verified</span>
-<span class="">0 lần (Tuân thủ tốt)</span>
-</span>
-</td>
-<td class="px-space-md text-right">
-<div class="flex items-center justify-end gap-1 text-on-surface-variant">
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Xem chi tiết">
-<span class="material-symbols-outlined text-[18px]">visibility</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" onclick="openDrawerWithData('21110823', 'Nguyễn An An', '21DTH01', 'CNTT', 'K2021', 'anan.nguyen@student.edu.vn', '0901234567')" title="Chỉnh sửa">
-<span class="material-symbols-outlined text-[18px]">edit</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-error-container hover:text-error transition-colors" title="Xóa hồ sơ">
-<span class="material-symbols-outlined text-[18px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Row 2: Warning (1-2 infractions) -->
-<tr class="h-12 hover:bg-surface-container-low/70 transition-colors group">
-<td class="px-space-md text-center font-data-mono text-outline">02</td>
-<td class="px-space-md font-data-mono font-semibold text-primary">
-<a class="hover:underline" href="javascript:void(0)">21110845</a>
-</td>
-<td class="px-space-md">
-<div class="flex items-center gap-space-sm">
-<div class="w-8 h-8 rounded-full bg-secondary-fixed text-on-secondary-fixed font-headline-sm text-headline-sm flex items-center justify-center font-semibold shrink-0">
-                  TB
-                </div>
-<div class="flex flex-col min-w-0">
-<span class="font-label-lg text-label-lg text-on-surface group-hover:text-primary transition-colors">Trần Bảo Bình</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant truncate">baobinh.tran@student.edu.vn</span>
-</div>
-</div>
-</td>
-<td class="px-space-md font-label-md text-label-md">21DTH01</td>
-<td class="px-space-md text-on-surface-variant truncate">Công nghệ thông tin</td>
-<td class="px-space-md font-data-mono text-on-surface-variant">K2021</td>
-<td class="px-space-md">
-<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm text-[11px] bg-tertiary-fixed text-on-tertiary-fixed font-medium">
-<span class="material-symbols-outlined text-[13px]">warning</span>
-<span class="">1 lần (Quên thẻ SV)</span>
-</span>
-</td>
-<td class="px-space-md text-right">
-<div class="flex items-center justify-end gap-1 text-on-surface-variant">
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Xem chi tiết">
-<span class="material-symbols-outlined text-[18px]">visibility</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Chỉnh sửa">
-<span class="material-symbols-outlined text-[18px]">edit</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-error-container hover:text-error transition-colors" title="Xóa hồ sơ">
-<span class="material-symbols-outlined text-[18px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Row 3: Severe (>=3 infractions) -->
-<tr class="h-12 hover:bg-surface-container-low/70 transition-colors group">
-<td class="px-space-md text-center font-data-mono text-outline">03</td>
-<td class="px-space-md font-data-mono font-semibold text-primary">
-<a class="hover:underline" href="javascript:void(0)">22119012</a>
-</td>
-<td class="px-space-md">
-<div class="flex items-center gap-space-sm">
-<div class="w-8 h-8 rounded-full bg-error-container text-on-error-container font-headline-sm text-headline-sm flex items-center justify-center font-semibold shrink-0">
-                  LD
-                </div>
-<div class="flex flex-col min-w-0">
-<span class="font-label-lg text-label-lg text-on-surface group-hover:text-primary transition-colors">Lê Doãn Dũng</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant truncate">doandung.le@student.edu.vn</span>
-</div>
-</div>
-</td>
-<td class="px-space-md font-label-md text-label-md">22DTH02</td>
-<td class="px-space-md text-on-surface-variant truncate">Công nghệ thông tin</td>
-<td class="px-space-md font-data-mono text-on-surface-variant">K2022</td>
-<td class="px-space-md">
-<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm text-[11px] bg-error text-on-error font-medium">
-<span class="material-symbols-outlined text-[13px]">gpp_bad</span>
-<span class="">4 lần (Cảnh cáo học vụ)</span>
-</span>
-</td>
-<td class="px-space-md text-right">
-<div class="flex items-center justify-end gap-1 text-on-surface-variant">
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Xem chi tiết">
-<span class="material-symbols-outlined text-[18px]">visibility</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Chỉnh sửa">
-<span class="material-symbols-outlined text-[18px]">edit</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-error-container hover:text-error transition-colors" title="Xóa hồ sơ">
-<span class="material-symbols-outlined text-[18px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Row 4: Compliant -->
-<tr class="h-12 hover:bg-surface-container-low/70 transition-colors group">
-<td class="px-space-md text-center font-data-mono text-outline">04</td>
-<td class="px-space-md font-data-mono font-semibold text-primary">
-<a class="hover:underline" href="javascript:void(0)">22119034</a>
-</td>
-<td class="px-space-md">
-<div class="flex items-center gap-space-sm">
-<div class="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed font-headline-sm text-headline-sm flex items-center justify-center font-semibold shrink-0">
-                  PH
-                </div>
-<div class="flex flex-col min-w-0">
-<span class="font-label-lg text-label-lg text-on-surface group-hover:text-primary transition-colors">Phạm Hoàng Hải</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant truncate">hoanghai.pham@student.edu.vn</span>
-</div>
-</div>
-</td>
-<td class="px-space-md font-label-md text-label-md">22DTH02</td>
-<td class="px-space-md text-on-surface-variant truncate">Công nghệ thông tin</td>
-<td class="px-space-md font-data-mono text-on-surface-variant">K2022</td>
-<td class="px-space-md">
-<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm text-[11px] bg-secondary-container/40 text-on-secondary-container">
-<span class="material-symbols-outlined text-[13px]">verified</span>
-<span class="">0 lần (Tuân thủ tốt)</span>
-</span>
-</td>
-<td class="px-space-md text-right">
-<div class="flex items-center justify-end gap-1 text-on-surface-variant">
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Xem chi tiết">
-<span class="material-symbols-outlined text-[18px]">visibility</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Chỉnh sửa">
-<span class="material-symbols-outlined text-[18px]">edit</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-error-container hover:text-error transition-colors" title="Xóa hồ sơ">
-<span class="material-symbols-outlined text-[18px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Row 5: 2 infractions -->
-<tr class="h-12 hover:bg-surface-container-low/70 transition-colors group">
-<td class="px-space-md text-center font-data-mono text-outline">05</td>
-<td class="px-space-md font-data-mono font-semibold text-primary">
-<a class="hover:underline" href="javascript:void(0)">21124089</a>
-</td>
-<td class="px-space-md">
-<div class="flex items-center gap-space-sm">
-<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-headline-sm text-headline-sm flex items-center justify-center font-semibold shrink-0">
-                  VK
-                </div>
-<div class="flex flex-col min-w-0">
-<span class="font-label-lg text-label-lg text-on-surface group-hover:text-primary transition-colors">Vũ Tuấn Kiệt</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant truncate">tuankiet.vu@student.edu.vn</span>
-</div>
-</div>
-</td>
-<td class="px-space-md font-label-md text-label-md">21DKT01</td>
-<td class="px-space-md text-on-surface-variant truncate">Kinh tế &amp; Quản trị</td>
-<td class="px-space-md font-data-mono text-on-surface-variant">K2021</td>
-<td class="px-space-md">
-<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm text-[11px] bg-tertiary-fixed text-on-tertiary-fixed font-medium">
-<span class="material-symbols-outlined text-[13px]">warning</span>
-<span class="">2 lần (Không đồng phục)</span>
-</span>
-</td>
-<td class="px-space-md text-right">
-<div class="flex items-center justify-end gap-1 text-on-surface-variant">
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Xem chi tiết">
-<span class="material-symbols-outlined text-[18px]">visibility</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Chỉnh sửa">
-<span class="material-symbols-outlined text-[18px]">edit</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-error-container hover:text-error transition-colors" title="Xóa hồ sơ">
-<span class="material-symbols-outlined text-[18px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Row 6: 0 infractions -->
-<tr class="h-12 hover:bg-surface-container-low/70 transition-colors group">
-<td class="px-space-md text-center font-data-mono text-outline">06</td>
-<td class="px-space-md font-data-mono font-semibold text-primary">
-<a class="hover:underline" href="javascript:void(0)">23115002</a>
-</td>
-<td class="px-space-md">
-<div class="flex items-center gap-space-sm">
-<div class="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed font-headline-sm text-headline-sm flex items-center justify-center font-semibold shrink-0">
-                  ĐL
-                </div>
-<div class="flex flex-col min-w-0">
-<span class="font-label-lg text-label-lg text-on-surface group-hover:text-primary transition-colors">Đinh Khánh Linh</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant truncate">khanhlinh.dinh@student.edu.vn</span>
-</div>
-</div>
-</td>
-<td class="px-space-md font-label-md text-label-md">23DCK03</td>
-<td class="px-space-md text-on-surface-variant truncate">Cơ khí - Động lực</td>
-<td class="px-space-md font-data-mono text-on-surface-variant">K2023</td>
-<td class="px-space-md">
-<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm text-[11px] bg-secondary-container/40 text-on-secondary-container">
-<span class="material-symbols-outlined text-[13px]">verified</span>
-<span class="">0 lần (Tuân thủ tốt)</span>
-</span>
-</td>
-<td class="px-space-md text-right">
-<div class="flex items-center justify-end gap-1 text-on-surface-variant">
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Xem chi tiết">
-<span class="material-symbols-outlined text-[18px]">visibility</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Chỉnh sửa">
-<span class="material-symbols-outlined text-[18px]">edit</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-error-container hover:text-error transition-colors" title="Xóa hồ sơ">
-<span class="material-symbols-outlined text-[18px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Row 7: 3 infractions -->
-<tr class="h-12 hover:bg-surface-container-low/70 transition-colors group">
-<td class="px-space-md text-center font-data-mono text-outline">07</td>
-<td class="px-space-md font-data-mono font-semibold text-primary">
-<a class="hover:underline" href="javascript:void(0)">22132019</a>
-</td>
-<td class="px-space-md">
-<div class="flex items-center gap-space-sm">
-<div class="w-8 h-8 rounded-full bg-error-container text-on-error-container font-headline-sm text-headline-sm flex items-center justify-center font-semibold shrink-0">
-                  HM
-                </div>
-<div class="flex flex-col min-w-0">
-<span class="font-label-lg text-label-lg text-on-surface group-hover:text-primary transition-colors">Hoàng Văn Minh</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant truncate">vanminh.hoang@student.edu.vn</span>
-</div>
-</div>
-</td>
-<td class="px-space-md font-label-md text-label-md">22DNN01</td>
-<td class="px-space-md text-on-surface-variant truncate">Ngoại ngữ</td>
-<td class="px-space-md font-data-mono text-on-surface-variant">K2022</td>
-<td class="px-space-md">
-<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm text-[11px] bg-error text-on-error font-medium">
-<span class="material-symbols-outlined text-[13px]">gpp_bad</span>
-<span class="">3 lần (Tái phạm)</span>
-</span>
-</td>
-<td class="px-space-md text-right">
-<div class="flex items-center justify-end gap-1 text-on-surface-variant">
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Xem chi tiết">
-<span class="material-symbols-outlined text-[18px]">visibility</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-surface-container hover:text-primary transition-colors" title="Chỉnh sửa">
-<span class="material-symbols-outlined text-[18px]">edit</span>
-</button>
-<button class="p-1 rounded-lg hover:bg-error-container hover:text-error transition-colors" title="Xóa hồ sơ">
-<span class="material-symbols-outlined text-[18px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-</tbody>
+<tbody class="divide-y divide-surface-container-low font-body-md text-body-md text-on-surface" id="student-table-body"></tbody>
 </table>
 </div>
 <!-- Standard Pagination Bar -->
 <div class="p-space-md flex flex-col sm:flex-row items-center justify-between gap-space-sm bg-surface-container-low/40">
 <span class="font-body-sm text-body-sm text-on-surface-variant">
-        Hiển thị <span class="font-semibold text-on-surface">1 - 10</span> trong tổng số <span class="font-semibold text-on-surface">12,450</span> sinh viên
+        Hiển thị <span class="font-semibold text-on-surface" id="student-range">0 - 0</span> trong tổng số <span class="font-semibold text-on-surface" id="student-total">0</span> sinh viên
       </span>
-<div class="flex items-center gap-1">
-<button class="w-8 h-8 rounded-lg flex items-center justify-center text-outline hover:bg-surface-container hover:text-on-surface disabled:opacity-40 transition-colors" disabled="">
-<span class="material-symbols-outlined text-[18px]">chevron_left</span>
-</button>
-<button class="w-8 h-8 rounded-lg bg-primary-container text-on-primary font-label-sm text-label-sm font-semibold shadow-xs">1</button>
-<button class="w-8 h-8 rounded-lg text-on-surface hover:bg-surface-container font-label-sm text-label-sm transition-colors">2</button>
-<button class="w-8 h-8 rounded-lg text-on-surface hover:bg-surface-container font-label-sm text-label-sm transition-colors">3</button>
-<span class="px-1 text-outline font-body-sm text-body-sm">...</span>
-<button class="w-8 h-8 rounded-lg text-on-surface hover:bg-surface-container font-label-sm text-label-sm transition-colors">1245</button>
-<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors">
-<span class="material-symbols-outlined text-[18px]">chevron_right</span>
-</button>
+<div class="flex items-center gap-2">
+<label class="font-body-sm text-body-sm text-on-surface-variant" for="student-page-size">Số dòng</label>
+<select class="h-8 rounded-lg bg-surface-container-low px-2 font-label-sm" id="student-page-size">
+<option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+</select>
+<div class="flex items-center gap-1" id="student-page-buttons">
 </div>
 </div>
 </div>
@@ -466,7 +174,7 @@
 </div>
 <div class="flex flex-col">
 <h2 class="font-headline-md text-headline-md text-on-surface" id="drawer-title">Thêm mới sinh viên</h2>
-<span class="font-label-sm text-label-sm text-on-surface-variant">Thông tin hồ sơ và định danh AI</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Thông tin hồ sơ sinh viên (AI không nhận diện danh tính)</span>
 </div>
 </div>
 <button class="w-8 h-8 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface flex items-center justify-center transition-colors" id="close-drawer-btn">
@@ -476,7 +184,7 @@
 <!-- Drawer Form Body -->
 <form class="flex-1 overflow-y-auto p-space-lg flex flex-col gap-space-md" id="student-form">
 <!-- Photo placeholder / capture -->
-<div class="flex items-center gap-space-md p-space-md rounded-xl bg-surface-container-low">
+<div class="flex items-center gap-space-md p-space-md rounded-xl bg-surface-container-low hidden">
 <div class="w-20 h-24 rounded-lg bg-surface-container flex flex-col items-center justify-center text-outline overflow-hidden relative group shrink-0">
 <img class="w-full h-full object-cover hidden" data-alt="Official Vietnamese university student ID portrait photo against solid light blue studio background, clean neat grooming with white collared shirt." id="preview-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDh18I2Cvq_-w4x44ACG-vXKQNo_t72KqMbaSIx0Pb6kTEV4C7Pa3lfVadYk0qNCxm0ftlEVMeoadIm2IDLJ_xfWIEeiFQC8CswQsAG2KKxvOyGcfITrh_-USI7tkgsiaSkdm6GzImVIP6xExbgNRC2zFuuf_k8Nx5dNVmc1xmgTFGFt7xtgwCBiwspiflWyUc9q0ql-ntdWX2qaBUQxw3w1XrlBh9BVwtpNrrSzfw">
 <div class="flex flex-col items-center" id="placeholder-avatar-icon">
@@ -506,7 +214,7 @@
 </div>
 </div>
 <!-- Row: DoB & Gender -->
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm hidden">
 <div class="flex flex-col gap-1">
 <label class="font-label-sm text-label-sm text-on-surface font-medium">Ngày sinh</label>
 <input class="h-9 px-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none" type="date" value="2003-05-18">
@@ -529,43 +237,60 @@
 <label class="font-label-sm text-label-sm text-on-surface font-medium">Khoa trực thuộc <span class="text-error">*</span></label>
 <div class="relative">
 <select class="w-full h-9 pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md appearance-none focus:outline-none" id="input-khoa" required="">
-<option value="CNTT">Công nghệ thông tin</option>
-<option value="Kinh tế">Kinh tế &amp; Quản trị</option>
-<option value="Cơ khí">Cơ khí - Động lực</option>
-<option value="Ngoại ngữ">Ngoại ngữ</option>
+<option value="">Chọn khoa</option>
 </select>
 <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[16px] text-outline pointer-events-none">expand_more</span>
 </div>
 </div>
 <div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-on-surface font-medium">Ngành trực thuộc <span class="text-error">*</span></label>
+<select class="h-9 px-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none" id="input-nganh" required="">
+<option value="">Chọn ngành</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
 <label class="font-label-sm text-label-sm text-on-surface font-medium">Lớp sinh hoạt <span class="text-error">*</span></label>
-<input class="h-9 px-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none" id="input-lop" placeholder="VD: 21DTH01" required="" type="text">
+<select class="h-9 px-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none" id="input-lop" required="">
+<option value="">Chọn lớp</option>
+</select>
 </div>
 </div>
 <!-- Row: Academic Batch (Niên khóa) -->
 <div class="flex flex-col gap-1">
 <label class="font-label-sm text-label-sm text-on-surface font-medium">Niên khóa đào tạo</label>
 <div class="relative">
-<select class="w-full h-9 pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md appearance-none focus:outline-none" id="input-khoa-hoc">
-<option value="K2020">K2020 (Khóa 2020 - 2024)</option>
-<option selected="" value="K2021">K2021 (Khóa 2021 - 2025)</option>
-<option value="K2022">K2022 (Khóa 2022 - 2026)</option>
-<option value="K2023">K2023 (Khóa 2023 - 2027)</option>
-<option value="K2024">K2024 (Khóa 2024 - 2028)</option>
-</select>
-<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[16px] text-outline pointer-events-none">expand_more</span>
+<input class="w-full h-9 px-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none" id="input-khoa-hoc" type="number" min="1" max="9999" placeholder="Ví dụ: 14 hoặc 2021" required>
 </div>
 </div>
 <!-- Contact Info: School Email & Phone -->
-<div class="flex flex-col gap-1">
+<div class="flex flex-col gap-1 hidden">
 <label class="font-label-sm text-label-sm text-on-surface font-medium">Email trường (@student.edu.vn)</label>
 <input class="h-9 px-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none" id="input-email" placeholder="VD: mssv@student.edu.vn" type="email">
 </div>
-<div class="flex flex-col gap-1">
+<div class="flex flex-col gap-1 hidden">
 <label class="font-label-sm text-label-sm text-on-surface font-medium">Số điện thoại liên lạc</label>
 <input class="h-9 px-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none" id="input-phone" placeholder="VD: 0901234567" type="tel">
 </div>
+<!-- Manual violation records (CT_VIPHAM): shown for existing students only -->
+<section class="hidden flex-col gap-space-sm border-t border-surface-container pt-space-md" id="manual-violation-section" aria-labelledby="manual-violation-title">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface" id="manual-violation-title">Vi phạm ghi nhận thủ công</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">CTSV ghi nhận sau khi tự đối chiếu danh tính. Hệ thống không tự liên kết với ảnh AI và không tự trừ điểm rèn luyện.</p>
+</div>
+<div class="grid grid-cols-2 gap-space-sm" id="manual-violation-inputs">
+<label class="col-span-2 flex flex-col gap-1"><span class="font-label-sm text-label-sm">Loại vi phạm</span>
+<select class="h-9 rounded-lg bg-surface-container-low px-3" form="manual-violation-form" id="mv-type" required></select></label>
+<label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Ngày vi phạm</span>
+<input class="h-9 rounded-lg bg-surface-container-low px-3" form="manual-violation-form" id="mv-date" type="date" required></label>
+<div class="flex items-end"><button class="h-9 w-full rounded-lg bg-error px-3 font-label-md text-on-error" form="manual-violation-form" type="submit" id="mv-submit">Ghi nhận vi phạm</button></div>
+<label class="col-span-2 flex flex-col gap-1"><span class="font-label-sm text-label-sm">Ghi chú (tùy chọn)</span>
+<textarea class="min-h-[60px] rounded-lg bg-surface-container-low p-2" form="manual-violation-form" id="mv-note" maxlength="500" placeholder="VD: Đối chiếu tại cổng chính, bản ghi AI #128"></textarea></label>
+</div>
+<p class="font-body-sm text-body-sm" id="mv-status" role="status" aria-live="polite"></p>
+<ul class="flex flex-col divide-y divide-surface-container rounded-lg bg-surface-container-low" id="mv-list"></ul>
+</section>
 </form>
+<form class="hidden" id="manual-violation-form" novalidate></form>
 <!-- Drawer Footer Actions -->
 <div class="p-space-md bg-surface-container-low flex items-center justify-end gap-space-sm">
 <button class="px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" id="close-drawer-footer-btn" type="button">
@@ -627,8 +352,8 @@
 <span class="font-label-lg text-label-lg text-on-surface font-semibold">Bước 1: Chọn loại danh mục import</span>
 <span class="text-error font-body-sm text-body-sm">*</span>
 </div>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Lưu ý tuân thủ đúng trình tự hệ thống: Thông tin khoa -&gt; Thông tin khóa -&gt; Thông tin sinh viên để đảm bảo toàn vẹn dữ liệu.</p>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm mt-1">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Import theo thứ tự: KHOA → NGANH → LOP → SINHVIEN. Mã quan hệ phải trùng mã trong danh mục đã nhập trước.</p>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-space-sm mt-1">
 <label class="p-space-md rounded-xl bg-surface-container-low/60 hover:bg-surface-container-low cursor-pointer flex items-start gap-space-sm transition-all">
 <input class="mt-0.5 text-primary focus:ring-0" name="import-type" type="radio" value="khoa">
 <div class="flex flex-col">
@@ -637,17 +362,24 @@
 </div>
 </label>
 <label class="p-space-md rounded-xl bg-surface-container-low/60 hover:bg-surface-container-low cursor-pointer flex items-start gap-space-sm transition-all">
-<input class="mt-0.5 text-primary focus:ring-0" name="import-type" type="radio" value="khoa-hoc">
+<input class="mt-0.5 text-primary focus:ring-0" name="import-type" type="radio" value="NGANH">
 <div class="flex flex-col">
-<span class="font-label-md text-label-md text-on-surface font-semibold">Thông tin Khóa / Lớp</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">Thông tin Ngành</span>
 <span class="font-body-sm text-[11px] text-on-surface-variant">Bước thiết lập 02</span>
 </div>
 </label>
 <label class="p-space-md rounded-xl bg-surface-container-low cursor-pointer flex items-start gap-space-sm transition-all">
-<input checked="" class="mt-0.5 text-primary focus:ring-0" name="import-type" type="radio" value="sinh-vien">
+<input class="mt-0.5 text-primary focus:ring-0" name="import-type" type="radio" value="LOP">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Thông tin Lớp</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant">Bước thiết lập 03</span>
+</div>
+</label>
+<label class="p-space-md rounded-xl bg-surface-container-low cursor-pointer flex items-start gap-space-sm transition-all">
+<input checked="" class="mt-0.5 text-primary focus:ring-0" name="import-type" type="radio" value="SINHVIEN">
 <div class="flex flex-col">
 <span class="font-label-md text-label-md text-primary font-bold">Thông tin Sinh viên</span>
-<span class="font-body-sm text-[11px] text-on-surface-variant">Danh sách hồ sơ chính quy</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant">Bước thiết lập 04</span>
 </div>
 </label>
 </div>
@@ -655,241 +387,56 @@
 <!-- STEP 2: Drag & Drop Zone + Download Sample -->
 <div class="flex flex-col gap-space-xs">
 <div class="flex items-center justify-between">
-<span class="font-label-lg text-label-lg text-on-surface font-semibold">Bước 2: Tải lên tệp Excel dữ liệu (.xlsx, .xls)</span>
-<button class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm transition-colors">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Bước 2: Tải lên workbook Excel (.xlsx)</span>
+<button class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm transition-colors" id="import-template-btn" type="button">
 <span class="material-symbols-outlined text-[16px]">download</span>
 <span class="">Tải file Excel mẫu (.xlsx)</span>
 </button>
 </div>
 <!-- Drag and drop zone -->
-<div class="mt-1 p-6 rounded-xl bg-surface-container-low/50 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-surface-container-low transition-all">
+<div class="mt-1 p-6 rounded-xl bg-surface-container-low/50 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-surface-container-low transition-all" id="import-drop-zone">
+<input accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden" id="import-file" type="file">
 <div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary mb-2">
 <span class="material-symbols-outlined text-[24px]">cloud_upload</span>
 </div>
 <p class="font-label-md text-label-md text-on-surface font-medium">Kéo thả tệp tin vào đây hoặc nhấn để duyệt từ máy tính</p>
-<p class="font-body-sm text-[11px] text-on-surface-variant mt-1">Dung lượng tối đa: 15MB. Đã chọn tệp: <span class="font-data-mono font-semibold text-primary">DS_SinhVien_KhoaCNTT_HK2_2024.xlsx</span></p>
+<p class="font-body-sm text-[11px] text-on-surface-variant mt-1">Dung lượng tối đa: 15MB. Chỉ .xlsx; .xls không được hỗ trợ. Tệp đã chọn: <span class="font-data-mono font-semibold text-primary" id="import-file-name">chưa chọn</span></p>
 </div>
 </div>
 <!-- STEP 3: Preview Table with Validation Badges & Errors -->
-<div class="flex flex-col gap-space-xs">
+<div class="flex flex-col gap-space-xs hidden" id="import-preview-section">
 <div class="flex items-center justify-between">
 <div class="flex items-center gap-2">
 <span class="font-label-lg text-label-lg text-on-surface font-semibold">Bước 3: Xem trước &amp; Đối soát dữ liệu (Preview)</span>
-<span class="px-2 py-0.5 rounded-full bg-secondary-container/40 text-on-secondary-container font-data-mono text-[11px] font-semibold">45 hợp lệ / 3 lỗi</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/40 text-on-secondary-container font-data-mono text-[11px] font-semibold" id="import-counts">0 dòng</span>
 </div>
-<span class="font-body-sm text-[11px] text-error">Yêu cầu sửa lỗi hoặc bỏ qua hàng lỗi trước khi nhập</span>
+<span class="font-body-sm text-[11px] text-error">Mọi dòng lỗi chặn toàn bộ giao dịch; dòng mã trùng sẽ được bỏ qua</span>
 </div>
 <!-- Preview Table -->
 <div class="overflow-x-auto rounded-xl bg-surface-container-low/30">
 <table class="w-full text-left text-[12px] border-collapse min-w-[700px]">
-<thead>
-<tr class="h-9 bg-surface-container-low text-outline font-label-sm text-[11px] uppercase tracking-wider">
-<th class="px-3 w-16 text-center">Dòng</th>
-<th class="px-3 w-28">MSSV</th>
-<th class="px-3 min-w-[150px]">Họ và tên</th>
-<th class="px-3 w-24">Lớp</th>
-<th class="px-3 min-w-[140px]">Khoa</th>
-<th class="px-3 min-w-[200px]">Trạng thái kiểm tra</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-surface-container-low font-body-sm text-body-sm">
-<!-- Row Valid 1 -->
-<tr class="h-10 bg-secondary-container/10">
-<td class="px-3 text-center font-data-mono text-outline">02</td>
-<td class="px-3 font-data-mono font-medium text-on-surface">21110825</td>
-<td class="px-3 text-on-surface">Đoàn Minh Anh</td>
-<td class="px-3 text-on-surface">21DTH01</td>
-<td class="px-3 text-on-surface-variant">CNTT</td>
-<td class="px-3">
-<span class="inline-flex items-center gap-1 text-secondary font-label-sm text-[11px] font-medium">
-<span class="material-symbols-outlined text-[14px]">check_circle</span>
-<span class="">Hợp lệ</span>
-</span>
-</td>
-</tr>
-<!-- Row Valid 2 -->
-<tr class="h-10 bg-secondary-container/10">
-<td class="px-3 text-center font-data-mono text-outline">03</td>
-<td class="px-3 font-data-mono font-medium text-on-surface">21110826</td>
-<td class="px-3 text-on-surface">Bùi Quốc Bảo</td>
-<td class="px-3 text-on-surface">21DTH01</td>
-<td class="px-3 text-on-surface-variant">CNTT</td>
-<td class="px-3">
-<span class="inline-flex items-center gap-1 text-secondary font-label-sm text-[11px] font-medium">
-<span class="material-symbols-outlined text-[14px]">check_circle</span>
-<span class="">Hợp lệ</span>
-</span>
-</td>
-</tr>
-<!-- Row Error 1 -->
-<tr class="h-10 bg-error-container/30">
-<td class="px-3 text-center font-data-mono text-error font-bold">04</td>
-<td class="px-3 font-data-mono font-medium text-error line-through">21110823</td>
-<td class="px-3 text-on-surface">Nguyễn An An</td>
-<td class="px-3 text-on-surface">21DTH01</td>
-<td class="px-3 text-on-surface-variant">CNTT</td>
-<td class="px-3">
-<span class="inline-flex items-center gap-1 text-error font-label-sm text-[11px] font-semibold">
-<span class="material-symbols-outlined text-[14px]">error</span>
-<span class="">Lỗi dòng 4: MSSV đã tồn tại trên hệ thống</span>
-</span>
-</td>
-</tr>
-<!-- Row Valid 3 -->
-<tr class="h-10 bg-secondary-container/10">
-<td class="px-3 text-center font-data-mono text-outline">05</td>
-<td class="px-3 font-data-mono font-medium text-on-surface">21110827</td>
-<td class="px-3 text-on-surface">Hà Thu Cúc</td>
-<td class="px-3 text-on-surface">21DTH01</td>
-<td class="px-3 text-on-surface-variant">CNTT</td>
-<td class="px-3">
-<span class="inline-flex items-center gap-1 text-secondary font-label-sm text-[11px] font-medium">
-<span class="material-symbols-outlined text-[14px]">check_circle</span>
-<span class="">Hợp lệ</span>
-</span>
-</td>
-</tr>
-<!-- Row Error 2 -->
-<tr class="h-10 bg-error-container/30">
-<td class="px-3 text-center font-data-mono text-error font-bold">08</td>
-<td class="px-3 font-data-mono font-medium text-on-surface">21110830</td>
-<td class="px-3 text-on-surface">Trần Văn Cường</td>
-<td class="px-3 text-error font-semibold">99XYZ01</td>
-<td class="px-3 text-on-surface-variant">CNTT</td>
-<td class="px-3">
-<span class="inline-flex items-center gap-1 text-error font-label-sm text-[11px] font-semibold">
-<span class="material-symbols-outlined text-[14px]">error</span>
-<span class="">Lỗi dòng 8: Mã Lớp không thuộc danh mục Khoa CNTT</span>
-</span>
-</td>
-</tr>
-</tbody>
+<thead class="h-9 bg-surface-container-low text-outline font-label-sm text-[11px] uppercase tracking-wider" id="import-preview-head"></thead>
+<tbody class="divide-y divide-surface-container-low font-body-sm text-body-sm" id="import-preview-body"></tbody>
 </table>
 </div>
 </div>
 </div>
 <!-- Modal Footer -->
 <div class="p-space-lg bg-surface-container-low flex items-center justify-between">
-<label class="flex items-center gap-2 cursor-pointer">
-<input checked="" class="w-4 h-4 rounded text-primary focus:ring-0" type="checkbox">
-<span class="font-body-sm text-body-sm text-on-surface">Tự động bỏ qua các hàng bị lỗi và tiếp tục nhập</span>
-</label>
+<span class="font-body-sm text-body-sm text-on-surface">All-or-nothing: chỉ lưu khi không có lỗi; mã trùng mặc định bỏ qua.</span>
 <div class="flex items-center gap-space-sm">
 <button class="px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" id="cancel-import-btn">
             Hủy thao tác
           </button>
-<button class="px-5 py-2 rounded-xl bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md shadow-sm transition-all flex items-center gap-1.5">
+<button class="px-5 py-2 rounded-xl bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md shadow-sm transition-all flex items-center gap-1.5" id="import-commit-btn" disabled="" type="button">
 <span class="material-symbols-outlined text-[18px]">cloud_done</span>
-<span class="">Nhập dữ liệu (45/48 hợp lệ)</span>
+<span class="" id="import-commit-label">Chọn workbook để xem trước</span>
 </button>
 </div>
 </div>
 </div>
 </div>
 </div>
-<!-- Inline Interactive Script -->
-<script>
-  // Drawer Interactions
-  const drawer = document.getElementById('student-drawer');
-  const drawerPanel = document.getElementById('drawer-panel');
-  const drawerBackdrop = document.getElementById('drawer-backdrop');
-  const openDrawerBtn = document.getElementById('open-drawer-btn');
-  const closeDrawerBtn = document.getElementById('close-drawer-btn');
-  const closeDrawerFooterBtn = document.getElementById('close-drawer-footer-btn');
-  const drawerTitle = document.getElementById('drawer-title');
-
-  function openDrawer(isEdit = false) {
-    drawer.classList.remove('pointer-events-none');
-    drawerBackdrop.classList.remove('pointer-events-none');
-    drawerBackdrop.classList.remove('opacity-0');
-    drawerBackdrop.classList.add('opacity-100');
-    drawerPanel.classList.remove('translate-x-full');
-    drawerPanel.classList.add('translate-x-0');
-    if (!isEdit) {
-      drawerTitle.textContent = 'Thêm mới sinh viên';
-      document.getElementById('student-form').reset();
-    }
-  }
-
-  function closeDrawer() {
-    drawerPanel.classList.remove('translate-x-0');
-    drawerPanel.classList.add('translate-x-full');
-    drawerBackdrop.classList.remove('opacity-100');
-    drawerBackdrop.classList.add('opacity-0');
-    setTimeout(() => {
-      drawer.classList.add('pointer-events-none');
-      drawerBackdrop.classList.add('pointer-events-none');
-    }, 300);
-  }
-
-  openDrawerBtn.addEventListener('click', () => openDrawer(false));
-  closeDrawerBtn.addEventListener('click', closeDrawer);
-  closeDrawerFooterBtn.addEventListener('click', closeDrawer);
-  drawerBackdrop.addEventListener('click', closeDrawer);
-
-  window.openDrawerWithData = function(mssv, name, lop, khoa, khoahoc, email, phone) {
-    openDrawer(true);
-    drawerTitle.textContent = 'Chỉnh sửa sinh viên: ' + mssv;
-    document.getElementById('input-mssv').value = mssv;
-    document.getElementById('input-name').value = name;
-    document.getElementById('input-lop').value = lop;
-    document.getElementById('input-khoa').value = khoa;
-    document.getElementById('input-khoa-hoc').value = khoahoc;
-    document.getElementById('input-email').value = email;
-    document.getElementById('input-phone').value = phone;
-  };
-
-  // Import Modal Interactions
-  const importModal = document.getElementById('import-modal');
-  const openImportModalBtn = document.getElementById('open-import-modal-btn');
-  const closeImportModalBtn = document.getElementById('close-import-modal-btn');
-  const cancelImportBtn = document.getElementById('cancel-import-btn');
-  const importBackdrop = document.getElementById('import-backdrop');
-
-  function openImportModal() {
-    importModal.classList.remove('hidden');
-    importModal.classList.add('flex');
-  }
-
-  function closeImportModal() {
-    importModal.classList.remove('flex');
-    importModal.classList.add('hidden');
-  }
-
-  openImportModalBtn.addEventListener('click', openImportModal);
-  closeImportModalBtn.addEventListener('click', closeImportModal);
-  cancelImportBtn.addEventListener('click', closeImportModal);
-  importBackdrop.addEventListener('click', closeImportModal);
-
-  // Mini Chart Toggle (Khoa vs Lop)
-  const toggleKhoaBtn = document.getElementById('toggle-khoa-btn');
-  const toggleLopBtn = document.getElementById('toggle-lop-btn');
-  const chartKhoa = document.getElementById('chart-khoa');
-  const chartLop = document.getElementById('chart-lop');
-  const chartTitle = document.getElementById('chart-title');
-
-  toggleKhoaBtn.addEventListener('click', () => {
-    toggleKhoaBtn.classList.add('bg-surface-container-lowest', 'text-primary', 'font-semibold', 'shadow-xs');
-    toggleKhoaBtn.classList.remove('text-on-surface-variant');
-    toggleLopBtn.classList.remove('bg-surface-container-lowest', 'text-primary', 'font-semibold', 'shadow-xs');
-    toggleLopBtn.classList.add('text-on-surface-variant');
-    chartKhoa.classList.remove('hidden');
-    chartKhoa.classList.add('flex');
-    chartLop.classList.remove('flex');
-    chartLop.classList.add('hidden');
-    chartTitle.textContent = 'Phân bổ sinh viên theo khoa';
-  });
-
-  toggleLopBtn.addEventListener('click', () => {
-    toggleLopBtn.classList.add('bg-surface-container-lowest', 'text-primary', 'font-semibold', 'shadow-xs');
-    toggleLopBtn.classList.remove('text-on-surface-variant');
-    toggleKhoaBtn.classList.remove('bg-surface-container-lowest', 'text-primary', 'font-semibold', 'shadow-xs');
-    toggleKhoaBtn.classList.add('text-on-surface-variant');
-    chartLop.classList.remove('hidden');
-    chartLop.classList.add('flex');
-    chartKhoa.classList.remove('flex');
-    chartKhoa.classList.add('hidden');
-    chartTitle.textContent = 'Phân bổ sinh viên theo lớp';
-  });
-</script>
-<?php include 'includes/footer.php'; ?>
+<script src="assets/js/students.js" defer></script>
+<script src="assets/js/student_violations.js" defer></script>
+<?php include __DIR__ . '/includes/footer.php'; ?>

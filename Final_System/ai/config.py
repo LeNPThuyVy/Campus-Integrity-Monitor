@@ -1,5 +1,4 @@
 from pathlib import Path #libray get path
-import os
 import torch
 
 #Constants must be uppercase
@@ -10,12 +9,11 @@ import torch
 CURRENT_FILE=Path(__file__).resolve() #Get current folder path
 ROOT_DIR=CURRENT_FILE  .parent.parent
 DETECT_PERSON_PATH=ROOT_DIR /"models"/"detector.pt"
-CLASSIFY_UNIFORM_PATH = ROOT_DIR /"models"/"kd_student_seed42_best_ver2.pt"
-DETECT_CARD_PATH     = ROOT_DIR /"models"/"card_detector.pt"
+CLASSIFY_UNIFORM_PATH = ROOT_DIR /"models"/"mobilenet_best_uniform.pt"
+CLASSIFY_CARD_PATH = ROOT_DIR /"models"/"mobilenet_best_card.pt"
 DETECTOR_MODEL_NAME="YOLO26"
 CLASSIFIER_MODEL_NAME="MobileNetV3"
-CARD_DETECTOR_MODEL_NAME="YOLO"
-EVENT_JSON_PATH=ROOT_DIR / "storage"/ "events.json"
+EVENT_JSON_PATH=CURRENT_FILE.parent/"reporting"/"storage"/"events.json"
 PROMPT_YAML_PATH= CURRENT_FILE.parent/"reporting"/"prompt"/"report_prompt.yaml"
 
 
@@ -26,19 +24,11 @@ UNIFORM_LABELS = ["Non_Uniform", "Uniform"]
 CARD_LABELS = ["No_Card", "Card"]
 LABELS = UNIFORM_LABELS
 DETECT_IMAGE_SIZE=640
-PERSON_IMAGE_SIZE=416
-USE_OPENVINO=False
 CLASSIFY_IMAGE_SIZE=224
-DETECT_CONF=0.5
-CLASSIFY_CONF=0.8
+DETECT_CONF=0.3
+CLASSIFY_CONF=0.4
 
-# Distance filtering: skip uniform & card evaluation if person height ratio < threshold (e.g. 10% of frame height)
-MIN_PERSON_HEIGHT_RATIO=0.06
 
-#YOLO card detector tuning
-DETECT_CARD_CONF=0.25
-DETECT_CARD_IOU=0.45
-DETECT_CARD_IMAGE_SIZE=320
 
 #==========================
 #Device
@@ -49,26 +39,32 @@ DEVICE= (
     else "cpu"
 )
 
+
+
 #==========================
 #Tracker 
 #==========================
-# IOU_THRESHOLD is not used anymore in voting v2
+IOU_THRESHOLD=0.7
+
+
 
 #==========================
-#Voting (Hysteresis Dual-Threshold) / Voting v2
+#Voting
 #==========================
-LEN_HISTORY=30
-HISTORY_THRESHOLD=30
-MISSING_COUNTER_THRESHOLD=15
+FRAME_SKIP=1                 #Run AI on 1 of every N frames (1 = every frame)
+LEN_HISTORY=20               #Sliding window of classification results kept per track
+VOTING_THREDSHOLD=7          #Minimum confident results before a track gets a final label
+VIOLATION_RATIO=0.6          #Share of "violation" votes needed to conclude a violation
+MISSING_COUNTER_THRESHOLD=5  #Frames a track may be missing before its history is dropped
 
-# Voting v2 Params
-MIN_SAMPLES=3
-MIN_SAMPLES_FINAL=3
-CONFIRM_SCORE=2.5
-CLASSIFY_CADENCE_NEW=1
-CLASSIFY_CADENCE_CONFIRMED=15
-CARD_ROI=(0.1, 0.6)
 
+
+#==========================
+#Violation events (Desktop -> API)
+#==========================
+EVENT_DEDUP_SECONDS=600      #Same track is never reported twice within this window
+EVIDENCE_MIN_SIZE=32         #Minimum crop width/height (pixels) for a valid evidence image
+EVIDENCE_PADDING=0.08        #Extra margin around the person box in the evidence crop
 
 
 
@@ -86,25 +82,3 @@ FONT_COLOR="Black"
 #==========================
 GEMINI_MODEL="gemini-3.1-flash-lite"
 GEMINI_KEY_ENV="GEMINI_API_KEY"
-
-
-#==========================
-#Event logging and sync to central server
-#==========================
-try:
-    from dotenv import load_dotenv
-    load_dotenv(CURRENT_FILE.parent / "reporting" / ".env")
-except ImportError:
-    pass
-
-EVENT_TIMEOUT_SECONDS=10
-EVENT_OUTBOX_PATH=ROOT_DIR / "storage" / "outbox.db"
-EVENT_IMAGE_DIR=ROOT_DIR / "storage" / "images"
-#Fill these in ai/reporting/.env (see .env.example). SERVER_URL empty = don't sync, events stay in outbox
-DEVICE_ID=os.getenv("CIM_DEVICE_ID", "device-01")
-SERVER_URL=os.getenv("CIM_SERVER_URL", "")
-DEVICE_API_KEY=os.getenv("CIM_API_KEY", "")
-SYNC_INTERVAL_SECONDS=5
-SYNC_BATCH_SIZE=50
-SYNC_IMAGE_WORKERS=2
-SYNC_TIMEOUT_SECONDS=15
