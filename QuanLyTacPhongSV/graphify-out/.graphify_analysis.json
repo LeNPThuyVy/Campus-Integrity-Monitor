@@ -51,6 +51,127 @@
       "composer_type"
     ],
     "1": [
+      "app_http_controllers_accountcontroller",
+      "app_http_controllers_accountcontroller_accountcontroller",
+      "app_http_controllers_accountcontroller_accountcontroller_index",
+      "app_http_controllers_authcontroller_authcontroller",
+      "app_http_controllers_authcontroller_authcontroller_changepassword",
+      "app_http_controllers_authcontroller_authcontroller_decodehexunicode",
+      "app_http_controllers_authcontroller_authcontroller_getpdo",
+      "app_http_controllers_authcontroller_authcontroller_login",
+      "app_http_controllers_authcontroller_authcontroller_logout",
+      "app_http_controllers_authcontroller_authcontroller_safenext",
+      "app_http_controllers_authcontroller_authcontroller_showchangepassword",
+      "app_http_controllers_authcontroller_authcontroller_showlogin",
+      "app_http_controllers_authcontroller_php_pdo",
+      "app_http_controllers_controller",
+      "app_http_controllers_controller_controller",
+      "app_http_controllers_dashboardcontroller",
+      "app_http_controllers_dashboardcontroller_dashboardcontroller",
+      "app_http_controllers_dashboardcontroller_dashboardcontroller_index",
+      "app_http_controllers_facilitycontroller",
+      "app_http_controllers_facilitycontroller_facilitycontroller",
+      "app_http_controllers_facilitycontroller_facilitycontroller_index",
+      "app_http_controllers_reportcontroller",
+      "app_http_controllers_reportcontroller_reportcontroller",
+      "app_http_controllers_reportcontroller_reportcontroller_index",
+      "app_http_controllers_violationcontroller",
+      "app_http_controllers_violationcontroller_violationcontroller",
+      "app_http_controllers_violationcontroller_violationcontroller_index",
+      "controller",
+      "illuminate_http_redirectresponse",
+      "illuminate_support_facades_route",
+      "illuminate_view_view",
+      "routes_web",
+      "routes_web_closure_1",
+      "routes_web_closure_2",
+      "routes_web_get",
+      "routes_web_get_camera_khuvuc_php",
+      "routes_web_get_danh_muc_php",
+      "routes_web_get_doi_mat_khau_php",
+      "routes_web_get_home_php",
+      "routes_web_get_list_vipham_php",
+      "routes_web_get_login_php",
+      "routes_web_get_phanquyen_php",
+      "routes_web_get_ql_sinhvien_php",
+      "routes_web_get_reporting_php"
+    ],
+    "2": [
+      "app_http_controllers_authcontroller",
+      "app_http_controllers_catalogcontroller",
+      "app_http_controllers_studentcontroller",
+      "app_http_controllers_studentcontroller_studentcontroller",
+      "app_http_controllers_studentcontroller_studentcontroller_api",
+      "app_http_controllers_studentcontroller_studentcontroller_construct",
+      "app_http_controllers_studentcontroller_studentcontroller_index",
+      "app_services_catalogservice",
+      "app_services_studentservice",
+      "app_services_studentservice_php_pdo",
+      "app_services_studentservice_studentservice",
+      "app_services_studentservice_studentservice_addviolation",
+      "app_services_studentservice_studentservice_cleanutf8",
+      "app_services_studentservice_studentservice_createxlsx",
+      "app_services_studentservice_studentservice_decodehexunicode",
+      "app_services_studentservice_studentservice_deletestudent",
+      "app_services_studentservice_studentservice_deleteviolation",
+      "app_services_studentservice_studentservice_escapelike",
+      "app_services_studentservice_studentservice_getcatalog",
+      "app_services_studentservice_studentservice_getpdo",
+      "app_services_studentservice_studentservice_getstatistics",
+      "app_services_studentservice_studentservice_getstudentdetail",
+      "app_services_studentservice_studentservice_getviolations",
+      "app_services_studentservice_studentservice_getviolationtypes",
+      "app_services_studentservice_studentservice_importcolumns",
+      "app_services_studentservice_studentservice_liststudents",
+      "app_services_studentservice_studentservice_today",
+      "app_services_studentservice_studentservice_upsertstudent",
+      "datetimeimmutable",
+      "datetimezone",
+      "illuminate_http_jsonresponse",
+      "illuminate_http_response",
+      "illuminate_support_facades_db",
+      "invalidargumentexception",
+      "pdo",
+      "pdoexception",
+      "runtimeexception",
+      "simplexmlelement",
+      "throwable",
+      "ziparchive"
+    ],
+    "3": [
+      "app_http_controllers_authcontroller_authcontroller_construct",
+      "app_http_controllers_cimproxycontroller",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_cleanutf8",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_construct",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_decodehexunicode",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_getpdo",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_getsummarydata",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handle",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handleaccounts",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handleareas",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handlecameras",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handledashboard",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handlereportexport",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handlereportsummary",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handlesemesters",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolationdetail",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolations",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolationtypes",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_resolvedaterange",
+      "app_http_controllers_cimproxycontroller_php_pdo",
+      "app_http_middleware_cimauthenticate",
+      "app_http_middleware_cimauthenticate_cimauthenticate",
+      "app_http_middleware_cimauthenticate_cimauthenticate_handle",
+      "app_http_middleware_cimrole",
+      "app_http_middleware_cimrole_cimrole",
+      "app_http_middleware_cimrole_cimrole_handle",
+      "app_services_cimapiclient",
+      "closure",
+      "illuminate_http_request",
+      "symfony_component_httpfoundation_response"
+    ],
+    "4": [
       "app_models_user",
       "app_models_user_user",
       "app_models_user_user_casts",
@@ -79,35 +200,7 @@
       "pdo_mysql",
       "static"
     ],
-    "2": [
-      "app_services_catalogservice",
-      "app_services_studentservice",
-      "app_services_studentservice_php_pdo",
-      "app_services_studentservice_studentservice",
-      "app_services_studentservice_studentservice_addviolation",
-      "app_services_studentservice_studentservice_createxlsx",
-      "app_services_studentservice_studentservice_deletestudent",
-      "app_services_studentservice_studentservice_deleteviolation",
-      "app_services_studentservice_studentservice_escapelike",
-      "app_services_studentservice_studentservice_getcatalog",
-      "app_services_studentservice_studentservice_getpdo",
-      "app_services_studentservice_studentservice_getstatistics",
-      "app_services_studentservice_studentservice_getstudentdetail",
-      "app_services_studentservice_studentservice_getviolations",
-      "app_services_studentservice_studentservice_getviolationtypes",
-      "app_services_studentservice_studentservice_importcolumns",
-      "app_services_studentservice_studentservice_liststudents",
-      "app_services_studentservice_studentservice_today",
-      "app_services_studentservice_studentservice_upsertstudent",
-      "datetimeimmutable",
-      "datetimezone",
-      "illuminate_support_facades_db",
-      "pdo",
-      "runtimeexception",
-      "simplexmlelement",
-      "ziparchive"
-    ],
-    "3": [
+    "5": [
       "public_assets_js_students",
       "public_assets_js_students_actionbutton",
       "public_assets_js_students_addoptions",
@@ -134,7 +227,7 @@
       "public_assets_js_students_setreadonly",
       "public_assets_js_students_showstatus"
     ],
-    "4": [
+    "6": [
       "package",
       "package_devdependencies",
       "package_devdependencies_concurrently",
@@ -158,7 +251,7 @@
       "ref_vite",
       "vite_config"
     ],
-    "5": [
+    "7": [
       "database_migrations_0001_01_01_000000_create_users_table",
       "database_migrations_0001_01_01_000000_create_users_table_closure_1",
       "database_migrations_0001_01_01_000000_create_users_table_closure_2",
@@ -180,44 +273,27 @@
       "illuminate_database_schema_blueprint",
       "illuminate_support_facades_schema"
     ],
-    "6": [
-      "app_http_controllers_accountcontroller",
-      "app_http_controllers_accountcontroller_accountcontroller",
-      "app_http_controllers_accountcontroller_accountcontroller_index",
-      "app_http_controllers_controller",
-      "app_http_controllers_controller_controller",
-      "app_http_controllers_dashboardcontroller",
-      "app_http_controllers_dashboardcontroller_dashboardcontroller",
-      "app_http_controllers_dashboardcontroller_dashboardcontroller_index",
-      "app_http_controllers_facilitycontroller",
-      "app_http_controllers_facilitycontroller_facilitycontroller",
-      "app_http_controllers_facilitycontroller_facilitycontroller_index",
-      "app_http_controllers_reportcontroller",
-      "app_http_controllers_reportcontroller_reportcontroller",
-      "app_http_controllers_reportcontroller_reportcontroller_index",
-      "app_http_controllers_violationcontroller",
-      "app_http_controllers_violationcontroller_violationcontroller",
-      "app_http_controllers_violationcontroller_violationcontroller_index",
-      "illuminate_view_view"
-    ],
-    "7": [
-      "app_http_controllers_catalogcontroller",
+    "8": [
       "app_http_controllers_catalogcontroller_catalogcontroller",
       "app_http_controllers_catalogcontroller_catalogcontroller_api",
       "app_http_controllers_catalogcontroller_catalogcontroller_construct",
       "app_http_controllers_catalogcontroller_catalogcontroller_index",
-      "app_http_controllers_studentcontroller",
-      "app_http_controllers_studentcontroller_studentcontroller",
-      "app_http_controllers_studentcontroller_studentcontroller_api",
-      "app_http_controllers_studentcontroller_studentcontroller_construct",
-      "app_http_controllers_studentcontroller_studentcontroller_index",
-      "illuminate_http_jsonresponse",
-      "illuminate_http_response",
-      "invalidargumentexception",
-      "pdoexception",
-      "throwable"
+      "app_services_catalogservice_catalogservice",
+      "app_services_catalogservice_catalogservice_cleanutf8",
+      "app_services_catalogservice_catalogservice_code",
+      "app_services_catalogservice_catalogservice_decodehexunicode",
+      "app_services_catalogservice_catalogservice_delete",
+      "app_services_catalogservice_catalogservice_flag",
+      "app_services_catalogservice_catalogservice_getallcatalogs",
+      "app_services_catalogservice_catalogservice_getdata",
+      "app_services_catalogservice_catalogservice_getpdo",
+      "app_services_catalogservice_catalogservice_intval",
+      "app_services_catalogservice_catalogservice_requiredtext",
+      "app_services_catalogservice_catalogservice_sanitizerecord",
+      "app_services_catalogservice_catalogservice_save",
+      "app_services_catalogservice_php_pdo"
     ],
-    "8": [
+    "9": [
       "public_assets_js_common",
       "public_assets_js_common_api",
       "public_assets_js_common_apierror",
@@ -233,22 +309,6 @@
       "public_assets_js_common_setsidebar",
       "public_assets_js_common_staterow",
       "public_assets_js_common_toast"
-    ],
-    "9": [
-      "illuminate_support_facades_route",
-      "routes_web",
-      "routes_web_closure_1",
-      "routes_web_closure_2",
-      "routes_web_get",
-      "routes_web_get_camera_khuvuc_php",
-      "routes_web_get_danh_muc_php",
-      "routes_web_get_doi_mat_khau_php",
-      "routes_web_get_home_php",
-      "routes_web_get_list_vipham_php",
-      "routes_web_get_login_php",
-      "routes_web_get_phanquyen_php",
-      "routes_web_get_ql_sinhvien_php",
-      "routes_web_get_reporting_php"
     ],
     "10": [
       "illuminate_foundation_testing_testcase",
@@ -266,33 +326,6 @@
       "tests_testcase_testcase"
     ],
     "11": [
-      "app_services_catalogservice_catalogservice",
-      "app_services_catalogservice_catalogservice_code",
-      "app_services_catalogservice_catalogservice_delete",
-      "app_services_catalogservice_catalogservice_flag",
-      "app_services_catalogservice_catalogservice_getallcatalogs",
-      "app_services_catalogservice_catalogservice_getdata",
-      "app_services_catalogservice_catalogservice_getpdo",
-      "app_services_catalogservice_catalogservice_intval",
-      "app_services_catalogservice_catalogservice_requiredtext",
-      "app_services_catalogservice_catalogservice_sanitizerecord",
-      "app_services_catalogservice_catalogservice_save",
-      "app_services_catalogservice_php_pdo"
-    ],
-    "12": [
-      "app_http_controllers_cimproxycontroller",
-      "app_http_controllers_cimproxycontroller_cimproxycontroller_handle",
-      "app_http_middleware_cimauthenticate",
-      "app_http_middleware_cimauthenticate_cimauthenticate",
-      "app_http_middleware_cimauthenticate_cimauthenticate_handle",
-      "app_http_middleware_cimrole",
-      "app_http_middleware_cimrole_cimrole",
-      "app_http_middleware_cimrole_cimrole_handle",
-      "closure",
-      "illuminate_http_request",
-      "symfony_component_httpfoundation_response"
-    ],
-    "13": [
       "public_assets_js_catalogs",
       "public_assets_js_catalogs_displayvalue",
       "public_assets_js_catalogs_fieldcontrol",
@@ -305,7 +338,7 @@
       "public_assets_js_catalogs_showstatus",
       "public_assets_js_catalogs_startedit"
     ],
-    "14": [
+    "12": [
       "public_assets_js_facilities",
       "public_assets_js_facilities_actionbutton",
       "public_assets_js_facilities_loadall",
@@ -317,29 +350,7 @@
       "public_assets_js_facilities_showkey",
       "public_assets_js_facilities_showtab"
     ],
-    "15": [
-      "app_http_controllers_authcontroller",
-      "app_http_controllers_authcontroller_authcontroller",
-      "app_http_controllers_authcontroller_authcontroller_changepassword",
-      "app_http_controllers_authcontroller_authcontroller_login",
-      "app_http_controllers_authcontroller_authcontroller_logout",
-      "app_http_controllers_authcontroller_authcontroller_safenext",
-      "app_http_controllers_authcontroller_authcontroller_showchangepassword",
-      "app_http_controllers_authcontroller_authcontroller_showlogin",
-      "illuminate_http_redirectresponse"
-    ],
-    "16": [
-      "app_http_controllers_authcontroller_authcontroller_construct",
-      "app_http_controllers_cimproxycontroller_cimproxycontroller",
-      "app_http_controllers_cimproxycontroller_cimproxycontroller_construct",
-      "app_services_cimapiclient",
-      "app_services_cimapiclient_cimapiclient",
-      "app_services_cimapiclient_cimapiclient_construct",
-      "app_services_cimapiclient_cimapiclient_errormessage",
-      "app_services_cimapiclient_cimapiclient_json",
-      "app_services_cimapiclient_cimapiclient_request"
-    ],
-    "17": [
+    "13": [
       "public_assets_js_student_violations",
       "public_assets_js_student_violations_addviolation",
       "public_assets_js_student_violations_call",
@@ -350,7 +361,7 @@
       "public_assets_js_student_violations_setstatus",
       "public_assets_js_student_violations_show"
     ],
-    "18": [
+    "14": [
       "public_assets_js_violations",
       "public_assets_js_violations_badge",
       "public_assets_js_violations_field",
@@ -361,7 +372,7 @@
       "public_assets_js_violations_renderevidence",
       "public_assets_js_violations_renderrow"
     ],
-    "19": [
+    "15": [
       "bootstrap_app",
       "bootstrap_app_closure_1",
       "bootstrap_app_closure_2",
@@ -371,7 +382,7 @@
       "illuminate_foundation_configuration_middleware",
       "public_index"
     ],
-    "20": [
+    "16": [
       "app_providers_appserviceprovider",
       "app_providers_appserviceprovider_appserviceprovider",
       "app_providers_appserviceprovider_appserviceprovider_boot",
@@ -379,160 +390,167 @@
       "bootstrap_providers",
       "illuminate_support_serviceprovider"
     ],
-    "21": [
+    "17": [
+      "app_services_cimapiclient_cimapiclient",
+      "app_services_cimapiclient_cimapiclient_construct",
+      "app_services_cimapiclient_cimapiclient_errormessage",
+      "app_services_cimapiclient_cimapiclient_json",
+      "app_services_cimapiclient_cimapiclient_request"
+    ],
+    "18": [
       "config_logging",
       "monolog_handler_nullhandler",
       "monolog_handler_streamhandler",
       "monolog_handler_syslogudphandler",
       "monolog_processor_psrlogmessageprocessor"
     ],
-    "22": [
+    "19": [
       "public_assets_js_charts",
       "public_assets_js_charts_baseoptions",
       "public_assets_js_charts_filltable",
       "public_assets_js_charts_render",
       "public_assets_js_charts_rendersummary"
     ],
-    "23": [
+    "20": [
       "public_assets_js_filters",
       "public_assets_js_filters_fillselect",
       "public_assets_js_filters_init",
       "public_assets_js_filters_init_params",
       "public_assets_js_filters_init_syncvisibility"
     ],
-    "24": [
+    "21": [
       "illuminate_foundation_inspiring",
       "illuminate_support_facades_artisan",
       "routes_console",
       "routes_console_closure_1"
     ],
-    "25": [
+    "22": [
       "phpunit_framework_testcase",
       "tests_unit_exampletest",
       "tests_unit_exampletest_exampletest",
       "tests_unit_exampletest_exampletest_test_that_true_is_true"
     ],
-    "26": [
+    "23": [
       "public_assets_js_accounts",
       "public_assets_js_accounts_load",
       "public_assets_js_accounts_renderrow",
       "public_assets_js_accounts_setmode"
     ],
-    "27": [
+    "24": [
       "public_assets_js_reports",
       "public_assets_js_reports_exportreport",
       "public_assets_js_reports_kpi",
       "public_assets_js_reports_load"
     ],
-    "28": [
+    "25": [
       "application",
       "argvinput",
       "artisan"
     ],
-    "29": [
+    "26": [
       "resources_views_dashboard_index_blade",
       "resources_views_dashboard_index_blade_php_layouts_app",
       "resources_views_dashboard_index_blade_php_partials_report_filters"
     ],
-    "30": [
+    "27": [
       "resources_views_reports_index_blade",
       "resources_views_reports_index_blade_php_layouts_app",
       "resources_views_reports_index_blade_php_partials_report_filters"
     ],
-    "31": [
+    "28": [
+      "layouts_app",
+      "resources_views_catalogs_index_blade"
+    ],
+    "29": [
       "public_assets_js_dashboard",
       "public_assets_js_dashboard_load"
     ],
-    "32": [
+    "30": [
       "resources_views_accounts_index_blade",
       "resources_views_accounts_index_blade_php_layouts_app"
     ],
-    "33": [
+    "31": [
       "resources_views_auth_change_password_blade",
       "resources_views_auth_change_password_blade_php_layouts_app"
     ],
-    "34": [
-      "resources_views_catalogs_index_blade",
-      "resources_views_catalogs_index_blade_php_layouts_app"
-    ],
-    "35": [
+    "32": [
       "resources_views_facilities_index_blade",
       "resources_views_facilities_index_blade_php_layouts_app"
     ],
-    "36": [
+    "33": [
       "resources_views_students_index_blade",
       "resources_views_students_index_blade_php_layouts_app"
     ],
-    "37": [
+    "34": [
       "resources_views_violations_index_blade",
       "resources_views_violations_index_blade_php_layouts_app"
     ],
-    "38": [
+    "35": [
       "config_app"
     ],
-    "39": [
+    "36": [
       "config_filesystems"
     ],
-    "40": [
+    "37": [
       "config_mail"
     ],
-    "41": [
+    "38": [
       "config_queue"
     ],
-    "42": [
+    "39": [
       "config_services"
     ],
-    "43": [
+    "40": [
       "public_assets_js_tailwind_config"
     ],
-    "44": [
+    "41": [
       "resources_js_app"
     ],
-    "45": [
+    "42": [
       "resources_views_auth_login_blade"
     ],
-    "46": [
+    "43": [
       "resources_views_layouts_app_blade"
     ],
-    "47": [
+    "44": [
       "resources_views_partials_report_filters_blade"
     ],
-    "48": [
+    "45": [
       "resources_views_welcome_blade"
     ]
   },
   "cohesion": {
     "0": 0.041666666666666664,
-    "1": 0.09971509971509972,
-    "2": 0.12923076923076923,
-    "3": 0.21,
-    "4": 0.09956709956709957,
-    "5": 0.1631578947368421,
-    "6": 0.16993464052287582,
-    "7": 0.18095238095238095,
-    "8": 0.2,
-    "9": 0.14285714285714285,
+    "1": 0.07188160676532769,
+    "2": 0.09615384615384616,
+    "3": 0.2086021505376344,
+    "4": 0.09971509971509972,
+    "5": 0.21,
+    "6": 0.09956709956709957,
+    "7": 0.1631578947368421,
+    "8": 0.20261437908496732,
+    "9": 0.2,
     "10": 0.19230769230769232,
-    "11": 0.3333333333333333,
-    "12": 0.36363636363636365,
-    "13": 0.43636363636363634,
-    "14": 0.37777777777777777,
-    "15": 0.3888888888888889,
-    "16": 0.2777777777777778,
-    "17": 0.5833333333333334,
-    "18": 0.3888888888888889,
-    "19": 0.32142857142857145,
-    "20": 0.4,
-    "21": 0.4,
-    "22": 0.6,
-    "23": 0.5,
-    "24": 0.5,
+    "11": 0.43636363636363634,
+    "12": 0.37777777777777777,
+    "13": 0.5833333333333334,
+    "14": 0.3888888888888889,
+    "15": 0.32142857142857145,
+    "16": 0.4,
+    "17": 0.5,
+    "18": 0.4,
+    "19": 0.6,
+    "20": 0.5,
+    "21": 0.5,
+    "22": 0.6666666666666666,
+    "23": 0.8333333333333334,
+    "24": 0.6666666666666666,
     "25": 0.6666666666666666,
-    "26": 0.8333333333333334,
+    "26": 0.6666666666666666,
     "27": 0.6666666666666666,
-    "28": 0.6666666666666666,
-    "29": 0.6666666666666666,
-    "30": 0.6666666666666666,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
     "31": 1.0,
     "32": 1.0,
     "33": 1.0,
@@ -547,36 +565,28 @@
     "42": 1.0,
     "43": 1.0,
     "44": 1.0,
-    "45": 1.0,
-    "46": 1.0,
-    "47": 1.0,
-    "48": 1.0
+    "45": 1.0
   },
   "gods": [
     {
       "id": "app_services_studentservice_studentservice",
       "label": "StudentService",
-      "degree": 19
+      "degree": 21
+    },
+    {
+      "id": "app_http_controllers_cimproxycontroller_cimproxycontroller",
+      "label": "CimProxyController",
+      "degree": 21
     },
     {
       "id": "app_services_catalogservice_catalogservice",
       "label": "CatalogService",
-      "degree": 14
+      "degree": 16
     },
     {
       "id": "app_http_controllers_authcontroller_authcontroller",
       "label": "AuthController",
-      "degree": 11
-    },
-    {
-      "id": "app_services_cimapiclient_cimapiclient",
-      "label": "CimApiClient",
-      "degree": 11
-    },
-    {
-      "id": "app_http_controllers_controller_controller",
-      "label": "Controller",
-      "degree": 10
+      "degree": 13
     },
     {
       "id": "app_models_user_user",
@@ -587,6 +597,11 @@
       "id": "composer_scripts",
       "label": "scripts",
       "degree": 9
+    },
+    {
+      "id": "app_http_controllers_controller_controller",
+      "label": "Controller",
+      "degree": 8
     },
     {
       "id": "public_assets_js_students_loadstudents",
@@ -607,42 +622,9 @@
   "surprises": [
     {
       "source": "CatalogController",
-      "target": "CatalogService",
+      "target": "Controller",
       "source_files": [
         "app/Http/Controllers/CatalogController.php",
-        "app/Services/CatalogService.php"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "references",
-      "why": "bridges separate communities"
-    },
-    {
-      "source": "AuthController",
-      "target": "Controller",
-      "source_files": [
-        "app/Http/Controllers/AuthController.php",
-        "app/Http/Controllers/Controller.php"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "inherits",
-      "why": "bridges separate communities"
-    },
-    {
-      "source": "AuthController",
-      "target": "CimApiClient",
-      "source_files": [
-        "app/Http/Controllers/AuthController.php",
-        "app/Services/CimApiClient.php"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "references",
-      "why": "bridges separate communities"
-    },
-    {
-      "source": "CimProxyController",
-      "target": "Controller",
-      "source_files": [
-        "app/Http/Controllers/CimProxyController.php",
         "app/Http/Controllers/Controller.php"
       ],
       "confidence": "EXTRACTED",
@@ -651,31 +633,59 @@
     },
     {
       "source": "StudentController",
-      "target": "StudentService",
+      "target": "Controller",
       "source_files": [
         "app/Http/Controllers/StudentController.php",
-        "app/Services/StudentService.php"
+        "app/Http/Controllers/Controller.php"
       ],
       "confidence": "EXTRACTED",
-      "relation": "references",
+      "relation": "inherits",
       "why": "bridges separate communities"
+    },
+    {
+      "source": "AccountController",
+      "target": "Controller",
+      "source_files": [
+        "app/Http/Controllers/AccountController.php",
+        "app/Http/Controllers/Controller.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "cross-file semantic connection"
+    },
+    {
+      "source": "DashboardController",
+      "target": "Controller",
+      "source_files": [
+        "app/Http/Controllers/DashboardController.php",
+        "app/Http/Controllers/Controller.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "cross-file semantic connection"
+    },
+    {
+      "source": "FacilityController",
+      "target": "Controller",
+      "source_files": [
+        "app/Http/Controllers/FacilityController.php",
+        "app/Http/Controllers/Controller.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "cross-file semantic connection"
     }
   ],
   "questions": [
     {
       "type": "bridge_node",
-      "question": "Why does `StudentService` connect `StudentService` to `CatalogController.php`?",
-      "why": "High betweenness centrality (0.023) - this node is a cross-community bridge."
+      "question": "Why does `CatalogService` connect `CatalogService` to `StudentService`?",
+      "why": "High betweenness centrality (0.017) - this node is a cross-community bridge."
     },
     {
       "type": "bridge_node",
-      "question": "Why does `CatalogService` connect `CatalogService` to `StudentService`, `CatalogController.php`?",
-      "why": "High betweenness centrality (0.016) - this node is a cross-community bridge."
-    },
-    {
-      "type": "bridge_node",
-      "question": "Why does `StudentController` connect `CatalogController.php` to `web.php`, `StudentService`, `Illuminate\\View\\View`?",
-      "why": "High betweenness centrality (0.012) - this node is a cross-community bridge."
+      "question": "Why does `CimProxyController` connect `Illuminate\\Http\\Request` to `web.php`?",
+      "why": "High betweenness centrality (0.013) - this node is a cross-community bridge."
     },
     {
       "type": "isolated_nodes",
@@ -689,13 +699,18 @@
     },
     {
       "type": "low_cohesion",
-      "question": "Should `User` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.09971509971509972 - nodes in this community are weakly interconnected."
+      "question": "Should `web.php` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.07188160676532769 - nodes in this community are weakly interconnected."
     },
     {
       "type": "low_cohesion",
       "question": "Should `StudentService` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.12923076923076923 - nodes in this community are weakly interconnected."
+      "why": "Cohesion score 0.09615384615384616 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `User` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.09971509971509972 - nodes in this community are weakly interconnected."
     }
   ]
 }

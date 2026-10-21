@@ -310,7 +310,7 @@ class CampusMonitorUI:
             entry.pack(fill="x", padx=5, pady=(0, 4))
             return entry
 
-        self.entry_api_url     = add_entry("Địa chỉ API (VD: http://127.0.0.1:8000)", "API_URL")
+        self.entry_api_url     = add_entry("Địa chỉ API (VD: http://127.0.0.1:8001)", "API_URL")
         self.entry_camera_code = add_entry("Mã camera (do quản trị viên cấp)",       "CAMERA_CODE")
         self.entry_device_key  = add_entry("Khóa thiết bị",                          "DEVICE_KEY", show="•")
 
@@ -335,7 +335,7 @@ class CampusMonitorUI:
                                highlightbackground=self.COLOR_BORDER, highlightthickness=1)
         screen_card.pack(fill="both", expand=True, side="left", padx=(0, 15))
 
-        lbl_screen_title = tk.Label(screen_card, text="Màn hình camera giám sát",
+        lbl_screen_title = tk.Label(screen_card, text="Màn hình camera giám sát: Camera 1 - Camera Desktop Local",
                                     font=self.font_header, fg=self.COLOR_SECONDARY, bg=self.COLOR_CARD)
         lbl_screen_title.pack(anchor="w", padx=20, pady=(15, 10))
 

@@ -3,6 +3,7 @@ built by the repositories, wrapped consistently as {"data": ...} or list envelop
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -64,3 +65,15 @@ class SemesterRequest(StrictModel):
 class ProcessingUpdateRequest(StrictModel):
     status: str = Field(pattern="^(MOI|DA_XEM|DA_XU_LY|BO_QUA)$")
     note: str | None = Field(default=None, max_length=500)
+
+
+class AiPdfReportRequest(BaseModel):
+    title: str = "BÁO CÁO GIÁM SÁT TÁC PHONG"
+    range_label: str = "Tuần hiện tại"
+    period: str | None = None
+    date_range: str | None = None
+    author: str = "Phòng Công tác Sinh viên"
+    filters: list[dict[str, Any]] | dict[str, Any] = []
+    summary: dict[str, Any] = {}
+    details: list[dict[str, Any]] = []
+

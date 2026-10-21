@@ -332,14 +332,30 @@
     const body = byId('import-preview-body');
     const headers = ({
       KHOA: ['MA_KHOA', 'TEN_KHOA'],
-      NGANH: ['MA_NGANH', 'TEN_NGANH', 'MA_KHOA'],
-      LOP: ['MA_LOP', 'MA_NGANH'],
+      NGANH: ['MA_NGANH', 'TEN_NGANH', 'TEN_KHOA'],
+      LOP: ['MA_LOP', 'TEN_NGANH'],
       SINHVIEN: ['MA_SV', 'HOTEN', 'NIEN_KHOA', 'MA_LOP'],
-    })[data.dataset];
+      VIPHAM: ['MA_SV', 'HOTEN', 'VI_TRI', 'THOI_DIEM', 'TEN_LOI'],
+    })[data.dataset] || [];
+
+    const labelMap = {
+      MA_SV: 'Mã sinh viên',
+      HOTEN: 'Họ và tên',
+      NIEN_KHOA: 'Niên khóa',
+      MA_LOP: 'Mã lớp',
+      MA_KHOA: 'Mã khoa',
+      TEN_KHOA: 'Tên khoa',
+      MA_NGANH: 'Mã ngành',
+      TEN_NGANH: 'Tên ngành',
+      VI_TRI: 'Vị trí bị ghi nhận',
+      THOI_DIEM: 'Thời gian bị ghi nhận',
+      TEN_LOI: 'Lỗi bị ghi nhận',
+    };
+
     const tableHead = byId('import-preview-head');
     tableHead.replaceChildren();
     const headerRow = document.createElement('tr');
-    ['Dòng', ...headers, 'Kết quả'].forEach((label) => {
+    ['Dòng', ...headers.map((h) => labelMap[h] || h), 'Kết quả'].forEach((label) => {
       const cell = document.createElement('th');
       cell.className = 'px-3 py-2';
       cell.textContent = label;
@@ -361,8 +377,11 @@
       row.append(makeCell(result, `px-3 ${item.status === 'error' ? 'text-error' : 'text-secondary'}`));
       body.append(row);
     }
-    byId('import-counts').textContent =
-      `${data.counts.valid} hợp lệ / ${data.counts.duplicate} trùng-bỏ qua / ${data.counts.error} lỗi`;
+    let countText = `${data.counts.valid} hợp lệ / ${data.counts.duplicate} trùng-bỏ qua / ${data.counts.error} lỗi`;
+    if (data.counts.normalized > 0) {
+      countText += ` (${data.counts.normalized} mục tự động chuẩn hóa)`;
+    }
+    byId('import-counts').textContent = countText;
     byId('import-commit-btn').disabled = !data.can_commit || data.counts.valid === 0;
     byId('import-commit-label').textContent = data.can_commit
       ? `Xác nhận nhập ${data.counts.valid} dòng`
@@ -403,8 +422,8 @@
       state.previewToken = '';
       byId('import-modal').classList.remove('flex');
       byId('import-modal').classList.add('hidden');
-      await loadStudents(1);
-      showStatus(`Đã nhập ${result.inserted} dòng; bỏ qua ${result.skipped_duplicates} mã trùng.`);
+      await initialize();
+      showStatus(`Đã nhập thành công ${result.inserted} dòng; tự động bỏ qua ${result.skipped_duplicates} mã trùng.`);
     } catch (error) {
       showStatus(error.message, true);
     }
@@ -461,8 +480,113 @@
     state.pageSize = Number(byId('student-page-size').value);
     loadStudents(1);
   });
-  byId('export-students-btn').addEventListener('click', () => {
-    window.location.assign(`${endpoint}?action=export&${filters().toString().replace(/^action=list&/, '')}`);
+  // --- Xử lý Bảo mật Xuất Dữ liệu Sinh viên
+  const exportModal = byId('export-password-modal');
+  const exportError = byId('export-password-error');
+  const exportInput = byId('export-password-input');
+
+  function openExportModal() {
+    if (!exportModal) return;
+    exportModal.classList.remove('hidden');
+    exportModal.classList.add('flex');
+    if (exportError) {
+      exportError.textContent = '';
+      exportError.classList.add('hidden');
+    }
+    if (exportInput) {
+      exportInput.value = '';
+      setTimeout(() => exportInput.focus(), 100);
+    }
+  }
+
+  function closeExportModal() {
+    if (!exportModal) return;
+    exportModal.classList.remove('flex');
+    exportModal.classList.add('hidden');
+    if (exportInput) exportInput.value = '';
+    if (exportError) {
+      exportError.textContent = '';
+      exportError.classList.add('hidden');
+    }
+  }
+
+  byId('export-students-btn')?.addEventListener('click', openExportModal);
+  byId('close-export-modal-btn')?.addEventListener('click', closeExportModal);
+  byId('cancel-export-btn')?.addEventListener('click', closeExportModal);
+  byId('export-password-backdrop')?.addEventListener('click', closeExportModal);
+
+  byId('toggle-export-password-btn')?.addEventListener('click', () => {
+    if (!exportInput) return;
+    const isPass = exportInput.type === 'password';
+    exportInput.type = isPass ? 'text' : 'password';
+    const icon = byId('toggle-export-password-icon');
+    if (icon) icon.textContent = isPass ? 'visibility_off' : 'visibility';
+  });
+
+  byId('export-password-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const password = exportInput?.value || '';
+    if (!password) {
+      if (exportError) {
+        exportError.textContent = 'Vui lòng nhập mật khẩu bảo mật.';
+        exportError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    const confirmBtn = byId('confirm-export-btn');
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (exportError) exportError.classList.add('hidden');
+
+    try {
+      const payload = {
+        action: 'export',
+        export_password: password,
+        search: byId('student-search').value.trim(),
+        faculty: byId('filter-khoa').value,
+        major: byId('filter-nganh').value,
+        class: byId('filter-lop').value,
+      };
+
+      const headers = new Headers({
+        'Content-Type': 'application/json',
+      });
+      if (state.csrfToken) {
+        headers.set('X-CSRF-Token', state.csrfToken);
+      }
+
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => null);
+        throw new Error(errData?.error || 'Mật khẩu bảo mật không chính xác hoặc không thể xuất dữ liệu.');
+      }
+
+      const blob = await resp.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = 'danh-sach-sinh-vien.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      closeExportModal();
+      showStatus('Đã xuất danh sách sinh viên thành công.');
+    } catch (err) {
+      if (exportError) {
+        exportError.textContent = err.message;
+        exportError.classList.remove('hidden');
+      }
+    } finally {
+      if (confirmBtn) confirmBtn.disabled = false;
+    }
   });
 
   const importModal = byId('import-modal');
@@ -495,10 +619,85 @@
     previewImport(event.dataTransfer.files[0]);
   });
   byId('import-template-btn').addEventListener('click', downloadTemplate);
+  byId('download-normalized-btn')?.addEventListener('click', () => {
+    if (!state.previewToken) return;
+    window.location.assign(`${endpoint}?action=download-normalized&preview_token=${encodeURIComponent(state.previewToken)}`);
+  });
   byId('import-commit-btn').addEventListener('click', confirmImport);
 
   // Refresh the "SO_VI_PHAM" column after a manual violation is added or removed.
   window.addEventListener('student-violations-changed', () => loadStudents(state.page));
+
+  // --- Xử lý Reset Toàn bộ Vi phạm Học kỳ
+  const studentResetModal = byId('student-reset-modal');
+  const studentResetInput = byId('student-reset-password');
+  const studentResetError = byId('student-reset-error');
+  const studentResetForm = byId('student-reset-form');
+
+  function openStudentResetModal() {
+    if (!studentResetModal) return;
+    studentResetModal.classList.remove('hidden');
+    studentResetModal.classList.add('flex');
+    if (studentResetInput) {
+      studentResetInput.value = '';
+      setTimeout(() => studentResetInput.focus(), 100);
+    }
+    if (studentResetError) studentResetError.classList.add('hidden');
+  }
+
+  function closeStudentResetModal() {
+    if (!studentResetModal) return;
+    studentResetModal.classList.remove('flex');
+    studentResetModal.classList.add('hidden');
+    if (studentResetInput) studentResetInput.value = '';
+    if (studentResetError) studentResetError.classList.add('hidden');
+  }
+
+  byId('open-reset-violations-btn')?.addEventListener('click', openStudentResetModal);
+  byId('close-student-reset-btn')?.addEventListener('click', closeStudentResetModal);
+  byId('cancel-student-reset-btn')?.addEventListener('click', closeStudentResetModal);
+  byId('student-reset-backdrop')?.addEventListener('click', closeStudentResetModal);
+
+  byId('toggle-student-reset-pwd')?.addEventListener('click', () => {
+    if (!studentResetInput) return;
+    const isPass = studentResetInput.type === 'password';
+    studentResetInput.type = isPass ? 'text' : 'password';
+    const icon = byId('toggle-student-reset-pwd-icon');
+    if (icon) icon.textContent = isPass ? 'visibility_off' : 'visibility';
+  });
+
+  studentResetForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const password = studentResetInput?.value || '';
+    if (!password) {
+      if (studentResetError) {
+        studentResetError.textContent = 'Vui lòng nhập mật mã bảo mật.';
+        studentResetError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    const confirmBtn = byId('confirm-student-reset-btn');
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (studentResetError) studentResetError.classList.add('hidden');
+
+    try {
+      const resp = await request(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'reset-violations', reset_password: password }),
+      });
+      closeStudentResetModal();
+      showStatus(`Đã reset toàn bộ vi phạm thành công! Đã xóa ${resp.deleted_student_violations} biên bản và ${resp.deleted_camera_records} cảnh báo camera.`);
+      await loadStudents(state.page);
+    } catch (err) {
+      if (studentResetError) {
+        studentResetError.textContent = err.message || 'Mật mã bảo mật không chính xác.';
+        studentResetError.classList.remove('hidden');
+      }
+    } finally {
+      if (confirmBtn) confirmBtn.disabled = false;
+    }
+  });
 
   async function initialize() {
     try {

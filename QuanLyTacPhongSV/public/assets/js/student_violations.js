@@ -50,10 +50,15 @@ window.CIMStudentViolations = (() => {
       const text = document.createElement('div');
       const title = document.createElement('p');
       title.className = 'font-label-md text-label-md';
-      title.textContent = `${formatDate(row.NGAY_VIPHAM)} · ${row.TEN_LOI}`;
+      
+      const timeStr = row.THOI_DIEM ? String(row.THOI_DIEM).slice(11, 16) : '';
+      const placeStr = row.PHONG_HOC || row.TEN_KHU_VUC || '';
+      const headerText = `${formatDate(row.NGAY_VIPHAM)}${timeStr ? ' ' + timeStr : ''} · ${row.TEN_LOI}${placeStr ? ' (' + placeStr + ')' : ''}`;
+      title.textContent = headerText;
+
       const meta = document.createElement('p');
       meta.className = 'font-body-sm text-body-sm text-on-surface-variant';
-      meta.textContent = `Mã #${row.ID} · điểm tham khảo ${row.DIEM_TRU}${row.GHI_CHU ? ' · ' + row.GHI_CHU : ''}`;
+      meta.textContent = `Mã #${row.ID} · trừ ${row.DIEM_TRU}đ${row.GHI_CHU ? ' · ' + row.GHI_CHU : ''}`;
       text.append(title, meta);
       const remove = document.createElement('button');
       remove.type = 'button';
@@ -70,16 +75,34 @@ window.CIMStudentViolations = (() => {
     const seq = ++requestSeq;
     setStatus('Đang tải lịch sử vi phạm…');
     try {
-      const data = await call(`${endpoint}?action=violations&id=${encodeURIComponent(student.ID)}`);
+      const data = await call(`${endpoint}?action=violations&id=${encodeURIComponent(student.ID)}&student_id=${encodeURIComponent(student.ID)}`);
       if (seq !== requestSeq) return;
       const select = byId('mv-type');
       const selected = select.value;
       select.replaceChildren(new Option('-- Chọn loại vi phạm --', ''),
-        ...data.types.map((t) => new Option(`${t.TEN_LOI} (điểm tham khảo ${t.DIEM_TRU})`, t.ID)));
+        ...data.types.map((t) => new Option(`${t.TEN_LOI} (trừ ${t.DIEM_TRU}đ)`, t.ID)));
       select.value = selected;
+
+      // Populate areas dropdown if available
+      const areaSelect = byId('mv-area');
+      if (areaSelect && data.areas) {
+        const curArea = areaSelect.value;
+        areaSelect.replaceChildren(new Option('-- Chọn khu vực --', ''),
+          ...data.areas.map((a) => new Option(a.TEN_KHU_VUC, a.ID)));
+        areaSelect.value = curArea;
+      }
+
       const dateInput = byId('mv-date');
-      dateInput.max = data.today;
-      if (!dateInput.value) dateInput.value = data.today;
+      if (!dateInput.value) {
+        const now = new Date();
+        dateInput.value = now.toISOString().slice(0, 10);
+      }
+      const timeInput = byId('mv-time');
+      if (timeInput && !timeInput.value) {
+        const now = new Date();
+        timeInput.value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      }
+
       renderList(data.violations);
       setStatus(`${data.violations.length} lần vi phạm đã ghi nhận.`);
     } catch (error) {
@@ -92,6 +115,9 @@ window.CIMStudentViolations = (() => {
       student_id: student.ID,
       type_id: byId('mv-type').value,
       date: byId('mv-date').value,
+      time: byId('mv-time')?.value || '07:30',
+      area_id: byId('mv-area')?.value || null,
+      room: byId('mv-room')?.value || '',
       note: byId('mv-note').value,
       confirm_duplicate: confirmDuplicate,
     };
@@ -102,10 +128,11 @@ window.CIMStudentViolations = (() => {
     const button = byId('mv-submit');
     button.disabled = true;
     try {
-      await call(endpoint, { method: 'POST', body: JSON.stringify({ action: 'violation-add', violation }) });
+      await call(endpoint, { method: 'POST', body: JSON.stringify({ action: 'add_violation', ...violation, violation }) });
       byId('mv-note').value = '';
+      if (byId('mv-room')) byId('mv-room').value = '';
       await load();
-      setStatus('Đã ghi nhận vi phạm vào hồ sơ sinh viên.');
+      setStatus('Đã ghi nhận biên bản vi phạm vào hồ sơ sinh viên.');
       window.dispatchEvent(new Event('student-violations-changed'));
     } catch (error) {
       if (error.code === 'duplicate_same_day' && !confirmDuplicate) {
@@ -126,7 +153,7 @@ window.CIMStudentViolations = (() => {
     const ok = window.CIM ? await CIM.confirmAction(message, { danger: true, okText: 'Xóa' }) : window.confirm(message);
     if (!ok) return;
     try {
-      await call(endpoint, { method: 'POST', body: JSON.stringify({ action: 'violation-delete', id: row.ID, student_id: student.ID }) });
+      await call(endpoint, { method: 'POST', body: JSON.stringify({ action: 'delete_violation', violation_id: row.ID, id: row.ID, student_id: student.ID }) });
       await load();
       setStatus('Đã xóa bản ghi vi phạm.');
       window.dispatchEvent(new Event('student-violations-changed'));
@@ -148,7 +175,7 @@ window.CIMStudentViolations = (() => {
       section.classList.toggle('flex', Boolean(student));
       if (!student) return;
       byId('mv-note').value = '';
-      byId('mv-date').value = '';
+      if (byId('mv-room')) byId('mv-room').value = '';
       load();
     },
   };

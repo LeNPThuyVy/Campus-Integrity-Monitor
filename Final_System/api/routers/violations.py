@@ -1,6 +1,8 @@
 """Violation records: Desktop ingestion (device key) and Web lookup/processing (user token)."""
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import math
 import uuid
@@ -8,7 +10,7 @@ from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.datastructures import UploadFile
 
 from api.database import Database
@@ -59,6 +61,35 @@ def _parse_confidence(raw, field: str) -> float | None:
     if math.isnan(value) or not 0 <= value <= 1:
         raise validation_error(f"{field} phải là số trong khoảng 0..1.")
     return round(value, 4)
+
+
+_violation_subscribers: set[asyncio.Queue] = set()
+
+
+def broadcast_violation(record: dict) -> None:
+    """Broadcast newly ingested violation event to all connected SSE clients."""
+    if not _violation_subscribers:
+        return
+    occurred = record.get("occurred_at")
+    occurred_str = occurred.isoformat() if hasattr(occurred, "isoformat") else str(occurred or "")
+    payload = {
+        "event": "new_violation",
+        "data": {
+            "id": record.get("id"),
+            "occurred_at": occurred_str,
+            "type": record.get("type"),
+            "area": record.get("area"),
+            "camera": record.get("camera"),
+            "processing": record.get("processing"),
+        },
+    }
+    dead = set()
+    for q in _violation_subscribers:
+        try:
+            q.put_nowait(payload)
+        except Exception:
+            dead.add(q)
+    _violation_subscribers.difference_update(dead)
 
 
 @router.get("/device/me", tags=["Thiết bị Desktop"], summary="Desktop kiểm tra camera/khóa thiết bị")
@@ -129,7 +160,41 @@ async def ingest_violation(request: Request, camera: AuthenticatedCamera = Depen
                                       card_confidence=card_confidence)
     # Database and image work are blocking: run them off the event loop.
     body, status_code = await run_in_threadpool(_store_violation, db, storage, settings, camera, incoming, data)
+    if status_code == 201 and isinstance(body, dict) and "data" in body:
+        broadcast_violation(body["data"])
     return JSONResponse(content=_encode(body), status_code=status_code)
+
+
+@router.get("/violations/stream", tags=["Bản ghi vi phạm"], summary="SSE stream cảnh báo vi phạm thời gian thực")
+async def violation_stream(request: Request):
+    """Server-Sent Events stream: push cảnh báo vi phạm ngay khi camera phát hiện."""
+    queue: asyncio.Queue = asyncio.Queue(maxsize=100)
+    _violation_subscribers.add(queue)
+
+    async def event_generator():
+        try:
+            init_msg = json.dumps({"event": "connected", "message": "Stream kết nối thành công"})
+            yield f"data: {init_msg}\n\n"
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    msg = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield f"data: {json.dumps(msg)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            _violation_subscribers.discard(queue)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 def _store_violation(db: Database, storage: EvidenceStorage, settings: Settings, camera: AuthenticatedCamera,
@@ -199,6 +264,14 @@ def get_evidence(violation_id: int = Path(ge=1), _: CurrentUser = Depends(requir
                  db: Database = Depends(get_db), settings: Settings = Depends(get_settings_dep),
                  storage: EvidenceStorage = Depends(get_storage)):
     key, info = repo.evidence_key_for(db, violation_id, settings.now_local())
+    from api.r2_storage import R2EvidenceStorage
+    from fastapi.responses import RedirectResponse
+    if key is not None and isinstance(storage, R2EvidenceStorage):
+        try:
+            return RedirectResponse(url=storage.presign_url(key), status_code=302)
+        except Exception:
+            logger.exception("Không tạo được presigned URL cho ảnh vi phạm %s", key)
+            return JSONResponse(error_body("evidence_unavailable", "Không thể tạo liên kết ảnh bằng chứng."), status_code=410)
     if key is None:
         return JSONResponse(error_body("evidence_unavailable", info["message"], {"status": info["status"]}),
                             status_code=410)

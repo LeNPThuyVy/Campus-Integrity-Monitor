@@ -107,8 +107,19 @@
       const status = CIM.el('td', 'px-space-md py-3');
       status.append(statusBadge(area.active));
       const actions = CIM.el('td', 'px-space-md py-3 text-right whitespace-nowrap');
-      if (areaForm) actions.append(actionButton('Sửa', () => areaForm.edit(area)));
-      else actions.textContent = 'Chỉ xem';
+      if (areaForm) {
+        actions.append(actionButton('Sửa', () => areaForm.edit(area)));
+        actions.append(actionButton('Xóa', async () => {
+          if (!(await CIM.confirmAction(`Xóa khu vực ${area.code} (${area.name})? Thao tác này không thể hoàn tác.`, { danger: true, okText: 'Xóa' }))) return;
+          try {
+            await CIM.api('area', { method: 'DELETE', params: { id: area.id } });
+            CIM.toast('Đã xóa khu vực thành công.');
+            await loadAll();
+          } catch (error) { CIM.toast(error.message, 'error'); }
+        }, 'bg-error-container text-on-error-container'));
+      } else {
+        actions.textContent = 'Chỉ xem';
+      }
       row.append(status, actions);
       return row;
     }));
@@ -149,6 +160,14 @@
             showKey(camera.code, result.device_key);
           } catch (error) { CIM.toast(error.message, 'error'); }
         }, 'bg-tertiary-container text-on-tertiary-container'));
+        actions.append(actionButton('Xóa', async () => {
+          if (!(await CIM.confirmAction(`Xóa camera ${camera.code} (${camera.name})? Thao tác này không thể hoàn tác.`, { danger: true, okText: 'Xóa' }))) return;
+          try {
+            await CIM.api('camera', { method: 'DELETE', params: { id: camera.id } });
+            CIM.toast('Đã xóa camera thành công.');
+            await loadAll();
+          } catch (error) { CIM.toast(error.message, 'error'); }
+        }, 'bg-error-container text-on-error-container'));
       } else {
         actions.textContent = 'Chỉ xem';
       }

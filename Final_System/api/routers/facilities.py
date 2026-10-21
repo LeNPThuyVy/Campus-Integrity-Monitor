@@ -80,3 +80,16 @@ def delete_semester(semester_id: int = Path(ge=1), _: CurrentUser = Depends(requ
                     db: Database = Depends(get_db)):
     facilities.delete_semester(db, semester_id)
     return {"data": {"deleted": True}}
+
+@router.delete("/areas/{area_id}", summary="Xóa khu vực (Quản trị viên)")
+def delete_area(area_id: int = Path(ge=1), _: CurrentUser = Depends(require_roles(ROLE_ADMIN)),
+                db: Database = Depends(get_db)):
+    facilities.delete_area(db, area_id)
+    return {"data": {"deleted": True}}
+
+
+@router.delete("/cameras/{camera_id}", summary="Xóa camera (Quản trị viên)")
+def delete_camera(camera_id: int = Path(ge=1), _: CurrentUser = Depends(require_roles(ROLE_ADMIN)),
+                  db: Database = Depends(get_db)):
+    facilities.delete_camera(db, camera_id)
+    return {"data": {"deleted": True}}

@@ -11,5 +11,14 @@
     "CLASSIFY_CADENCE_CONFIRMED": 10,
     "DETECT_CARD_CONF": 0.3,
     "DETECT_CARD_IOU": 0.3,
-    "DETECT_CARD_IMAGE_SIZE": 224
+    "DETECT_CARD_IMAGE_SIZE": 224,
+    "IOU_THRESHOLD": 0.45,
+    "FRAME_SKIP": 5,
+    "VOTING_THREDSHOLD": 3,
+    "VIOLATION_RATIO": 0.6,
+    "EVENT_DEDUP_SECONDS": 60,
+    "API_URL": "http://127.0.0.1:8001",
+    "CAMERA_CODE": "CAM-01",
+    "CAMERA_NAME": "Camera 1 - Camera Desktop Local",
+    "DEVICE_KEY": "cimdev_cam01_key_2026_secure"
 }

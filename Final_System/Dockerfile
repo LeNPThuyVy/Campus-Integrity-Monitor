@@ -23,4 +23,4 @@ ENV CIM_EVIDENCE_DIR=/data/evidence
 VOLUME ["/data/evidence"]
 
 #Run API Server (configure DB_* and CIM_* through environment variables, never bake secrets into the image)
-CMD [ "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000" ]
+CMD [ "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8001" ]

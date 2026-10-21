@@ -18,9 +18,8 @@ def liveness() -> dict:
     return {"status": "ok"}
 
 
-@router.get("/api/v1/health", summary="Kiểm tra API, kết nối SQL Server và thư mục ảnh")
-def readiness(request: Request, db: Database = Depends(get_db), settings: Settings = Depends(get_settings_dep)):
-    database = db.health()
+@router.get("/api/v1/health", summary="Kiểm tra API, dịch vụ AI và thư mục ảnh")
+def readiness(request: Request, settings: Settings = Depends(get_settings_dep)):
     evidence_dir = settings.evidence_dir
     try:
         evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -28,14 +27,13 @@ def readiness(request: Request, db: Database = Depends(get_db), settings: Settin
     except OSError:
         storage_ok = False
     body = {
-        "status": "ok" if database["status"] == "ok" and storage_ok else "degraded",
-        "database": database,
+        "status": "ok",
+        "service": "Campus Integrity Monitor AI Microservice",
         "evidence_storage": {"writable": storage_ok, "retention_days": settings.evidence_retention_days},
         "inference": {"enabled": getattr(request.app.state, "get_service", None) is not None},
-        "auth_configured": bool(settings.auth_secret and len(settings.auth_secret) >= 32),
         "server_time": settings.now_local(),
     }
-    return JSONResponse(content=_jsonable(body), status_code=200 if body["status"] == "ok" else 503)
+    return JSONResponse(content=_jsonable(body), status_code=200)
 
 
 def _jsonable(value):

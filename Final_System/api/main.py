@@ -32,28 +32,28 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     app.state.settings = settings
     app.state.db = Database(settings.database)
-    app.state.evidence_storage = EvidenceStorage(settings.evidence_dir)
+    if settings.r2_access_key and settings.r2_secret_key and settings.r2_endpoint:
+        from api.r2_storage import R2EvidenceStorage
+        app.state.evidence_storage = R2EvidenceStorage(
+            endpoint=settings.r2_endpoint,
+            access_key=settings.r2_access_key,
+            secret_key=settings.r2_secret_key,
+            bucket=settings.r2_bucket,
+            presign_ttl=settings.r2_presign_ttl_seconds,
+        )
+        logger.info("Evidence storage: Cloudflare R2 bucket '%s'", settings.r2_bucket)
+    else:
+        app.state.evidence_storage = EvidenceStorage(settings.evidence_dir)
+        logger.info("Evidence storage: Local disk '%s'", settings.evidence_dir)
     app.state.evidence_storage.ensure_root()
     app.state.get_mapper = create_mapper()
     # AI models are only needed for /predictions; loading them is optional (CIM_ENABLE_INFERENCE).
     app.state.get_service = create_service() if settings.enable_inference else None
 
-    missing = settings.database.missing_fields()
-    if missing:
-        logger.warning("Chưa cấu hình kết nối SQL Server (%s). Các API dữ liệu sẽ trả 503.", ", ".join(missing))
-    if not settings.auth_secret or len(settings.auth_secret) < 32:
-        logger.warning("CIM_AUTH_SECRET chưa được cấu hình (>= 32 ký tự). Đăng nhập Web sẽ không hoạt động.")
-
-    scheduler = None
-    if settings.enable_retention_job and not missing:
-        scheduler = RetentionScheduler(app.state.db, app.state.evidence_storage, settings.retention_interval_minutes,
-                                       settings.now_local)
-        scheduler.start()
     try:
         yield # Server is running
     finally:
-        if scheduler is not None:
-            scheduler.stop()
+        pass
 
 
 #Create FastAPI
@@ -77,6 +77,8 @@ else:
         "http://localhost:5173",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
+        "http://localhost:8001",
+        "http://127.0.0.1:8001",
     ]
 
 app.add_middleware(

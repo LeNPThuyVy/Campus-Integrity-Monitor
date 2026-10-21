@@ -1,8 +1,8 @@
-﻿<#
+<#
 .SYNOPSIS  Chạy API FastAPI (đọc cấu hình từ .env ở thư mục gốc).
 .EXAMPLE   powershell -ExecutionPolicy Bypass -File scripts\start-api.ps1 -Port 8000
 #>
-param([string]$BindHost = "127.0.0.1", [int]$Port = 8000)
+param([string]$BindHost = "127.0.0.1", [int]$Port = 8001)
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "common.ps1")
 

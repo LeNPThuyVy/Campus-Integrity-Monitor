@@ -1,0 +1,683 @@
+{
+  "communities": {
+    "0": [
+      "composer",
+      "composer_allow_plugins_pestphp_pest_plugin",
+      "composer_allow_plugins_php_http_discovery",
+      "composer_autoload",
+      "composer_autoload_dev",
+      "composer_autoload_dev_psr_4",
+      "composer_autoload_psr_4",
+      "composer_config",
+      "composer_config_allow_plugins",
+      "composer_config_optimize_autoloader",
+      "composer_config_preferred_install",
+      "composer_config_sort_packages",
+      "composer_description",
+      "composer_extra",
+      "composer_extra_laravel",
+      "composer_keywords",
+      "composer_laravel_dont_discover",
+      "composer_license",
+      "composer_minimum_stability",
+      "composer_name",
+      "composer_prefer_stable",
+      "composer_psr_4_app",
+      "composer_psr_4_database_factories",
+      "composer_psr_4_database_seeders",
+      "composer_psr_4_tests",
+      "composer_require",
+      "composer_require_dev",
+      "composer_require_dev_fakerphp_faker",
+      "composer_require_dev_laravel_pail",
+      "composer_require_dev_laravel_pao",
+      "composer_require_dev_laravel_pint",
+      "composer_require_dev_mockery_mockery",
+      "composer_require_dev_nunomaduro_collision",
+      "composer_require_dev_phpunit_phpunit",
+      "composer_require_laravel_framework",
+      "composer_require_laravel_tinker",
+      "composer_require_php",
+      "composer_schema",
+      "composer_scripts",
+      "composer_scripts_dev",
+      "composer_scripts_post_autoload_dump",
+      "composer_scripts_post_create_project_cmd",
+      "composer_scripts_post_root_package_install",
+      "composer_scripts_post_update_cmd",
+      "composer_scripts_pre_package_uninstall",
+      "composer_scripts_setup",
+      "composer_scripts_test",
+      "composer_type"
+    ],
+    "1": [
+      "app_http_controllers_accountcontroller",
+      "app_http_controllers_accountcontroller_accountcontroller",
+      "app_http_controllers_accountcontroller_accountcontroller_index",
+      "app_http_controllers_authcontroller_authcontroller",
+      "app_http_controllers_authcontroller_authcontroller_changepassword",
+      "app_http_controllers_authcontroller_authcontroller_decodehexunicode",
+      "app_http_controllers_authcontroller_authcontroller_getpdo",
+      "app_http_controllers_authcontroller_authcontroller_login",
+      "app_http_controllers_authcontroller_authcontroller_logout",
+      "app_http_controllers_authcontroller_authcontroller_safenext",
+      "app_http_controllers_authcontroller_authcontroller_showchangepassword",
+      "app_http_controllers_authcontroller_authcontroller_showlogin",
+      "app_http_controllers_authcontroller_php_pdo",
+      "app_http_controllers_controller",
+      "app_http_controllers_controller_controller",
+      "app_http_controllers_dashboardcontroller",
+      "app_http_controllers_dashboardcontroller_dashboardcontroller",
+      "app_http_controllers_dashboardcontroller_dashboardcontroller_index",
+      "app_http_controllers_facilitycontroller",
+      "app_http_controllers_facilitycontroller_facilitycontroller",
+      "app_http_controllers_facilitycontroller_facilitycontroller_index",
+      "app_http_controllers_reportcontroller",
+      "app_http_controllers_reportcontroller_reportcontroller",
+      "app_http_controllers_reportcontroller_reportcontroller_index",
+      "app_http_controllers_violationcontroller",
+      "app_http_controllers_violationcontroller_violationcontroller",
+      "app_http_controllers_violationcontroller_violationcontroller_index",
+      "controller",
+      "illuminate_http_redirectresponse",
+      "illuminate_support_facades_route",
+      "illuminate_view_view",
+      "routes_web",
+      "routes_web_closure_1",
+      "routes_web_closure_2",
+      "routes_web_get",
+      "routes_web_get_camera_khuvuc_php",
+      "routes_web_get_danh_muc_php",
+      "routes_web_get_doi_mat_khau_php",
+      "routes_web_get_home_php",
+      "routes_web_get_list_vipham_php",
+      "routes_web_get_login_php",
+      "routes_web_get_phanquyen_php",
+      "routes_web_get_ql_sinhvien_php",
+      "routes_web_get_reporting_php"
+    ],
+    "2": [
+      "app_http_controllers_authcontroller",
+      "app_http_controllers_catalogcontroller",
+      "app_http_controllers_studentcontroller",
+      "app_http_controllers_studentcontroller_studentcontroller",
+      "app_http_controllers_studentcontroller_studentcontroller_api",
+      "app_http_controllers_studentcontroller_studentcontroller_construct",
+      "app_http_controllers_studentcontroller_studentcontroller_index",
+      "app_services_catalogservice",
+      "app_services_studentservice",
+      "app_services_studentservice_php_pdo",
+      "app_services_studentservice_studentservice",
+      "app_services_studentservice_studentservice_addviolation",
+      "app_services_studentservice_studentservice_cleanutf8",
+      "app_services_studentservice_studentservice_createxlsx",
+      "app_services_studentservice_studentservice_decodehexunicode",
+      "app_services_studentservice_studentservice_deletestudent",
+      "app_services_studentservice_studentservice_deleteviolation",
+      "app_services_studentservice_studentservice_escapelike",
+      "app_services_studentservice_studentservice_getcatalog",
+      "app_services_studentservice_studentservice_getpdo",
+      "app_services_studentservice_studentservice_getstatistics",
+      "app_services_studentservice_studentservice_getstudentdetail",
+      "app_services_studentservice_studentservice_getviolations",
+      "app_services_studentservice_studentservice_getviolationtypes",
+      "app_services_studentservice_studentservice_importcolumns",
+      "app_services_studentservice_studentservice_liststudents",
+      "app_services_studentservice_studentservice_today",
+      "app_services_studentservice_studentservice_upsertstudent",
+      "datetimeimmutable",
+      "datetimezone",
+      "illuminate_http_jsonresponse",
+      "illuminate_http_response",
+      "illuminate_support_facades_db",
+      "invalidargumentexception",
+      "pdo",
+      "pdoexception",
+      "runtimeexception",
+      "simplexmlelement",
+      "throwable",
+      "ziparchive"
+    ],
+    "3": [
+      "app_http_controllers_authcontroller_authcontroller_construct",
+      "app_http_controllers_cimproxycontroller",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_cleanutf8",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_construct",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_decodehexunicode",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_getpdo",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_getsummarydata",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handle",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handleaccounts",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handleareas",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handlecameras",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handledashboard",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handlereportexport",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handlereportsummary",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handlesemesters",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolationdetail",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolations",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolationtypes",
+      "app_http_controllers_cimproxycontroller_cimproxycontroller_resolvedaterange",
+      "app_http_controllers_cimproxycontroller_php_pdo",
+      "app_http_middleware_cimauthenticate",
+      "app_http_middleware_cimauthenticate_cimauthenticate",
+      "app_http_middleware_cimauthenticate_cimauthenticate_handle",
+      "app_http_middleware_cimrole",
+      "app_http_middleware_cimrole_cimrole",
+      "app_http_middleware_cimrole_cimrole_handle",
+      "app_services_cimapiclient",
+      "closure",
+      "illuminate_http_request",
+      "symfony_component_httpfoundation_response"
+    ],
+    "4": [
+      "app_models_user",
+      "app_models_user_user",
+      "app_models_user_user_casts",
+      "config_auth",
+      "config_cache",
+      "config_database",
+      "config_session",
+      "database_factories_userfactory",
+      "database_factories_userfactory_closure_1",
+      "database_factories_userfactory_userfactory",
+      "database_factories_userfactory_userfactory_definition",
+      "database_factories_userfactory_userfactory_unverified",
+      "database_seeders_databaseseeder",
+      "database_seeders_databaseseeder_databaseseeder",
+      "database_seeders_databaseseeder_databaseseeder_run",
+      "illuminate_database_console_seeds_withoutmodelevents",
+      "illuminate_database_eloquent_attributes_fillable",
+      "illuminate_database_eloquent_attributes_hidden",
+      "illuminate_database_eloquent_factories_factory",
+      "illuminate_database_eloquent_factories_hasfactory",
+      "illuminate_database_seeder",
+      "illuminate_foundation_auth_user",
+      "illuminate_notifications_notifiable",
+      "illuminate_support_facades_hash",
+      "illuminate_support_str",
+      "pdo_mysql",
+      "static"
+    ],
+    "5": [
+      "public_assets_js_students",
+      "public_assets_js_students_actionbutton",
+      "public_assets_js_students_addoptions",
+      "public_assets_js_students_closedrawer",
+      "public_assets_js_students_confirmimport",
+      "public_assets_js_students_currentdataset",
+      "public_assets_js_students_downloadtemplate",
+      "public_assets_js_students_filters",
+      "public_assets_js_students_handlestudentsubmit",
+      "public_assets_js_students_initialize",
+      "public_assets_js_students_loadstudents",
+      "public_assets_js_students_makecell",
+      "public_assets_js_students_opendrawer",
+      "public_assets_js_students_openstudent",
+      "public_assets_js_students_pagebutton",
+      "public_assets_js_students_previewimport",
+      "public_assets_js_students_refreshclasschoices",
+      "public_assets_js_students_refreshmajorchoices",
+      "public_assets_js_students_rendercatalog",
+      "public_assets_js_students_renderpreview",
+      "public_assets_js_students_renderrows",
+      "public_assets_js_students_request",
+      "public_assets_js_students_setformvalue",
+      "public_assets_js_students_setreadonly",
+      "public_assets_js_students_showstatus"
+    ],
+    "6": [
+      "package",
+      "package_devdependencies",
+      "package_devdependencies_concurrently",
+      "package_devdependencies_laravel_vite_plugin",
+      "package_devdependencies_tailwindcss",
+      "package_devdependencies_tailwindcss_vite",
+      "package_devdependencies_vite",
+      "package_optionaldependencies",
+      "package_optionaldependencies_laravel_multiplex",
+      "package_private",
+      "package_schema",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_type",
+      "ref_concurrently",
+      "ref_laravel_multiplex",
+      "ref_laravel_vite_plugin",
+      "ref_tailwindcss",
+      "ref_tailwindcss_vite",
+      "ref_vite",
+      "vite_config"
+    ],
+    "7": [
+      "database_migrations_0001_01_01_000000_create_users_table",
+      "database_migrations_0001_01_01_000000_create_users_table_closure_1",
+      "database_migrations_0001_01_01_000000_create_users_table_closure_2",
+      "database_migrations_0001_01_01_000000_create_users_table_closure_3",
+      "database_migrations_0001_01_01_000000_create_users_table_down",
+      "database_migrations_0001_01_01_000000_create_users_table_up",
+      "database_migrations_0001_01_01_000001_create_cache_table",
+      "database_migrations_0001_01_01_000001_create_cache_table_closure_1",
+      "database_migrations_0001_01_01_000001_create_cache_table_closure_2",
+      "database_migrations_0001_01_01_000001_create_cache_table_down",
+      "database_migrations_0001_01_01_000001_create_cache_table_up",
+      "database_migrations_0001_01_01_000002_create_jobs_table",
+      "database_migrations_0001_01_01_000002_create_jobs_table_closure_1",
+      "database_migrations_0001_01_01_000002_create_jobs_table_closure_2",
+      "database_migrations_0001_01_01_000002_create_jobs_table_closure_3",
+      "database_migrations_0001_01_01_000002_create_jobs_table_down",
+      "database_migrations_0001_01_01_000002_create_jobs_table_up",
+      "illuminate_database_migrations_migration",
+      "illuminate_database_schema_blueprint",
+      "illuminate_support_facades_schema"
+    ],
+    "8": [
+      "app_http_controllers_catalogcontroller_catalogcontroller",
+      "app_http_controllers_catalogcontroller_catalogcontroller_api",
+      "app_http_controllers_catalogcontroller_catalogcontroller_construct",
+      "app_http_controllers_catalogcontroller_catalogcontroller_index",
+      "app_services_catalogservice_catalogservice",
+      "app_services_catalogservice_catalogservice_cleanutf8",
+      "app_services_catalogservice_catalogservice_code",
+      "app_services_catalogservice_catalogservice_decodehexunicode",
+      "app_services_catalogservice_catalogservice_delete",
+      "app_services_catalogservice_catalogservice_flag",
+      "app_services_catalogservice_catalogservice_getallcatalogs",
+      "app_services_catalogservice_catalogservice_getdata",
+      "app_services_catalogservice_catalogservice_getpdo",
+      "app_services_catalogservice_catalogservice_intval",
+      "app_services_catalogservice_catalogservice_requiredtext",
+      "app_services_catalogservice_catalogservice_sanitizerecord",
+      "app_services_catalogservice_catalogservice_save",
+      "app_services_catalogservice_php_pdo"
+    ],
+    "9": [
+      "public_assets_js_common",
+      "public_assets_js_common_api",
+      "public_assets_js_common_apierror",
+      "public_assets_js_common_apierror_constructor",
+      "public_assets_js_common_buildurl",
+      "public_assets_js_common_confirmaction",
+      "public_assets_js_common_download",
+      "public_assets_js_common_el",
+      "public_assets_js_common_formatdate",
+      "public_assets_js_common_formatdatetime",
+      "public_assets_js_common_isodate",
+      "public_assets_js_common_setbusy",
+      "public_assets_js_common_setsidebar",
+      "public_assets_js_common_staterow",
+      "public_assets_js_common_toast"
+    ],
+    "10": [
+      "illuminate_foundation_testing_testcase",
+      "tests_feature_exampletest",
+      "tests_feature_exampletest_exampletest",
+      "tests_feature_exampletest_exampletest_test_the_application_returns_a_successful_response",
+      "tests_feature_webportaltest",
+      "tests_feature_webportaltest_webportaltest",
+      "tests_feature_webportaltest_webportaltest_test_authenticated_user_can_access_dashboard",
+      "tests_feature_webportaltest_webportaltest_test_guest_is_redirected_to_login",
+      "tests_feature_webportaltest_webportaltest_test_legacy_php_urls_redirect",
+      "tests_feature_webportaltest_webportaltest_test_login_page_renders",
+      "tests_feature_webportaltest_webportaltest_test_unauthenticated_api_request_returns_401_json",
+      "tests_testcase",
+      "tests_testcase_testcase"
+    ],
+    "11": [
+      "public_assets_js_catalogs",
+      "public_assets_js_catalogs_displayvalue",
+      "public_assets_js_catalogs_fieldcontrol",
+      "public_assets_js_catalogs_loadcatalogs",
+      "public_assets_js_catalogs_optiondata",
+      "public_assets_js_catalogs_removeitem",
+      "public_assets_js_catalogs_renderform",
+      "public_assets_js_catalogs_rendertable",
+      "public_assets_js_catalogs_request",
+      "public_assets_js_catalogs_showstatus",
+      "public_assets_js_catalogs_startedit"
+    ],
+    "12": [
+      "public_assets_js_facilities",
+      "public_assets_js_facilities_actionbutton",
+      "public_assets_js_facilities_loadall",
+      "public_assets_js_facilities_renderareachoices",
+      "public_assets_js_facilities_renderareas",
+      "public_assets_js_facilities_rendercameras",
+      "public_assets_js_facilities_rendersemesters",
+      "public_assets_js_facilities_setupform",
+      "public_assets_js_facilities_showkey",
+      "public_assets_js_facilities_showtab"
+    ],
+    "13": [
+      "public_assets_js_student_violations",
+      "public_assets_js_student_violations_addviolation",
+      "public_assets_js_student_violations_call",
+      "public_assets_js_student_violations_formatdate",
+      "public_assets_js_student_violations_load",
+      "public_assets_js_student_violations_removeviolation",
+      "public_assets_js_student_violations_renderlist",
+      "public_assets_js_student_violations_setstatus",
+      "public_assets_js_student_violations_show"
+    ],
+    "14": [
+      "public_assets_js_violations",
+      "public_assets_js_violations_badge",
+      "public_assets_js_violations_field",
+      "public_assets_js_violations_fillfilters",
+      "public_assets_js_violations_load",
+      "public_assets_js_violations_opendetail",
+      "public_assets_js_violations_params",
+      "public_assets_js_violations_renderevidence",
+      "public_assets_js_violations_renderrow"
+    ],
+    "15": [
+      "bootstrap_app",
+      "bootstrap_app_closure_1",
+      "bootstrap_app_closure_2",
+      "bootstrap_app_closure_3",
+      "illuminate_foundation_application",
+      "illuminate_foundation_configuration_exceptions",
+      "illuminate_foundation_configuration_middleware",
+      "public_index"
+    ],
+    "16": [
+      "app_providers_appserviceprovider",
+      "app_providers_appserviceprovider_appserviceprovider",
+      "app_providers_appserviceprovider_appserviceprovider_boot",
+      "app_providers_appserviceprovider_appserviceprovider_register",
+      "bootstrap_providers",
+      "illuminate_support_serviceprovider"
+    ],
+    "17": [
+      "app_services_cimapiclient_cimapiclient",
+      "app_services_cimapiclient_cimapiclient_construct",
+      "app_services_cimapiclient_cimapiclient_errormessage",
+      "app_services_cimapiclient_cimapiclient_json",
+      "app_services_cimapiclient_cimapiclient_request"
+    ],
+    "18": [
+      "config_logging",
+      "monolog_handler_nullhandler",
+      "monolog_handler_streamhandler",
+      "monolog_handler_syslogudphandler",
+      "monolog_processor_psrlogmessageprocessor"
+    ],
+    "19": [
+      "public_assets_js_charts",
+      "public_assets_js_charts_baseoptions",
+      "public_assets_js_charts_filltable",
+      "public_assets_js_charts_render",
+      "public_assets_js_charts_rendersummary"
+    ],
+    "20": [
+      "public_assets_js_filters",
+      "public_assets_js_filters_fillselect",
+      "public_assets_js_filters_init",
+      "public_assets_js_filters_init_params",
+      "public_assets_js_filters_init_syncvisibility"
+    ],
+    "21": [
+      "illuminate_foundation_inspiring",
+      "illuminate_support_facades_artisan",
+      "routes_console",
+      "routes_console_closure_1"
+    ],
+    "22": [
+      "phpunit_framework_testcase",
+      "tests_unit_exampletest",
+      "tests_unit_exampletest_exampletest",
+      "tests_unit_exampletest_exampletest_test_that_true_is_true"
+    ],
+    "23": [
+      "public_assets_js_accounts",
+      "public_assets_js_accounts_load",
+      "public_assets_js_accounts_renderrow",
+      "public_assets_js_accounts_setmode"
+    ],
+    "24": [
+      "public_assets_js_reports",
+      "public_assets_js_reports_exportreport",
+      "public_assets_js_reports_kpi",
+      "public_assets_js_reports_load"
+    ],
+    "25": [
+      "application",
+      "argvinput",
+      "artisan"
+    ],
+    "26": [
+      "resources_views_dashboard_index_blade",
+      "resources_views_dashboard_index_blade_php_layouts_app",
+      "resources_views_dashboard_index_blade_php_partials_report_filters"
+    ],
+    "27": [
+      "resources_views_reports_index_blade",
+      "resources_views_reports_index_blade_php_layouts_app",
+      "resources_views_reports_index_blade_php_partials_report_filters"
+    ],
+    "28": [
+      "layouts_app",
+      "resources_views_catalogs_index_blade"
+    ],
+    "29": [
+      "public_assets_js_dashboard",
+      "public_assets_js_dashboard_load"
+    ],
+    "30": [
+      "resources_views_accounts_index_blade",
+      "resources_views_accounts_index_blade_php_layouts_app"
+    ],
+    "31": [
+      "resources_views_auth_change_password_blade",
+      "resources_views_auth_change_password_blade_php_layouts_app"
+    ],
+    "32": [
+      "resources_views_facilities_index_blade",
+      "resources_views_facilities_index_blade_php_layouts_app"
+    ],
+    "33": [
+      "resources_views_students_index_blade",
+      "resources_views_students_index_blade_php_layouts_app"
+    ],
+    "34": [
+      "resources_views_violations_index_blade",
+      "resources_views_violations_index_blade_php_layouts_app"
+    ],
+    "35": [
+      "config_app"
+    ],
+    "36": [
+      "config_filesystems"
+    ],
+    "37": [
+      "config_mail"
+    ],
+    "38": [
+      "config_queue"
+    ],
+    "39": [
+      "config_services"
+    ],
+    "40": [
+      "public_assets_js_tailwind_config"
+    ],
+    "41": [
+      "resources_js_app"
+    ],
+    "42": [
+      "resources_views_auth_login_blade"
+    ],
+    "43": [
+      "resources_views_layouts_app_blade"
+    ],
+    "44": [
+      "resources_views_partials_report_filters_blade"
+    ],
+    "45": [
+      "resources_views_welcome_blade"
+    ]
+  },
+  "cohesion": {
+    "0": 0.041666666666666664,
+    "1": 0.07188160676532769,
+    "2": 0.09615384615384616,
+    "3": 0.2086021505376344,
+    "4": 0.09971509971509972,
+    "5": 0.21,
+    "6": 0.09956709956709957,
+    "7": 0.1631578947368421,
+    "8": 0.20261437908496732,
+    "9": 0.2,
+    "10": 0.19230769230769232,
+    "11": 0.43636363636363634,
+    "12": 0.37777777777777777,
+    "13": 0.5833333333333334,
+    "14": 0.3888888888888889,
+    "15": 0.32142857142857145,
+    "16": 0.4,
+    "17": 0.5,
+    "18": 0.4,
+    "19": 0.6,
+    "20": 0.5,
+    "21": 0.5,
+    "22": 0.6666666666666666,
+    "23": 0.8333333333333334,
+    "24": 0.6666666666666666,
+    "25": 0.6666666666666666,
+    "26": 0.6666666666666666,
+    "27": 0.6666666666666666,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0,
+    "45": 1.0
+  },
+  "gods": [
+    {
+      "id": "app_http_controllers_cimproxycontroller_cimproxycontroller",
+      "label": "CimProxyController",
+      "degree": 21
+    },
+    {
+      "id": "app_services_studentservice_studentservice",
+      "label": "StudentService",
+      "degree": 21
+    },
+    {
+      "id": "app_services_catalogservice_catalogservice",
+      "label": "CatalogService",
+      "degree": 16
+    },
+    {
+      "id": "app_http_controllers_authcontroller_authcontroller",
+      "label": "AuthController",
+      "degree": 13
+    },
+    {
+      "id": "app_models_user_user",
+      "label": "User",
+      "degree": 9
+    },
+    {
+      "id": "composer_scripts",
+      "label": "scripts",
+      "degree": 9
+    },
+    {
+      "id": "app_http_controllers_controller_controller",
+      "label": "Controller",
+      "degree": 8
+    },
+    {
+      "id": "public_assets_js_students_loadstudents",
+      "label": "loadStudents()",
+      "degree": 8
+    },
+    {
+      "id": "public_assets_js_students_showstatus",
+      "label": "showStatus()",
+      "degree": 8
+    },
+    {
+      "id": "composer_require_dev",
+      "label": "require-dev",
+      "degree": 8
+    }
+  ],
+  "surprises": [
+    {
+      "source": "CatalogController",
+      "target": "Controller",
+      "source_files": [
+        "app/Http/Controllers/CatalogController.php",
+        "app/Http/Controllers/Controller.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "StudentController",
+      "target": "Controller",
+      "source_files": [
+        "app/Http/Controllers/StudentController.php",
+        "app/Http/Controllers/Controller.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "ExampleTest",
+      "target": "TestCase",
+      "source_files": [
+        "tests/Feature/ExampleTest.php",
+        "tests/TestCase.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "cross-file semantic connection"
+    },
+    {
+      "source": "WebPortalTest",
+      "target": "TestCase",
+      "source_files": [
+        "tests/Feature/WebPortalTest.php",
+        "tests/TestCase.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "cross-file semantic connection"
+    },
+    {
+      "source": "AccountController",
+      "target": "Controller",
+      "source_files": [
+        "app/Http/Controllers/AccountController.php",
+        "app/Http/Controllers/Controller.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "cross-file semantic connection"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}
