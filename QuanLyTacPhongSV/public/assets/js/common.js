@@ -163,7 +163,11 @@
     }
     if (!response.ok) {
       let message = 'Không thể tải tệp.';
-      try { message = (await response.json())?.error?.message || message; } catch { /* binary error */ }
+      try {
+        const errJson = await response.json();
+        const err = errJson?.error;
+        message = (typeof err === 'string' ? err : err?.message) || message;
+      } catch { /* binary or non-json error */ }
       throw new ApiError(message, response.status);
     }
     const disposition = response.headers.get('content-disposition') || '';
@@ -193,7 +197,12 @@
     }
   }
 
-  const PROCESSING_LABELS = { MOI: 'Mới', DA_XEM: 'Đã xem', DA_XU_LY: 'Đã xử lý', BO_QUA: 'Bỏ qua (cảnh báo sai)' };
+  const PROCESSING_LABELS = {
+    MOI: 'Mới báo động (Chờ Cờ Đỏ)',
+    DA_XEM: 'Đã điều Đội Cờ Đỏ',
+    DA_XU_LY: 'Đã kiểm tra tại phòng học',
+    BO_QUA: 'Đã kiểm tra',
+  };
 
   window.CIM = {
     api, ApiError, toast, confirmAction, el, stateRow, formatDateTime, formatDate, isoDate, download, setBusy,

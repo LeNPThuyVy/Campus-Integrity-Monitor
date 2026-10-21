@@ -93,6 +93,11 @@ class Settings:
     event_max_age_days: int
     pdf_font_path: str | None
     allowed_hosts: list[str] = field(default_factory=list)
+    r2_access_key: str | None = None
+    r2_secret_key: str | None = None
+    r2_endpoint: str | None = None
+    r2_bucket: str = "my-budget-graduate-project"
+    r2_presign_ttl_seconds: int = 3600
 
     @property
     def local_tz(self) -> timezone:
@@ -144,4 +149,9 @@ def get_settings() -> Settings:
         event_max_age_days=_env_int("CIM_EVENT_MAX_AGE_DAYS", 7),
         pdf_font_path=_env("CIM_PDF_FONT_PATH"),
         allowed_hosts=[h.strip() for h in (hosts or "").split(",") if h.strip()],
+        r2_access_key=_env("CLOUDFLARE_ACCESS_KEY"),
+        r2_secret_key=_env("CLOUDFLARE_SECRECT_ACCESS_KEY"),
+        r2_endpoint=_env("CLOUDFLARE_S3_API_ENDPOINT"),
+        r2_bucket=_env("CLOUDFLARE_R2_BUCKET", "my-budget-graduate-project"),
+        r2_presign_ttl_seconds=_env_int("CLOUDFLARE_R2_PRESIGN_TTL", 3600),
     )

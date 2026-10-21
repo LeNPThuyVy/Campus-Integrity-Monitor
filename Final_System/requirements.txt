@@ -32,4 +32,5 @@ pytest>=7.0.0
 httpx>=0.24.0
 
 # Optional: AI-written narrative reports (ai/reporting/gemini_service.py)
-# google-genai>=1.0.0
+google-genai>=1.0.0
+boto3>=1.28.0

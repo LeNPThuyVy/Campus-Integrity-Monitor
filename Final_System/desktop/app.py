@@ -7,6 +7,10 @@ import queue
 import time
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from ai.classifier import Classifier
 from ai.detector import Detector
@@ -80,6 +84,10 @@ class App:
 
         self.sender = ViolationSender(OUTBOX_DIR, self.api_config())
         self.sender.start()
+        try:
+            self.check_api()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Configuration Management
@@ -97,7 +105,7 @@ class App:
             "VIOLATION_RATIO":           my_config.VIOLATION_RATIO,
             "MISSING_COUNTER_THRESHOLD": my_config.MISSING_COUNTER_THRESHOLD,
             "EVENT_DEDUP_SECONDS":       my_config.EVENT_DEDUP_SECONDS,
-            "API_URL":                   "http://127.0.0.1:8000",
+            "API_URL":                   "http://127.0.0.1:8001",
             "CAMERA_CODE":               "",
             "DEVICE_KEY":                "",
         }
@@ -199,9 +207,9 @@ class App:
         return ok, self.recording_note
 
     def camera_label(self) -> str:
-        if self.camera_info:
-            return f"{self.camera_info['camera']['code']} - {self.camera_info['area']['name']}"
-        return self.params.get("CAMERA_CODE") or "Chưa cấu hình"
+        if self.camera_info and self.camera_info.get("camera", {}).get("name"):
+            return self.camera_info["camera"]["name"]
+        return self.params.get("CAMERA_NAME") or "Camera 1 - Camera Desktop Local"
 
     # ------------------------------------------------------------------
     # Camera / Stream Control

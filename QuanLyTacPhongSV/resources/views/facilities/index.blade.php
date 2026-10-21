@@ -135,5 +135,5 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('assets/js/facilities.js') }}" defer></script>
+<script src="{{ asset('assets/js/facilities.js') }}?v={{ time() }}" defer></script>
 @endpush

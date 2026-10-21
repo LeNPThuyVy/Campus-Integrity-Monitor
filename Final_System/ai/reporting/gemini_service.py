@@ -11,8 +11,14 @@ class GeminiService(LLMService):
         """
         load_dotenv()
 
-        self.client=genai.Client(api_key=os.getenv(api_key_env))
-        self.model=model
+        from google.genai import types
+        http_options = types.HttpOptions(
+            timeout=25000,
+            retry_options=types.HttpRetryOptions(attempts=1)
+        )
+        self.client = genai.Client(api_key=os.getenv(api_key_env), http_options=http_options)
+        self.model = model
+
 
     def generate(self, prompt):
         #Call Gemini
