@@ -1660,7 +1660,7 @@ class StudentService
         return hash_equals($expected, $password);
     }
 
-    public function resetAllViolations(): array
+    public function resetAllViolations(bool $includeCameraRecords = false): array
     {
         $pdo = $this->getPdo();
         $pdo->beginTransaction();
@@ -1669,21 +1669,24 @@ class StudentService
             $pdo->exec('DELETE FROM CT_VIPHAM');
 
             $bgCount = 0;
-            try {
-                if ((int)$pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'NHAT_KY_XOA_ANH'")->fetchColumn() > 0) {
-                    $pdo->exec('DELETE FROM NHAT_KY_XOA_ANH');
-                }
-                if ((int)$pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BAN_GHI_VIPHAM'")->fetchColumn() > 0) {
-                    $bgCount = (int)$pdo->query('SELECT COUNT(*) FROM BAN_GHI_VIPHAM')->fetchColumn();
-                    $pdo->exec('DELETE FROM BAN_GHI_VIPHAM');
-                }
-            } catch (Throwable) {}
+            if ($includeCameraRecords) {
+                try {
+                    if ((int)$pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'NHAT_KY_XOA_ANH'")->fetchColumn() > 0) {
+                        $pdo->exec('DELETE FROM NHAT_KY_XOA_ANH');
+                    }
+                    if ((int)$pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BAN_GHI_VIPHAM'")->fetchColumn() > 0) {
+                        $bgCount = (int)$pdo->query('SELECT COUNT(*) FROM BAN_GHI_VIPHAM')->fetchColumn();
+                        $pdo->exec('DELETE FROM BAN_GHI_VIPHAM');
+                    }
+                } catch (Throwable) {}
+            }
 
             $pdo->commit();
             return [
                 'success' => true,
                 'deleted_student_violations' => $ctCount,
                 'deleted_camera_records' => $bgCount,
+                'camera_reset_applied' => $includeCameraRecords,
             ];
         } catch (Throwable $e) {
             $pdo->rollBack();

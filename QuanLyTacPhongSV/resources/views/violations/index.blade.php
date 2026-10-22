@@ -29,6 +29,30 @@
     </div>
   </div>
 
+  <!-- Live SSE Status & Source Navigation Tabs -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm border-b border-surface-container pb-space-xs">
+    <div class="flex items-center gap-space-xs" id="source-tabs">
+      <button class="source-tab-btn flex items-center gap-1.5 px-4 py-2 rounded-xl font-label-md text-label-md transition-all bg-primary text-on-primary shadow-sm" type="button" data-source="ALL">
+        <span class="material-symbols-outlined text-[18px]">view_list</span>
+        <span>Tất cả</span>
+      </button>
+      <button class="source-tab-btn flex items-center gap-1.5 px-4 py-2 rounded-xl font-label-md text-label-md transition-all text-on-surface-variant hover:bg-surface-container" type="button" data-source="CAMERA">
+        <span class="material-symbols-outlined text-[18px]">videocam</span>
+        <span>Cảnh báo Camera AI</span>
+        <span class="w-2 h-2 rounded-full bg-primary inline-block"></span>
+      </button>
+      <button class="source-tab-btn flex items-center gap-1.5 px-4 py-2 rounded-xl font-label-md text-label-md transition-all text-on-surface-variant hover:bg-surface-container" type="button" data-source="CO_DO">
+        <span class="material-symbols-outlined text-[18px]">flag</span>
+        <span>Biên bản Đội Cờ Đỏ</span>
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-medium bg-surface-container text-on-surface-variant self-start sm:self-auto" id="camera-sse-status" title="Trạng thái kết nối Server-Sent Events thời gian thực tới API Camera">
+      <span class="w-2 h-2 rounded-full bg-slate-400 shrink-0 animate-pulse" id="camera-sse-dot"></span>
+      <span id="camera-sse-text">Đang kết nối Camera AI...</span>
+    </div>
+  </div>
+
   <form class="grid grid-cols-1 gap-space-sm rounded-xl bg-surface-container-lowest p-space-md shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8" id="violation-filters">
     <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm text-on-surface-variant">Từ ngày</span>
       <input class="h-10 rounded-lg bg-surface-container-low px-3" type="date" name="date_from"></label>
@@ -339,6 +363,17 @@
           </button>
         </div>
         <p class="font-body-sm text-[11px] text-error hidden" id="reset-password-error"></p>
+      </div>
+
+      <div class="p-space-sm rounded-lg bg-surface-container-low border border-surface-container flex flex-col gap-2">
+        <label class="flex items-center gap-2 text-on-surface font-body-sm text-[12px] cursor-pointer">
+          <input class="rounded text-primary focus:ring-primary w-4 h-4" id="reset-student-violations-check" type="checkbox" checked disabled>
+          <span>Đưa số lượt vi phạm của toàn bộ sinh viên về <strong>0 vi phạm</strong> (Bảng CT_VIPHAM)</span>
+        </label>
+        <label class="flex items-center gap-2 text-on-surface-variant font-body-sm text-[12px] cursor-pointer">
+          <input class="rounded text-error focus:ring-error w-4 h-4" id="reset-include-camera-check" type="checkbox">
+          <span>Xóa kèm cả lịch sử ảnh và cảnh báo Camera AI (mặc định giữ lại để đối soát thống kê)</span>
+        </label>
       </div>
 
       <div class="flex items-center justify-end gap-space-sm pt-2">

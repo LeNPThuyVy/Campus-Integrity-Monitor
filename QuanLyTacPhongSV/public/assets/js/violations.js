@@ -4,7 +4,7 @@
   const form = document.getElementById('violation-filters');
   const tbody = document.getElementById('violation-body');
   const dialog = document.getElementById('violation-dialog');
-  const state = { page: 1, pages: 1, current: null, lastKnownMaxId: 0, newIds: new Set() };
+  const state = { page: 1, pages: 1, current: null, source: 'ALL', lastKnownMaxId: 0, newIds: new Set() };
   const EVIDENCE_BADGES = {
     available: ['Còn ảnh', 'bg-secondary-container text-on-secondary-container'],
     expired: ['Hết hạn', 'bg-tertiary-container text-on-tertiary-container'],
@@ -17,9 +17,18 @@
     return CIM.el('span', `inline-block rounded-full px-2 py-0.5 font-label-sm text-label-sm ${className}`, text);
   }
 
+  function percent(val) {
+    if (val === null || val === undefined || isNaN(val)) return '—';
+    return `${Math.round(val * 100)}%`;
+  }
+
   function params() {
     const data = Object.fromEntries(new FormData(form).entries());
-    return { ...data, page: state.page, page_size: document.getElementById('page-size').value };
+    const res = { ...data, page: state.page, page_size: document.getElementById('page-size').value };
+    if (state.source && state.source !== 'ALL') {
+      res.source = state.source;
+    }
+    return res;
   }
 
   async function load(silent = false) {
@@ -155,7 +164,11 @@
       );
 
       if (!isCoDo) {
-        fields.push(...field('Ảnh hết hạn', CIM.formatDateTime(data.evidence.expires_at)));
+        fields.push(
+          ...field('Độ tin cậy ĐP', percent(data.uniform_confidence)),
+          ...field('Độ tin cậy thẻ', percent(data.card_confidence)),
+          ...field('Ảnh hết hạn', CIM.formatDateTime(data.evidence.expires_at))
+        );
       }
 
       fields.push(
@@ -232,6 +245,25 @@
   document.getElementById('page-prev').addEventListener('click', () => { if (state.page > 1) { state.page--; load(); } });
   document.getElementById('page-next').addEventListener('click', () => { if (state.page < state.pages) { state.page++; load(); } });
 
+  document.querySelectorAll('.source-tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetSource = btn.dataset.source || 'ALL';
+      if (state.source === targetSource) return;
+      state.source = targetSource;
+      state.page = 1;
+
+      document.querySelectorAll('.source-tab-btn').forEach((b) => {
+        if (b.dataset.source === targetSource) {
+          b.className = 'source-tab-btn flex items-center gap-1.5 px-4 py-2 rounded-xl font-label-md text-label-md transition-all bg-primary text-on-primary shadow-sm';
+        } else {
+          b.className = 'source-tab-btn flex items-center gap-1.5 px-4 py-2 rounded-xl font-label-md text-label-md transition-all text-on-surface-variant hover:bg-surface-container';
+        }
+      });
+
+      load();
+    });
+  });
+
   async function fillFilters() {
     const fill = async (name, route, label) => {
       const result = await CIM.api(route);
@@ -250,15 +282,45 @@
 
   // ---------------------------------------------------------------- Real-time: SSE (Phase 2) & Polling (Phase 1)
   let eventSource = null;
+  function updateSSEStatus(status, text) {
+    const statusEl = document.getElementById('camera-sse-status');
+    const dotEl = document.getElementById('camera-sse-dot');
+    const textEl = document.getElementById('camera-sse-text');
+    if (!statusEl || !dotEl || !textEl) return;
+
+    if (status === 'online') {
+      statusEl.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto';
+      dotEl.className = 'w-2 h-2 rounded-full bg-emerald-500 shrink-0';
+      textEl.textContent = text || 'Camera AI: Trực tuyến (SSE Live)';
+    } else if (status === 'offline') {
+      statusEl.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-medium bg-amber-50 text-amber-800 border border-amber-200 self-start sm:self-auto';
+      dotEl.className = 'w-2 h-2 rounded-full bg-amber-500 shrink-0 animate-pulse';
+      textEl.textContent = text || 'Camera AI: Mất kết nối (Kiểm tra Port 8001)';
+    } else {
+      statusEl.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-medium bg-surface-container text-on-surface-variant self-start sm:self-auto';
+      dotEl.className = 'w-2 h-2 rounded-full bg-slate-400 shrink-0 animate-pulse';
+      textEl.textContent = text || 'Đang kết nối Camera AI...';
+    }
+  }
+
   function connectSSE() {
-    if (typeof EventSource === 'undefined') return;
+    if (typeof EventSource === 'undefined') {
+      updateSSEStatus('offline', 'Trình duyệt không hỗ trợ SSE');
+      return;
+    }
     try {
       const apiBase = document.querySelector('meta[name="cim-api-base-url"]')?.content || 'http://127.0.0.1:8001';
       const sseUrl = `${apiBase.replace(/\/+$/, '')}/api/v1/violations/stream`;
+      updateSSEStatus('connecting');
+
+      if (eventSource) {
+        eventSource.close();
+      }
+
       eventSource = new EventSource(sseUrl);
 
       eventSource.onopen = () => {
-        console.log('[CIM Real-time] Kết nối SSE thành công tới', sseUrl);
+        updateSSEStatus('online', 'Camera AI: Trực tuyến (SSE Live)');
       };
 
       eventSource.onmessage = (event) => {
@@ -280,10 +342,10 @@
       };
 
       eventSource.onerror = () => {
-        // Tự động kết nối lại ngầm
+        updateSSEStatus('offline', 'Camera AI: Mất kết nối (Cần bật Port 8001)');
       };
     } catch (e) {
-      console.warn('[CIM Real-time] Không thể kết nối SSE, dùng chế độ Polling dự phòng.');
+      updateSSEStatus('offline', 'Không thể kết nối Camera AI');
     }
   }
 
@@ -681,18 +743,23 @@
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
     try {
+      const includeCamera = document.getElementById('reset-include-camera-check')?.checked || false;
       const resp = await fetch('api/students.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'same-origin',
-        body: JSON.stringify({ action: 'reset-violations', reset_password: pass }),
+        body: JSON.stringify({ action: 'reset-violations', reset_password: pass, include_camera_records: includeCamera }),
       });
       const data = await resp.json();
       if (!resp.ok) {
         throw new Error(data.error || 'Mật mã bảo mật không chính xác.');
       }
 
-      CIM.toast(`Đã xóa ${data.deleted_student_violations} biên bản và ${data.deleted_camera_records} cảnh báo. Toàn bộ vi phạm đã được đưa về 0!`, 'success');
+      if (includeCamera) {
+        CIM.toast(`Đã xóa ${data.deleted_student_violations} biên bản và ${data.deleted_camera_records} cảnh báo Camera AI. Toàn bộ vi phạm đã được đưa về 0!`, 'success');
+      } else {
+        CIM.toast(`Đã xóa ${data.deleted_student_violations} biên bản sinh viên vi phạm về 0! (Giữ nguyên nhật ký Camera AI)`, 'success');
+      }
       closeResetModal();
       load();
     } catch (err) {
