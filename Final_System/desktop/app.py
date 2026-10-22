@@ -1,6 +1,9 @@
 import json
 import os
 import logging
+import socket
+import subprocess
+import sys
 import tkinter as tk
 import threading
 import queue
@@ -80,7 +83,9 @@ class App:
 
         # Loaded once at startup; UI sliders may update these values later
         self.params: dict = {}
+        self._spawned_api_process: subprocess.Popen | None = None
         self.load_parameters()
+        self.ensure_local_api()
 
         self.sender = ViolationSender(OUTBOX_DIR, self.api_config())
         self.sender.start()
@@ -183,12 +188,58 @@ class App:
         if getattr(self, "event_detector", None):
             self.event_detector.dedup_seconds = self.params["EVENT_DEDUP_SECONDS"]
 
+    def _is_port_in_use(self, port: int = 8001, host: str = "127.0.0.1") -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.5)
+            return s.connect_ex((host, port)) == 0
+
+    def ensure_local_api(self) -> bool:
+        """
+        If API_URL points to local port 8001 and port is not listening,
+        spawns FastAPI backend as a background process automatically.
+        """
+        api_url = str(self.params.get("API_URL", "")).lower()
+        if not ("127.0.0.1:8001" in api_url or "localhost:8001" in api_url):
+            return False  # Remote production server (e.g. https://cim-api.huit.edu.vn)
+
+        if self._is_port_in_use(8001):
+            return True
+
+        logging.info("Port 8001 chưa chạy. Đang tự động khởi chạy FastAPI backend ngầm...")
+        final_system_dir = Path(__file__).resolve().parent.parent
+        cmd = [sys.executable, "-m", "uvicorn", "api.main:app", "--host", "127.0.0.1", "--port", "8001"]
+        flags = 0
+        if sys.platform == "win32":
+            flags = subprocess.CREATE_NO_WINDOW
+
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(final_system_dir)
+        env["PYTHONIOENCODING"] = "utf-8"
+
+        try:
+            self._spawned_api_process = subprocess.Popen(
+                cmd,
+                cwd=str(final_system_dir),
+                env=env,
+                creationflags=flags
+            )
+            for _ in range(25):
+                time.sleep(0.2)
+                if self._is_port_in_use(8001):
+                    logging.info("FastAPI backend (Port 8001) đã sẵn sàng phục vụ.")
+                    return True
+        except Exception as e:
+            logging.error(f"Không thể tự động khởi động FastAPI: {e}")
+
+        return False
+
     def api_config(self) -> ApiConfig:
         return ApiConfig(base_url=self.params["API_URL"], camera_code=self.params["CAMERA_CODE"],
                          device_key=self.params["DEVICE_KEY"])
 
     def check_api(self) -> tuple[bool, str]:
         """Validate API URL + camera + device key. Decides whether events may be recorded."""
+        self.ensure_local_api()
         ok, message, data = check_connection(self.api_config())
         if ok:
             self.camera_info = data
@@ -386,6 +437,17 @@ class App:
         """Stop camera, worker and sender threads and release model memory."""
         self.stop_camera()
         self.sender.stop()
+        if getattr(self, "_spawned_api_process", None) is not None:
+            try:
+                logging.info("Đang đóng tiến trình FastAPI backend do App khởi tạo...")
+                self._spawned_api_process.terminate()
+                self._spawned_api_process.wait(timeout=3.0)
+            except Exception:
+                try:
+                    self._spawned_api_process.kill()
+                except Exception:
+                    pass
+            self._spawned_api_process = None
         self.pipeline = None
         self.detector = None
         self.uniform_classifier = self.card_classifier = self.classifier = None

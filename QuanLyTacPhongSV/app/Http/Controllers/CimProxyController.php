@@ -25,7 +25,7 @@ class CimProxyController extends Controller
 
         $ADMIN = ['ADMIN'];
         $ALL = ['ADMIN', 'CTSV'];
-        $listQuery = ['date_from', 'date_to', 'area_id', 'camera_id', 'type_id', 'status', 'page', 'page_size', 'sort'];
+        $listQuery = ['date_from', 'date_to', 'area_id', 'camera_id', 'type_id', 'status', 'source', 'page', 'page_size', 'sort'];
         $reportQuery = ['period', 'anchor', 'month', 'semester_id', 'date_from', 'date_to', 'area_id', 'camera_id', 'type_id'];
 
         $routes = [
@@ -810,13 +810,14 @@ class CimProxyController extends Controller
             $areaId = filter_var($request->query('area_id'), FILTER_VALIDATE_INT);
             $typeId = filter_var($request->query('type_id'), FILTER_VALIDATE_INT);
             $status = trim((string)$request->query('status', ''));
+            $source = strtoupper(trim((string)$request->query('source', '')));
             $sort = trim((string)$request->query('sort', 'newest'));
             $orderDir = ($sort === 'oldest') ? 'ASC' : 'DESC';
 
             // Xây dựng truy vấn hợp nhất giữa Camera AI (BAN_GHI_VIPHAM) và Biên bản Cờ Đỏ (CT_VIPHAM)
             $unions = [];
 
-            if ($hasBanGhiTable) {
+            if ($hasBanGhiTable && ($source === '' || $source === 'ALL' || $source === 'CAMERA')) {
                 $unions[] = "
                     SELECT 
                         b.ID,
@@ -853,39 +854,50 @@ class CimProxyController extends Controller
             }
 
             // Dữ liệu từ CT_VIPHAM (Biên bản Đội Cờ Đỏ / Cán bộ CTSV)
-            $unions[] = "
-                SELECT 
-                    cv.ID,
-                    'CO_DO' as NGUON,
-                    COALESCE(cv.THOI_DIEM, DATEADD(MINUTE, 450, CAST(cv.NGAY_VIPHAM AS DATETIME2(0)))) as THOI_DIEM,
-                    cv.ID_LOI as LOI_ID,
-                    lv.TEN_LOI,
-                    CONVERT(VARCHAR(MAX), CAST(lv.TEN_LOI AS VARBINARY(MAX)), 2) as type_name_hex,
-                    cv.KHU_VUC_ID,
-                    k.TEN_KHU_VUC,
-                    CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
-                    1 as CAMERA_ID,
-                    'CO_DO' as MA_CAMERA,
-                    N'Biên bản Đội Cờ Đỏ' as TEN_CAMERA,
-                    CAST(NULL AS VARCHAR(MAX)) as camera_name_hex,
-                    'NONE' as ANH_TRANG_THAI,
-                    'DA_XU_LY' as TRANG_THAI_XU_LY,
-                    cv.GHI_CHU as GHI_CHU_XU_LY,
-                    COALESCE(cv.THOI_DIEM, DATEADD(MINUTE, 450, CAST(cv.NGAY_VIPHAM AS DATETIME2(0)))) as XU_LY_LUC,
-                    N'Đội Cờ Đỏ / CTSV' as nguoi_xu_ly,
-                    CAST(NULL AS VARCHAR(MAX)) as nguoi_xu_ly_hex,
-                    sv.ID as SV_ID,
-                    sv.MA_SV,
-                    sv.HOTEN,
-                    CONVERT(VARCHAR(MAX), CAST(sv.HOTEN AS VARBINARY(MAX)), 2) as HOTEN_HEX,
-                    l.MA_LOP,
-                    cv.PHONG_HOC
-                FROM CT_VIPHAM cv
-                LEFT JOIN LOI_VIPHAM lv ON cv.ID_LOI = lv.ID
-                LEFT JOIN KHU_VUC k ON cv.KHU_VUC_ID = k.ID
-                LEFT JOIN SINHVIEN sv ON cv.ID_SV = sv.ID
-                LEFT JOIN LOP l ON sv.LOP_ID = l.ID
-            ";
+            if ($source === '' || $source === 'ALL' || $source === 'CO_DO') {
+                $unions[] = "
+                    SELECT 
+                        cv.ID,
+                        'CO_DO' as NGUON,
+                        COALESCE(cv.THOI_DIEM, DATEADD(MINUTE, 450, CAST(cv.NGAY_VIPHAM AS DATETIME2(0)))) as THOI_DIEM,
+                        cv.ID_LOI as LOI_ID,
+                        lv.TEN_LOI,
+                        CONVERT(VARCHAR(MAX), CAST(lv.TEN_LOI AS VARBINARY(MAX)), 2) as type_name_hex,
+                        cv.KHU_VUC_ID,
+                        k.TEN_KHU_VUC,
+                        CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
+                        1 as CAMERA_ID,
+                        'CO_DO' as MA_CAMERA,
+                        N'Biên bản Đội Cờ Đỏ' as TEN_CAMERA,
+                        CAST(NULL AS VARCHAR(MAX)) as camera_name_hex,
+                        'NONE' as ANH_TRANG_THAI,
+                        'DA_XU_LY' as TRANG_THAI_XU_LY,
+                        cv.GHI_CHU as GHI_CHU_XU_LY,
+                        COALESCE(cv.THOI_DIEM, DATEADD(MINUTE, 450, CAST(cv.NGAY_VIPHAM AS DATETIME2(0)))) as XU_LY_LUC,
+                        N'Đội Cờ Đỏ / CTSV' as nguoi_xu_ly,
+                        CAST(NULL AS VARCHAR(MAX)) as nguoi_xu_ly_hex,
+                        sv.ID as SV_ID,
+                        sv.MA_SV,
+                        sv.HOTEN,
+                        CONVERT(VARCHAR(MAX), CAST(sv.HOTEN AS VARBINARY(MAX)), 2) as HOTEN_HEX,
+                        l.MA_LOP,
+                        cv.PHONG_HOC
+                    FROM CT_VIPHAM cv
+                    LEFT JOIN LOI_VIPHAM lv ON cv.ID_LOI = lv.ID
+                    LEFT JOIN KHU_VUC k ON cv.KHU_VUC_ID = k.ID
+                    LEFT JOIN SINHVIEN sv ON cv.ID_SV = sv.ID
+                    LEFT JOIN LOP l ON sv.LOP_ID = l.ID
+                ";
+            }
+
+            if (empty($unions)) {
+                return response()->json([
+                    'items' => [],
+                    'total' => 0,
+                    'page' => $page,
+                    'pages' => 1,
+                ]);
+            }
 
             $subQuery = implode(' UNION ALL ', $unions);
 

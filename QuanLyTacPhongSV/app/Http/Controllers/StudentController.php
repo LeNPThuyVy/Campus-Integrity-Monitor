@@ -228,12 +228,14 @@ class StudentController extends Controller
                     if (!$this->studentService->verifyResetPassword($password)) {
                         return response()->json(['error' => 'Mật mã bảo mật không chính xác.'], 403);
                     }
-                    $res = $this->studentService->resetAllViolations();
+                    $includeCamera = !empty($body['include_camera_records']) && filter_var($body['include_camera_records'], FILTER_VALIDATE_BOOLEAN);
+                    $res = $this->studentService->resetAllViolations($includeCamera);
                     return response()->json([
                         'success' => true,
                         'message' => 'Đã reset toàn bộ vi phạm về 0 thành công.',
                         'deleted_student_violations' => $res['deleted_student_violations'],
                         'deleted_camera_records' => $res['deleted_camera_records'],
+                        'camera_reset_applied' => $res['camera_reset_applied'] ?? false,
                     ]);
                 }
 
