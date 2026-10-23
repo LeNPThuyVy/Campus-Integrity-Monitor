@@ -336,7 +336,6 @@ class CampusMonitorUI:
         # Vector Brand Icon (Drawn directly on canvas for perfect crisp rendering)
         icon_canvas = tk.Canvas(title_container, width=38, height=38, bg=self.COLOR_CARD, bd=0, highlightthickness=0)
         icon_canvas.pack(side="left", padx=(0, 14))
-        # Draw clean blue shield badge
         icon_canvas.create_polygon(5, 5, 33, 5, 33, 22, 19, 35, 5, 22, fill="#EFF6FF", outline="#2563EB", width=2)
         icon_canvas.create_line(19, 10, 19, 30, fill="#2563EB", width=2)
         icon_canvas.create_line(10, 18, 28, 18, fill="#2563EB", width=2)
@@ -425,7 +424,7 @@ class CampusMonitorUI:
 
         tk.Frame(src_card, bg=self.COLOR_BORDER, height=1).pack(fill="x")
 
-        # Segmented Control for Source Type (Replaces ugly round Radiobuttons)
+        # Segmented Control for Source Type
         seg_container = tk.Frame(src_card, bg="#F1F5F9", highlightbackground=self.COLOR_BORDER, highlightthickness=1)
         seg_container.pack(fill="x", padx=16, pady=(12, 6))
 
@@ -548,10 +547,13 @@ class CampusMonitorUI:
             slider.pack(fill="x", pady=(3, 3))
             return slider
 
-        self.slider_detect_conf     = add_slider("Độ nhạy phát hiện người (Detect Conf)",             "DETECT_CONF",     0.1, 1.0, 0.05)
-        self.slider_classify_conf   = add_slider("Ngưỡng tin cậy phân loại (Classify Conf)",          "CLASSIFY_CONF",   0.0, 1.0, 0.05)
-        self.slider_iou             = add_slider("Ngưỡng IOU phát hiện / theo dõi",                  "IOU_THRESHOLD",   0.1, 1.0, 0.05)
-        self.slider_violation_ratio = add_slider("Tỷ lệ khung hình vi phạm kết luận",                "VIOLATION_RATIO", 0.5, 1.0, 0.05)
+        # Detection & Classification Sliders (including YOLO Card Detector)
+        self.slider_detect_conf       = add_slider("Độ nhạy phát hiện người (Detect Conf)",         "DETECT_CONF",       0.1,  1.0, 0.05)
+        self.slider_classify_conf     = add_slider("Ngưỡng tin cậy đồng phục (Uniform Conf)",       "CLASSIFY_CONF",     0.0,  1.0, 0.05)
+        self.slider_detect_card_conf  = add_slider("Độ nhạy phát hiện thẻ YOLO (Card Conf)",       "DETECT_CARD_CONF",  0.05, 1.0, 0.05)
+        self.slider_detect_card_iou   = add_slider("Ngưỡng IOU phát hiện thẻ (Card IOU)",          "DETECT_CARD_IOU",   0.05, 1.0, 0.05)
+        self.slider_iou               = add_slider("Ngưỡng IOU phát hiện / theo dõi",              "IOU_THRESHOLD",     0.1,  1.0, 0.05)
+        self.slider_violation_ratio   = add_slider("Tỷ lệ khung hình vi phạm kết luận",            "VIOLATION_RATIO",   0.5,  1.0, 0.05)
 
         # Spinboxes Grid Panel (Using ModernSteppers)
         tk.Label(scroll_frame, text="Tham số suy luận chuỗi thời gian", font=("Segoe UI", 9, "bold"),
@@ -654,7 +656,7 @@ class CampusMonitorUI:
 
         tk.Frame(screen_card, bg=self.COLOR_BORDER, height=1).pack(fill="x")
 
-        # Alert Banner (Fixed height to prevent canvas jitter)
+        # Alert Banner
         self.alert_banner_frame = tk.Frame(screen_card, bg="#F8FAFC", height=32)
         self.alert_banner_frame.pack(fill="x", side="top")
         self.alert_banner_frame.pack_propagate(False)
@@ -667,10 +669,9 @@ class CampusMonitorUI:
         # Video Canvas
         self.screen_canvas = tk.Canvas(screen_card, bg="#0B132B", highlightthickness=0)
         self.screen_canvas.pack(fill="both", expand=True, padx=10, pady=(4, 10))
-        # Draw standby display and auto-redraw whenever canvas resizes
         self.screen_canvas.bind("<Configure>", lambda e: self._draw_standby_screen())
 
-        # Real-time Metrics Column (Width ~ 250px)
+        # Real-time Metrics Column
         stats_panel = tk.Frame(top_row, bg=self.COLOR_BG, width=250)
         stats_panel.pack(fill="y", side="right")
         stats_panel.pack_propagate(False)
@@ -682,13 +683,13 @@ class CampusMonitorUI:
         self.create_modern_stat_card(stats_panel, "TỶ LỆ ĐÚNG TÁC PHONG", self.compliance_rate,   self.COLOR_PURPLE, "📊")
         self.create_modern_stat_card(stats_panel, "TỐC ĐỘ XỬ LÝ (FPS)",   self.fps_rate,          "#0284C7",         "⚡")
 
-        # Bottom section: Detections Log Card (Height ~ 220px)
+        # Bottom section: Detections Log Card
         log_card = tk.Frame(parent, bg=self.COLOR_CARD, height=220,
                             highlightbackground=self.COLOR_BORDER, highlightthickness=1)
         log_card.pack(fill="x", side="bottom")
         log_card.pack_propagate(False)
 
-        # Modern Flat Tab Switcher (Replacing bulky ttk.Notebook)
+        # Modern Flat Tab Switcher
         tab_header = tk.Frame(log_card, bg="#F8FAFC", height=38)
         tab_header.pack(fill="x", side="top")
         tab_header.pack_propagate(False)
@@ -758,7 +759,6 @@ class CampusMonitorUI:
         status_row.pack(fill="x", side="bottom")
         status_row.pack_propagate(False)
 
-        # Status Dot Indicator
         dot = tk.Label(status_row, text="●", fg="#10B981", bg="#E2E8F0", font=("Segoe UI", 10))
         dot.pack(side="left", padx=(14, 4))
 
@@ -823,13 +823,11 @@ class CampusMonitorUI:
         self.screen_canvas.delete("all")
         cx, cy = w // 2, h // 2
 
-        # Outer subtle radar ring
         self.screen_canvas.create_oval(cx - 70, cy - 80, cx + 70, cy + 60,
                                        outline="#1E293B", width=2)
         self.screen_canvas.create_oval(cx - 45, cy - 55, cx + 45, cy + 35,
                                        outline="#334155", width=2)
 
-        # Tech Camera Lens Icon
         self.screen_canvas.create_oval(cx - 22, cy - 32, cx + 22, cy + 12,
                                        fill="#2563EB", outline="#60A5FA", width=3)
         self.screen_canvas.create_oval(cx - 8, cy - 18, cx + 8, cy - 2,
@@ -850,6 +848,8 @@ class CampusMonitorUI:
         p = self.app.params
         self.slider_detect_conf.set(p["DETECT_CONF"])
         self.slider_classify_conf.set(p["CLASSIFY_CONF"])
+        self.slider_detect_card_conf.set(p.get("DETECT_CARD_CONF", 0.3))
+        self.slider_detect_card_iou.set(p.get("DETECT_CARD_IOU", 0.3))
         self.slider_iou.set(p["IOU_THRESHOLD"])
         self.spin_frame_skip.set(p["FRAME_SKIP"])
         self.spin_history_len.set(p["LEN_HISTORY"])
@@ -862,6 +862,9 @@ class CampusMonitorUI:
         return {
             "DETECT_CONF":               float(self.slider_detect_conf.get()),
             "CLASSIFY_CONF":             float(self.slider_classify_conf.get()),
+            "DETECT_CARD_CONF":          float(self.slider_detect_card_conf.get()),
+            "DETECT_CARD_IOU":           float(self.slider_detect_card_iou.get()),
+            "DETECT_CARD_IMAGE_SIZE":    int(self.app.params.get("DETECT_CARD_IMAGE_SIZE", 224)),
             "IOU_THRESHOLD":             float(self.slider_iou.get()),
             "FRAME_SKIP":                int(self.spin_frame_skip.get()),
             "LEN_HISTORY":               int(self.spin_history_len.get()),
@@ -1136,7 +1139,7 @@ class CampusMonitorUI:
             else:
                 box_color = (0, 200, 255)     # Amber Yellow/Cyan
 
-            # Main bounding box
+            # Main person bounding box
             cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, 2)
 
             # Modern corner accents for visual polish
@@ -1150,6 +1153,12 @@ class CampusMonitorUI:
                 cv2.line(frame, (x1, y2), (x1, y2 - corner_len), box_color, 3)
                 cv2.line(frame, (x2, y2), (x2 - corner_len, y2), box_color, 3)
                 cv2.line(frame, (x2, y2), (x2, y2 - corner_len), box_color, 3)
+
+            # Draw YOLO Card Detection bounding boxes (Bright Aqua/Cyan)
+            for c_det in getattr(res, "card_detections", []):
+                cx1, cy1, cx2, cy2 = map(int, c_det.bbox)
+                card_box_color = (255, 200, 0)  # Bright Aqua / Cyan (BGR)
+                cv2.rectangle(frame, (cx1, cy1), (cx2, cy2), card_box_color, 2)
 
     def draw_text_overlays_pil(self, pil_image, results, results_voting, scale, fps):
         """
@@ -1172,10 +1181,10 @@ class CampusMonitorUI:
         chip_pad_y = 5
         draw.rounded_rectangle((bbox_fps[0] - chip_pad_x, bbox_fps[1] - chip_pad_y,
                                 bbox_fps[2] + chip_pad_x, bbox_fps[3] + chip_pad_y),
-                               radius=5, fill=chip_bg)
+                                radius=5, fill=chip_bg)
         draw.text((12, 12), fps_text, fill=(255, 255, 255), font=self.cv_font_fps)
 
-        # 2. Draw Vietnamese text badge for each bounding box
+        # 2. Draw Vietnamese text badge for each person bounding box
         for res in results:
             track_id = res.track_id
             x1, y1, x2, y2 = [int(v * scale) for v in res.bbox]
@@ -1210,6 +1219,22 @@ class CampusMonitorUI:
 
             draw.rounded_rectangle((badge_x1, badge_y1, badge_x2, badge_y2), radius=4, fill=badge_bg)
             draw.text((badge_x1 + 7, badge_y1 + 3), label_text, fill=(255, 255, 255), font=self.cv_font_overlay)
+
+            # 3. Draw mini confidence badge for each YOLO card bounding box
+            for c_det in getattr(res, "card_detections", []):
+                cx1, cy1, cx2, cy2 = [int(v * scale) for v in c_det.bbox]
+                card_badge_text = f"Thẻ: {c_det.confidence:.2f}"
+                c_bbox = draw.textbbox((cx1, cy1), card_badge_text, font=self.cv_font_overlay)
+                c_tw = c_bbox[2] - c_bbox[0]
+                c_th = c_bbox[3] - c_bbox[1]
+
+                cb_x1 = max(0, cx1)
+                cb_y1 = max(0, cy1 - c_th - 6)
+                cb_x2 = cb_x1 + c_tw + 8
+                cb_y2 = cb_y1 + c_th + 4
+
+                draw.rounded_rectangle((cb_x1, cb_y1, cb_x2, cb_y2), radius=3, fill=(13, 148, 136))
+                draw.text((cb_x1 + 4, cb_y1 + 1), card_badge_text, fill=(255, 255, 255), font=self.cv_font_overlay)
 
     # ------------------------------------------------------------------
     # Statistics Display (UI update from App.compute_statistics)

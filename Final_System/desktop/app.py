@@ -16,6 +16,7 @@ load_dotenv()
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from ai.classifier import Classifier
+from ai.card_detector import CardDetector
 from ai.detector import Detector
 from ai.pipeline import Pipeline
 from ai.temporal_voting import TemporalVoting
@@ -48,11 +49,14 @@ class App:
             num_class=len(my_config.UNIFORM_LABELS),
             labels=my_config.UNIFORM_LABELS
         )
-        self.card_classifier = Classifier(
-            model_path=my_config.CLASSIFY_CARD_PATH,
-            num_class=len(my_config.CARD_LABELS),
-            labels=my_config.CARD_LABELS
+        self.card_detector = CardDetector(
+            model_path=my_config.DETECT_CARD_PATH,
+            device=my_config.DEVICE,
+            conf=my_config.DETECT_CARD_CONF,
+            iou=my_config.DETECT_CARD_IOU,
+            image_size=my_config.DETECT_CARD_IMAGE_SIZE
         )
+        self.card_classifier = None
         self.classifier = self.uniform_classifier
         self.detector = Detector(
             model_path=my_config.DETECT_PERSON_PATH,
@@ -63,7 +67,7 @@ class App:
         self.pipeline = Pipeline(
             detector=self.detector,
             uniform_classifier=self.uniform_classifier,
-            card_classifier=self.card_classifier
+            card_detector=self.card_detector
         )
         self.voting = TemporalVoting()
         self.event_detector = ViolationEventDetector()
@@ -103,6 +107,9 @@ class App:
         self.params = {
             "DETECT_CONF":               my_config.DETECT_CONF,
             "CLASSIFY_CONF":             my_config.CLASSIFY_CONF,
+            "DETECT_CARD_CONF":          getattr(my_config, "DETECT_CARD_CONF", 0.3),
+            "DETECT_CARD_IOU":           getattr(my_config, "DETECT_CARD_IOU", 0.3),
+            "DETECT_CARD_IMAGE_SIZE":    getattr(my_config, "DETECT_CARD_IMAGE_SIZE", 224),
             "IOU_THRESHOLD":             my_config.IOU_THRESHOLD,
             "FRAME_SKIP":                my_config.FRAME_SKIP,
             "LEN_HISTORY":               my_config.LEN_HISTORY,
@@ -137,6 +144,9 @@ class App:
         p = dict(params)
         p["DETECT_CONF"] = min(max(float(p["DETECT_CONF"]), 0.05), 1.0)
         p["CLASSIFY_CONF"] = min(max(float(p["CLASSIFY_CONF"]), 0.0), 1.0)
+        p["DETECT_CARD_CONF"] = min(max(float(p.get("DETECT_CARD_CONF", 0.3)), 0.05), 1.0)
+        p["DETECT_CARD_IOU"] = min(max(float(p.get("DETECT_CARD_IOU", 0.3)), 0.05), 1.0)
+        p["DETECT_CARD_IMAGE_SIZE"] = int(p.get("DETECT_CARD_IMAGE_SIZE", 224))
         p["IOU_THRESHOLD"] = min(max(float(p["IOU_THRESHOLD"]), 0.1), 1.0)
         p["FRAME_SKIP"] = min(max(int(p["FRAME_SKIP"]), 1), 30)
         p["LEN_HISTORY"] = min(max(int(p["LEN_HISTORY"]), 3), 100)
@@ -172,6 +182,9 @@ class App:
         """Pushes current params into ai.config and live model components."""
         my_config.DETECT_CONF               = self.params["DETECT_CONF"]
         my_config.CLASSIFY_CONF             = self.params["CLASSIFY_CONF"]
+        my_config.DETECT_CARD_CONF          = self.params["DETECT_CARD_CONF"]
+        my_config.DETECT_CARD_IOU           = self.params["DETECT_CARD_IOU"]
+        my_config.DETECT_CARD_IMAGE_SIZE    = self.params["DETECT_CARD_IMAGE_SIZE"]
         my_config.IOU_THRESHOLD             = self.params["IOU_THRESHOLD"]
         my_config.FRAME_SKIP                = self.params["FRAME_SKIP"]
         my_config.LEN_HISTORY               = self.params["LEN_HISTORY"]
@@ -183,6 +196,10 @@ class App:
         if getattr(self, "detector", None):
             self.detector.conf = self.params["DETECT_CONF"]
             self.detector.iou = self.params["IOU_THRESHOLD"]
+        if getattr(self, "card_detector", None):
+            self.card_detector.conf = self.params["DETECT_CARD_CONF"]
+            self.card_detector.iou = self.params["DETECT_CARD_IOU"]
+            self.card_detector.image_size = self.params["DETECT_CARD_IMAGE_SIZE"]
         if getattr(self, "voting", None):
             self.voting.len_history = self.params["LEN_HISTORY"]
         if getattr(self, "event_detector", None):
@@ -450,6 +467,7 @@ class App:
             self._spawned_api_process = None
         self.pipeline = None
         self.detector = None
+        self.card_detector = None
         self.uniform_classifier = self.card_classifier = self.classifier = None
         try:
             import torch
