@@ -1,68 +1,34 @@
 {
   "communities": {
     "0": [
-      "final_system_api_database_database",
-      "final_system_api_database_database_connect",
-      "final_system_api_database_database_fetch_all",
-      "final_system_api_database_database_fetch_one",
-      "final_system_api_database_database_get_connection_string",
-      "final_system_api_database_database_health",
-      "final_system_api_database_database_transaction",
-      "final_system_api_database_is_foreign_key_violation",
-      "final_system_api_database_is_unique_violation",
-      "final_system_api_database_py_any",
-      "final_system_api_database_py_exception",
-      "final_system_api_database_rationale_125",
-      "final_system_api_database_rationale_154",
-      "final_system_api_database_rationale_84",
-      "final_system_api_database_row_to_dict",
-      "final_system_api_database_rows_to_dicts",
-      "final_system_api_errors_apierror_init",
-      "final_system_api_errors_conflict",
-      "final_system_api_errors_not_found",
-      "final_system_api_errors_py_any",
-      "final_system_api_errors_validation_error",
-      "final_system_api_repositories_accounts",
-      "final_system_api_repositories_accounts_account_to_dict",
-      "final_system_api_repositories_accounts_change_own_password",
-      "final_system_api_repositories_accounts_count_other_active_admins",
-      "final_system_api_repositories_accounts_create_account",
-      "final_system_api_repositories_accounts_get_account",
-      "final_system_api_repositories_accounts_list_accounts",
-      "final_system_api_repositories_accounts_py_any",
-      "final_system_api_repositories_accounts_rationale_1",
-      "final_system_api_repositories_accounts_reset_password",
-      "final_system_api_repositories_accounts_update_account",
-      "final_system_api_repositories_accounts_validate_full_name",
-      "final_system_api_repositories_accounts_validate_new_password",
-      "final_system_api_repositories_accounts_validate_role",
-      "final_system_api_repositories_accounts_validate_username",
-      "final_system_api_repositories_facilities",
-      "final_system_api_repositories_facilities_area_to_dict",
-      "final_system_api_repositories_facilities_camera_to_dict",
-      "final_system_api_repositories_facilities_code",
-      "final_system_api_repositories_facilities_current_semester",
-      "final_system_api_repositories_facilities_delete_semester",
-      "final_system_api_repositories_facilities_get_area",
-      "final_system_api_repositories_facilities_get_camera",
-      "final_system_api_repositories_facilities_get_semester",
-      "final_system_api_repositories_facilities_list_areas",
-      "final_system_api_repositories_facilities_list_cameras",
-      "final_system_api_repositories_facilities_list_semesters",
-      "final_system_api_repositories_facilities_py_any",
-      "final_system_api_repositories_facilities_py_date",
-      "final_system_api_repositories_facilities_py_exception",
-      "final_system_api_repositories_facilities_rationale_1",
-      "final_system_api_repositories_facilities_rationale_132",
-      "final_system_api_repositories_facilities_rationale_241",
-      "final_system_api_repositories_facilities_rotate_device_key",
-      "final_system_api_repositories_facilities_save_area",
-      "final_system_api_repositories_facilities_save_camera",
-      "final_system_api_repositories_facilities_save_semester",
-      "final_system_api_repositories_facilities_semester_to_dict",
-      "final_system_api_repositories_facilities_text",
-      "final_system_api_repositories_facilities_touch_camera",
-      "final_system_api_repositories_facilities_translate_write_error",
+      "final_system_ai_reporting_stats_prompt_builder_py_any",
+      "final_system_ai_reporting_stats_prompt_builder_rationale_126",
+      "final_system_ai_reporting_stats_prompt_builder_rationale_24",
+      "final_system_ai_reporting_stats_prompt_builder_rationale_95",
+      "final_system_ai_reporting_stats_prompt_builder_statspromptbuilder",
+      "final_system_ai_reporting_stats_prompt_builder_statspromptbuilder_build_fallback_analysis",
+      "final_system_ai_reporting_stats_prompt_builder_statspromptbuilder_build_from_sql_summary",
+      "final_system_ai_reporting_stats_prompt_builder_statspromptbuilder_clean_analysis",
+      "final_system_ai_reporting_stats_prompt_builder_statspromptbuilder_init",
+      "final_system_api_exporters",
+      "final_system_api_exporters_build_pdf",
+      "final_system_api_exporters_build_pdf_fpdf2",
+      "final_system_api_exporters_build_pdf_fpdf2_footer",
+      "final_system_api_exporters_build_pdf_matplotlib",
+      "final_system_api_exporters_build_xlsx",
+      "final_system_api_exporters_build_xlsx_write_table",
+      "final_system_api_exporters_excel_safe",
+      "final_system_api_exporters_fmt_detail_time",
+      "final_system_api_exporters_format_table_cell",
+      "final_system_api_exporters_py_any",
+      "final_system_api_exporters_py_datetime",
+      "final_system_api_exporters_rationale_1",
+      "final_system_api_exporters_rationale_179",
+      "final_system_api_exporters_rationale_189",
+      "final_system_api_exporters_rationale_217",
+      "final_system_api_exporters_rationale_28",
+      "final_system_api_exporters_rationale_812",
+      "final_system_api_exporters_render_styled_table",
       "final_system_api_repositories_reports",
       "final_system_api_repositories_reports_count_in_range",
       "final_system_api_repositories_reports_dashboard",
@@ -89,8 +55,11 @@
       "final_system_api_repositories_violations_ingestresult",
       "final_system_api_repositories_violations_list_violation_types",
       "final_system_api_repositories_violations_list_violations",
+      "final_system_api_repositories_violations_mark_evidence_missing",
       "final_system_api_repositories_violations_py_any",
+      "final_system_api_repositories_violations_py_database",
       "final_system_api_repositories_violations_py_datetime",
+      "final_system_api_repositories_violations_py_evidencestorage",
       "final_system_api_repositories_violations_rationale_1",
       "final_system_api_repositories_violations_rationale_218",
       "final_system_api_repositories_violations_resolve_violation_type",
@@ -99,85 +68,84 @@
       "final_system_api_repositories_violations_violation_to_dict_float",
       "final_system_api_repositories_violations_violationfilters",
       "final_system_api_repositories_violations_violationfilters_where_clause",
-      "final_system_api_routers_facilities_list_areas",
-      "final_system_api_routers_facilities_list_cameras",
-      "final_system_api_routers_facilities_list_semesters",
-      "final_system_api_routers_facilities_py_get",
       "final_system_api_routers_reports_dashboard",
+      "final_system_api_routers_reports_generate_ai_analysis",
+      "final_system_api_routers_reports_get_prompt_builder",
       "final_system_api_routers_reports_py_currentuser",
       "final_system_api_routers_reports_py_database",
       "final_system_api_routers_reports_py_date",
       "final_system_api_routers_reports_py_get",
+      "final_system_api_routers_reports_py_post",
       "final_system_api_routers_reports_py_settings",
       "final_system_api_routers_reports_range",
+      "final_system_api_routers_reports_report_ai_pdf",
       "final_system_api_routers_reports_report_export",
       "final_system_api_routers_reports_report_summary",
-      "final_system_api_routers_violations_store_violation",
-      "final_system_api_security_generate_device_key",
-      "final_system_api_security_rationale_135",
-      "incomingviolation",
+      "io",
+      "path",
       "reportrange",
+      "textwrap",
       "uuid"
     ],
     "1": [
-      "argparse",
-      "bcrypt",
-      "dotenv",
-      "final_system_ai_reporting_gemini_service",
-      "final_system_ai_reporting_llm_service",
-      "final_system_ai_reporting_llm_service_llmservice",
-      "final_system_ai_reporting_llm_service_llmservice_generate",
-      "final_system_ai_reporting_llm_service_py_abc",
-      "final_system_api_auth",
-      "final_system_api_auth_create_access_token",
-      "final_system_api_auth_decode_access_token",
-      "final_system_api_auth_get_password_hash",
-      "final_system_api_auth_verify_password",
-      "final_system_api_cli",
-      "final_system_api_cli_check_config",
-      "final_system_api_cli_create_admin",
-      "final_system_api_cli_line",
-      "final_system_api_cli_main",
-      "final_system_api_cli_rationale_1",
-      "final_system_api_cli_rationale_51",
-      "final_system_api_cli_read_password",
-      "final_system_api_create_admin",
-      "final_system_api_create_admin_main",
-      "final_system_api_database_databaseunavailable",
-      "final_system_api_database_rationale_35",
-      "final_system_api_init",
-      "final_system_api_migrate",
-      "final_system_api_migrate_applied_versions",
-      "final_system_api_migrate_apply",
-      "final_system_api_migrate_existing_tables",
-      "final_system_api_migrate_main",
-      "final_system_api_migrate_migration_files",
-      "final_system_api_migrate_py_path",
-      "final_system_api_migrate_rationale_1",
-      "final_system_api_migrate_run_script",
-      "final_system_api_migrate_split_batches",
-      "final_system_api_migrate_status",
-      "final_system_test_conftest",
-      "final_system_test_conftest_client",
-      "final_system_test_conftest_database",
-      "final_system_test_conftest_evidence_dir",
-      "final_system_test_conftest_py_fixture",
-      "final_system_test_conftest_py_path",
-      "final_system_test_conftest_pytest_collection_modifyitems",
-      "final_system_test_conftest_rationale_1",
-      "final_system_test_integration_test_cli",
-      "final_system_test_integration_test_cli_rationale_1",
-      "final_system_test_integration_test_cli_test_check_config_hides_secrets",
-      "final_system_test_integration_test_cli_test_create_admin_only_once_without_flag",
-      "final_system_test_integration_test_cli_test_main_reports_errors_without_traceback",
-      "getpass",
-      "google",
-      "jwt",
-      "passlib_context",
-      "runtimeerror",
-      "sqlalchemy",
-      "sys",
-      "tempfile"
+      "arearequest",
+      "camerarequest",
+      "delete",
+      "exception",
+      "final_system_api_database_is_foreign_key_violation",
+      "final_system_api_database_is_unique_violation",
+      "final_system_api_database_py_exception",
+      "final_system_api_database_rationale_84",
+      "final_system_api_errors_conflict",
+      "final_system_api_errors_not_found",
+      "final_system_api_repositories_facilities",
+      "final_system_api_repositories_facilities_area_to_dict",
+      "final_system_api_repositories_facilities_camera_to_dict",
+      "final_system_api_repositories_facilities_code",
+      "final_system_api_repositories_facilities_current_semester",
+      "final_system_api_repositories_facilities_delete_area",
+      "final_system_api_repositories_facilities_delete_camera",
+      "final_system_api_repositories_facilities_delete_semester",
+      "final_system_api_repositories_facilities_get_area",
+      "final_system_api_repositories_facilities_get_camera",
+      "final_system_api_repositories_facilities_get_semester",
+      "final_system_api_repositories_facilities_list_areas",
+      "final_system_api_repositories_facilities_list_cameras",
+      "final_system_api_repositories_facilities_list_semesters",
+      "final_system_api_repositories_facilities_py_any",
+      "final_system_api_repositories_facilities_py_database",
+      "final_system_api_repositories_facilities_py_date",
+      "final_system_api_repositories_facilities_rationale_1",
+      "final_system_api_repositories_facilities_rationale_132",
+      "final_system_api_repositories_facilities_rationale_241",
+      "final_system_api_repositories_facilities_rotate_device_key",
+      "final_system_api_repositories_facilities_save_area",
+      "final_system_api_repositories_facilities_save_camera",
+      "final_system_api_repositories_facilities_save_semester",
+      "final_system_api_repositories_facilities_semester_to_dict",
+      "final_system_api_repositories_facilities_text",
+      "final_system_api_repositories_facilities_translate_write_error",
+      "final_system_api_routers_facilities_create_area",
+      "final_system_api_routers_facilities_create_camera",
+      "final_system_api_routers_facilities_create_semester",
+      "final_system_api_routers_facilities_delete_area",
+      "final_system_api_routers_facilities_delete_camera",
+      "final_system_api_routers_facilities_delete_semester",
+      "final_system_api_routers_facilities_list_areas",
+      "final_system_api_routers_facilities_list_cameras",
+      "final_system_api_routers_facilities_list_semesters",
+      "final_system_api_routers_facilities_py_currentuser",
+      "final_system_api_routers_facilities_py_database",
+      "final_system_api_routers_facilities_py_get",
+      "final_system_api_routers_facilities_py_post",
+      "final_system_api_routers_facilities_rotate_camera_key",
+      "final_system_api_routers_facilities_update_area",
+      "final_system_api_routers_facilities_update_camera",
+      "final_system_api_routers_facilities_update_semester",
+      "final_system_api_security_generate_device_key",
+      "final_system_api_security_rationale_135",
+      "put",
+      "semesterrequest"
     ],
     "2": [
       "quanlytacphongsv_composer",
@@ -230,144 +198,19 @@
       "quanlytacphongsv_composer_type"
     ],
     "3": [
-      "final_system_desktop_ui_campusmonitorui",
-      "final_system_desktop_ui_campusmonitorui_browse_video",
-      "final_system_desktop_ui_campusmonitorui_check_api_connection",
-      "final_system_desktop_ui_campusmonitorui_clear_alert",
-      "final_system_desktop_ui_campusmonitorui_create_left_panel",
-      "final_system_desktop_ui_campusmonitorui_create_left_panel_add_entry",
-      "final_system_desktop_ui_campusmonitorui_create_left_panel_add_slider",
-      "final_system_desktop_ui_campusmonitorui_create_left_panel_add_spinbox",
-      "final_system_desktop_ui_campusmonitorui_create_modern_stat_card",
-      "final_system_desktop_ui_campusmonitorui_create_right_panel",
-      "final_system_desktop_ui_campusmonitorui_create_widgets",
-      "final_system_desktop_ui_campusmonitorui_drain_alerts",
-      "final_system_desktop_ui_campusmonitorui_draw_fps_overlay",
-      "final_system_desktop_ui_campusmonitorui_draw_overlay",
-      "final_system_desktop_ui_campusmonitorui_form_parameters",
-      "final_system_desktop_ui_campusmonitorui_init",
-      "final_system_desktop_ui_campusmonitorui_make_modern_button",
-      "final_system_desktop_ui_campusmonitorui_make_modern_button_on_enter",
-      "final_system_desktop_ui_campusmonitorui_make_modern_button_on_leave",
-      "final_system_desktop_ui_campusmonitorui_on_close",
-      "final_system_desktop_ui_campusmonitorui_on_source_change",
-      "final_system_desktop_ui_campusmonitorui_refresh_sender_status",
-      "final_system_desktop_ui_campusmonitorui_reset_stats",
-      "final_system_desktop_ui_campusmonitorui_run_in_background",
-      "final_system_desktop_ui_campusmonitorui_run_in_background_poll",
-      "final_system_desktop_ui_campusmonitorui_save_parameters",
-      "final_system_desktop_ui_campusmonitorui_setup_styles",
-      "final_system_desktop_ui_campusmonitorui_show_api_result",
-      "final_system_desktop_ui_campusmonitorui_start_monitoring",
-      "final_system_desktop_ui_campusmonitorui_start_monitoring_begin",
-      "final_system_desktop_ui_campusmonitorui_start_stream",
-      "final_system_desktop_ui_campusmonitorui_stop_monitoring",
-      "final_system_desktop_ui_campusmonitorui_sync_sliders_from_params",
-      "final_system_desktop_ui_campusmonitorui_toggle_monitoring",
-      "final_system_desktop_ui_campusmonitorui_update_frame",
-      "final_system_desktop_ui_campusmonitorui_update_statistics",
-      "final_system_desktop_ui_rationale_161",
-      "final_system_desktop_ui_rationale_417",
-      "final_system_desktop_ui_rationale_441",
-      "final_system_desktop_ui_rationale_470",
-      "final_system_desktop_ui_rationale_481",
-      "final_system_desktop_ui_rationale_492",
-      "final_system_desktop_ui_rationale_612",
-      "final_system_desktop_ui_rationale_696",
-      "final_system_desktop_ui_rationale_753",
-      "final_system_desktop_ui_rationale_795"
-    ],
-    "4": [
-      "delete",
-      "final_system_api_dependencies_currentuser",
-      "final_system_api_dependencies_currentuser_is_admin",
-      "final_system_api_repositories_init",
-      "final_system_api_routers_auth",
-      "final_system_api_routers_auth_change_password",
-      "final_system_api_routers_auth_create_account",
-      "final_system_api_routers_auth_list_accounts",
-      "final_system_api_routers_auth_login",
-      "final_system_api_routers_auth_me",
-      "final_system_api_routers_auth_py_get",
-      "final_system_api_routers_auth_py_post",
-      "final_system_api_routers_auth_py_put",
-      "final_system_api_routers_auth_rationale_1",
-      "final_system_api_routers_auth_reset_password",
-      "final_system_api_routers_auth_update_account",
-      "final_system_api_routers_facilities",
-      "final_system_api_routers_facilities_create_area",
-      "final_system_api_routers_facilities_create_camera",
-      "final_system_api_routers_facilities_create_semester",
-      "final_system_api_routers_facilities_delete_semester",
-      "final_system_api_routers_facilities_py_post",
-      "final_system_api_routers_facilities_py_put",
-      "final_system_api_routers_facilities_rationale_1",
-      "final_system_api_routers_facilities_rotate_camera_key",
-      "final_system_api_routers_facilities_update_area",
-      "final_system_api_routers_facilities_update_camera",
-      "final_system_api_routers_facilities_update_semester",
-      "final_system_api_v1_schemas",
-      "final_system_api_v1_schemas_accountcreaterequest",
-      "final_system_api_v1_schemas_accountupdaterequest",
-      "final_system_api_v1_schemas_arearequest",
-      "final_system_api_v1_schemas_camerarequest",
-      "final_system_api_v1_schemas_changepasswordrequest",
-      "final_system_api_v1_schemas_loginrequest",
-      "final_system_api_v1_schemas_passwordresetrequest",
-      "final_system_api_v1_schemas_processingupdaterequest",
-      "final_system_api_v1_schemas_rationale_1",
-      "final_system_api_v1_schemas_semesterrequest",
-      "final_system_api_v1_schemas_strictmodel"
-    ],
-    "5": [
-      "final_system_ai_pipeline_pipelineresult",
-      "final_system_ai_pipeline_pipelineresult_post_init",
-      "final_system_ai_pipeline_rationale_9",
-      "final_system_ai_temporal_voting_rationale_108",
-      "final_system_ai_temporal_voting_rationale_39",
-      "final_system_ai_temporal_voting_rationale_50",
-      "final_system_ai_temporal_voting_rationale_64",
-      "final_system_ai_temporal_voting_temporalvoting",
-      "final_system_ai_temporal_voting_temporalvoting_append",
-      "final_system_ai_temporal_voting_temporalvoting_init",
-      "final_system_ai_temporal_voting_temporalvoting_remove_track_id",
-      "final_system_ai_temporal_voting_temporalvoting_reset",
-      "final_system_ai_temporal_voting_temporalvoting_update",
-      "final_system_ai_violation_events_combined_status",
-      "final_system_ai_violation_events_crop_evidence",
-      "final_system_ai_violation_events_py_datetime",
-      "final_system_ai_violation_events_py_ndarray",
-      "final_system_ai_violation_events_rationale_36",
-      "final_system_ai_violation_events_rationale_51",
-      "final_system_ai_violation_events_violationeventdetector",
-      "final_system_ai_violation_events_violationeventdetector_forget_old",
-      "final_system_ai_violation_events_violationeventdetector_init",
-      "final_system_ai_violation_events_violationeventdetector_process",
-      "final_system_ai_violation_events_violationeventdetector_reset",
-      "final_system_test_unit_test_voting_and_events",
-      "final_system_test_unit_test_voting_and_events_default_config",
-      "final_system_test_unit_test_voting_and_events_feed",
-      "final_system_test_unit_test_voting_and_events_frame",
-      "final_system_test_unit_test_voting_and_events_py_fixture",
-      "final_system_test_unit_test_voting_and_events_rationale_42",
-      "final_system_test_unit_test_voting_and_events_result",
-      "final_system_test_unit_test_voting_and_events_test_combined_status_four_states",
-      "final_system_test_unit_test_voting_and_events_test_crop_evidence_validation",
-      "final_system_test_unit_test_voting_and_events_test_event_detector_reports_once_per_track_and_respects_dedup_window",
-      "final_system_test_unit_test_voting_and_events_test_low_confidence_predictions_are_ignored",
-      "final_system_test_unit_test_voting_and_events_test_majority_ratio_prevents_false_alarm",
-      "final_system_test_unit_test_voting_and_events_test_no_event_for_compliant_or_waiting",
-      "final_system_test_unit_test_voting_and_events_test_track_removed_after_missing_frames_and_reset",
-      "final_system_test_unit_test_voting_and_events_test_waiting_until_minimum_frames"
-    ],
-    "6": [
       "final_system_ai_violation_events_violationevent",
       "final_system_ai_violation_events_violationevent_label",
+      "final_system_desktop_violation_sender",
+      "final_system_desktop_violation_sender_api_message",
       "final_system_desktop_violation_sender_apiconfig",
       "final_system_desktop_violation_sender_apiconfig_configured",
+      "final_system_desktop_violation_sender_apiconfig_headers",
+      "final_system_desktop_violation_sender_check_connection",
       "final_system_desktop_violation_sender_py_path",
+      "final_system_desktop_violation_sender_rationale_1",
       "final_system_desktop_violation_sender_rationale_114",
       "final_system_desktop_violation_sender_rationale_172",
+      "final_system_desktop_violation_sender_rationale_67",
       "final_system_desktop_violation_sender_senderstatus",
       "final_system_desktop_violation_sender_violationsender",
       "final_system_desktop_violation_sender_violationsender_atomic_write",
@@ -400,45 +243,91 @@
       "final_system_test_unit_test_violation_sender_test_rejected_event_moves_to_failed_with_reason",
       "final_system_test_unit_test_violation_sender_test_server_error_is_retried_auth_error_pauses"
     ],
-    "7": [
-      "illuminate_support_facades_route",
-      "illuminate_view_view",
-      "quanlytacphongsv_app_http_controllers_accountcontroller",
-      "quanlytacphongsv_app_http_controllers_accountcontroller_accountcontroller",
-      "quanlytacphongsv_app_http_controllers_accountcontroller_accountcontroller_index",
-      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_showchangepassword",
-      "quanlytacphongsv_app_http_controllers_controller",
-      "quanlytacphongsv_app_http_controllers_controller_controller",
-      "quanlytacphongsv_app_http_controllers_dashboardcontroller",
-      "quanlytacphongsv_app_http_controllers_dashboardcontroller_dashboardcontroller",
-      "quanlytacphongsv_app_http_controllers_dashboardcontroller_dashboardcontroller_index",
-      "quanlytacphongsv_app_http_controllers_facilitycontroller",
-      "quanlytacphongsv_app_http_controllers_facilitycontroller_facilitycontroller",
-      "quanlytacphongsv_app_http_controllers_facilitycontroller_facilitycontroller_index",
-      "quanlytacphongsv_app_http_controllers_reportcontroller",
-      "quanlytacphongsv_app_http_controllers_reportcontroller_reportcontroller",
-      "quanlytacphongsv_app_http_controllers_reportcontroller_reportcontroller_index",
-      "quanlytacphongsv_app_http_controllers_studentcontroller_studentcontroller",
-      "quanlytacphongsv_app_http_controllers_studentcontroller_studentcontroller_construct",
-      "quanlytacphongsv_app_http_controllers_studentcontroller_studentcontroller_index",
-      "quanlytacphongsv_app_http_controllers_violationcontroller",
-      "quanlytacphongsv_app_http_controllers_violationcontroller_violationcontroller",
-      "quanlytacphongsv_app_http_controllers_violationcontroller_violationcontroller_index",
-      "quanlytacphongsv_routes_web",
-      "quanlytacphongsv_routes_web_closure_1",
-      "quanlytacphongsv_routes_web_closure_2",
-      "quanlytacphongsv_routes_web_get",
-      "quanlytacphongsv_routes_web_get_camera_khuvuc_php",
-      "quanlytacphongsv_routes_web_get_danh_muc_php",
-      "quanlytacphongsv_routes_web_get_doi_mat_khau_php",
-      "quanlytacphongsv_routes_web_get_home_php",
-      "quanlytacphongsv_routes_web_get_list_vipham_php",
-      "quanlytacphongsv_routes_web_get_login_php",
-      "quanlytacphongsv_routes_web_get_phanquyen_php",
-      "quanlytacphongsv_routes_web_get_ql_sinhvien_php",
-      "quanlytacphongsv_routes_web_get_reporting_php"
+    "4": [
+      "contextlib",
+      "fastapi",
+      "fastapi_middleware_cors",
+      "fastapi_responses",
+      "final_system_api_database",
+      "final_system_api_database_rationale_1",
+      "final_system_api_dependencies",
+      "final_system_api_dependencies_authenticatedcamera",
+      "final_system_api_dependencies_get_current_user",
+      "final_system_api_dependencies_get_db",
+      "final_system_api_dependencies_get_device_camera",
+      "final_system_api_dependencies_get_mapper",
+      "final_system_api_dependencies_get_service",
+      "final_system_api_dependencies_get_settings_dep",
+      "final_system_api_dependencies_py_mapper",
+      "final_system_api_dependencies_py_request",
+      "final_system_api_dependencies_rationale_1",
+      "final_system_api_dependencies_rationale_104",
+      "final_system_api_dependencies_require_roles",
+      "final_system_api_dependencies_require_roles_dependency",
+      "final_system_api_errors_forbidden",
+      "final_system_api_errors_unauthorized",
+      "final_system_api_main",
+      "final_system_api_main_lifespan",
+      "final_system_api_main_rationale_1",
+      "final_system_api_repositories_init",
+      "final_system_api_routers_facilities",
+      "final_system_api_routers_facilities_rationale_1",
+      "final_system_api_routers_reports",
+      "final_system_api_routers_reports_rationale_1",
+      "final_system_api_routers_system",
+      "final_system_api_routers_system_jsonable",
+      "final_system_api_routers_system_liveness",
+      "final_system_api_routers_system_py_get",
+      "final_system_api_routers_system_py_request",
+      "final_system_api_routers_system_py_settings",
+      "final_system_api_routers_system_rationale_1",
+      "final_system_api_routers_system_readiness",
+      "logging",
+      "pyodbc",
+      "typing"
     ],
-    "8": [
+    "5": [
+      "datetimeimmutable",
+      "quanlytacphongsv_app_services_studentservice_php_pdo",
+      "quanlytacphongsv_app_services_studentservice_studentservice",
+      "quanlytacphongsv_app_services_studentservice_studentservice_addviolation",
+      "quanlytacphongsv_app_services_studentservice_studentservice_cleanutf8",
+      "quanlytacphongsv_app_services_studentservice_studentservice_columnlabels",
+      "quanlytacphongsv_app_services_studentservice_studentservice_commitimport",
+      "quanlytacphongsv_app_services_studentservice_studentservice_createxlsx",
+      "quanlytacphongsv_app_services_studentservice_studentservice_decodehexunicode",
+      "quanlytacphongsv_app_services_studentservice_studentservice_deletestudent",
+      "quanlytacphongsv_app_services_studentservice_studentservice_deleteviolation",
+      "quanlytacphongsv_app_services_studentservice_studentservice_detectheaderrow",
+      "quanlytacphongsv_app_services_studentservice_studentservice_downloadnormalizedpreview",
+      "quanlytacphongsv_app_services_studentservice_studentservice_ensureviolationcolumns",
+      "quanlytacphongsv_app_services_studentservice_studentservice_escapelike",
+      "quanlytacphongsv_app_services_studentservice_studentservice_findstudentbycode",
+      "quanlytacphongsv_app_services_studentservice_studentservice_getareas",
+      "quanlytacphongsv_app_services_studentservice_studentservice_getcatalog",
+      "quanlytacphongsv_app_services_studentservice_studentservice_getpdo",
+      "quanlytacphongsv_app_services_studentservice_studentservice_getstatistics",
+      "quanlytacphongsv_app_services_studentservice_studentservice_getstudentdetail",
+      "quanlytacphongsv_app_services_studentservice_studentservice_getviolations",
+      "quanlytacphongsv_app_services_studentservice_studentservice_getviolationtypes",
+      "quanlytacphongsv_app_services_studentservice_studentservice_importcolumns",
+      "quanlytacphongsv_app_services_studentservice_studentservice_importheaderlabels",
+      "quanlytacphongsv_app_services_studentservice_studentservice_liststudents",
+      "quanlytacphongsv_app_services_studentservice_studentservice_matchareaidbyname",
+      "quanlytacphongsv_app_services_studentservice_studentservice_normalizeheaderalias",
+      "quanlytacphongsv_app_services_studentservice_studentservice_normalizerecordvalues",
+      "quanlytacphongsv_app_services_studentservice_studentservice_parseviolationdatetime",
+      "quanlytacphongsv_app_services_studentservice_studentservice_parsexlsxrows",
+      "quanlytacphongsv_app_services_studentservice_studentservice_previewimport",
+      "quanlytacphongsv_app_services_studentservice_studentservice_resetallviolations",
+      "quanlytacphongsv_app_services_studentservice_studentservice_samplerows",
+      "quanlytacphongsv_app_services_studentservice_studentservice_stripaccents",
+      "quanlytacphongsv_app_services_studentservice_studentservice_today",
+      "quanlytacphongsv_app_services_studentservice_studentservice_upsertstudent",
+      "quanlytacphongsv_app_services_studentservice_studentservice_verifyexportpassword",
+      "quanlytacphongsv_app_services_studentservice_studentservice_verifyresetpassword"
+    ],
+    "6": [
       "apiconfig",
       "final_system_desktop_app_app",
       "final_system_desktop_app_app_ai_worker",
@@ -447,6 +336,8 @@
       "final_system_desktop_app_app_camera_label",
       "final_system_desktop_app_app_check_api",
       "final_system_desktop_app_app_compute_statistics",
+      "final_system_desktop_app_app_ensure_local_api",
+      "final_system_desktop_app_app_is_port_in_use",
       "final_system_desktop_app_app_load_parameters",
       "final_system_desktop_app_app_process_frame",
       "final_system_desktop_app_app_read_frame",
@@ -458,24 +349,64 @@
       "final_system_desktop_app_app_start_camera",
       "final_system_desktop_app_app_stop_camera",
       "final_system_desktop_app_app_validate_params",
-      "final_system_desktop_app_rationale_123",
-      "final_system_desktop_app_rationale_142",
-      "final_system_desktop_app_rationale_159",
-      "final_system_desktop_app_rationale_183",
-      "final_system_desktop_app_rationale_211",
-      "final_system_desktop_app_rationale_225",
-      "final_system_desktop_app_rationale_235",
-      "final_system_desktop_app_rationale_241",
-      "final_system_desktop_app_rationale_281",
-      "final_system_desktop_app_rationale_32",
-      "final_system_desktop_app_rationale_321",
-      "final_system_desktop_app_rationale_328",
-      "final_system_desktop_app_rationale_378",
-      "final_system_desktop_app_rationale_396",
-      "final_system_desktop_app_rationale_89",
+      "final_system_desktop_app_rationale_106",
+      "final_system_desktop_app_rationale_143",
+      "final_system_desktop_app_rationale_165",
+      "final_system_desktop_app_rationale_182",
+      "final_system_desktop_app_rationale_214",
+      "final_system_desktop_app_rationale_258",
+      "final_system_desktop_app_rationale_287",
+      "final_system_desktop_app_rationale_301",
+      "final_system_desktop_app_rationale_311",
+      "final_system_desktop_app_rationale_317",
+      "final_system_desktop_app_rationale_357",
+      "final_system_desktop_app_rationale_397",
+      "final_system_desktop_app_rationale_40",
+      "final_system_desktop_app_rationale_404",
+      "final_system_desktop_app_rationale_454",
+      "final_system_desktop_app_rationale_484",
       "final_system_main"
     ],
-    "9": [
+    "7": [
+      "asyncio",
+      "authenticatedcamera",
+      "final_system_api_repositories_facilities_touch_camera",
+      "final_system_api_routers_violations",
+      "final_system_api_routers_violations_broadcast_violation",
+      "final_system_api_routers_violations_device_me",
+      "final_system_api_routers_violations_encode",
+      "final_system_api_routers_violations_get_evidence",
+      "final_system_api_routers_violations_get_storage",
+      "final_system_api_routers_violations_get_violation",
+      "final_system_api_routers_violations_ingest_violation",
+      "final_system_api_routers_violations_list_violations",
+      "final_system_api_routers_violations_parse_confidence",
+      "final_system_api_routers_violations_parse_occurred_at",
+      "final_system_api_routers_violations_py_currentuser",
+      "final_system_api_routers_violations_py_database",
+      "final_system_api_routers_violations_py_date",
+      "final_system_api_routers_violations_py_datetime",
+      "final_system_api_routers_violations_py_evidencestorage",
+      "final_system_api_routers_violations_py_get",
+      "final_system_api_routers_violations_py_post",
+      "final_system_api_routers_violations_py_request",
+      "final_system_api_routers_violations_rationale_1",
+      "final_system_api_routers_violations_rationale_170",
+      "final_system_api_routers_violations_rationale_70",
+      "final_system_api_routers_violations_store_violation",
+      "final_system_api_routers_violations_update_violation",
+      "final_system_api_routers_violations_violation_stream",
+      "final_system_api_routers_violations_violation_stream_event_generator",
+      "final_system_api_routers_violations_violation_types",
+      "final_system_api_settings_settings",
+      "final_system_api_settings_settings_local_tz",
+      "math",
+      "patch",
+      "processingupdaterequest",
+      "starlette_datastructures",
+      "timezone"
+    ],
+    "8": [
       "datetime",
       "final_system_ai_reporting_event_logger",
       "final_system_ai_reporting_event_logger_rationale_1",
@@ -511,117 +442,18 @@
       "sqlite3",
       "unittest"
     ],
-    "10": [
-      "datetimeimmutable",
-      "quanlytacphongsv_app_services_studentservice_php_pdo",
-      "quanlytacphongsv_app_services_studentservice_studentservice",
-      "quanlytacphongsv_app_services_studentservice_studentservice_addviolation",
-      "quanlytacphongsv_app_services_studentservice_studentservice_cleanutf8",
-      "quanlytacphongsv_app_services_studentservice_studentservice_columnlabels",
-      "quanlytacphongsv_app_services_studentservice_studentservice_commitimport",
-      "quanlytacphongsv_app_services_studentservice_studentservice_createxlsx",
-      "quanlytacphongsv_app_services_studentservice_studentservice_decodehexunicode",
-      "quanlytacphongsv_app_services_studentservice_studentservice_deletestudent",
-      "quanlytacphongsv_app_services_studentservice_studentservice_deleteviolation",
-      "quanlytacphongsv_app_services_studentservice_studentservice_detectheaderrow",
-      "quanlytacphongsv_app_services_studentservice_studentservice_downloadnormalizedpreview",
-      "quanlytacphongsv_app_services_studentservice_studentservice_ensureviolationcolumns",
-      "quanlytacphongsv_app_services_studentservice_studentservice_escapelike",
-      "quanlytacphongsv_app_services_studentservice_studentservice_getareas",
-      "quanlytacphongsv_app_services_studentservice_studentservice_getcatalog",
-      "quanlytacphongsv_app_services_studentservice_studentservice_getpdo",
-      "quanlytacphongsv_app_services_studentservice_studentservice_getstatistics",
-      "quanlytacphongsv_app_services_studentservice_studentservice_getstudentdetail",
-      "quanlytacphongsv_app_services_studentservice_studentservice_getviolations",
-      "quanlytacphongsv_app_services_studentservice_studentservice_getviolationtypes",
-      "quanlytacphongsv_app_services_studentservice_studentservice_importcolumns",
-      "quanlytacphongsv_app_services_studentservice_studentservice_importheaderlabels",
-      "quanlytacphongsv_app_services_studentservice_studentservice_liststudents",
-      "quanlytacphongsv_app_services_studentservice_studentservice_normalizeheaderalias",
-      "quanlytacphongsv_app_services_studentservice_studentservice_normalizerecordvalues",
-      "quanlytacphongsv_app_services_studentservice_studentservice_parsexlsxrows",
-      "quanlytacphongsv_app_services_studentservice_studentservice_previewimport",
-      "quanlytacphongsv_app_services_studentservice_studentservice_samplerows",
-      "quanlytacphongsv_app_services_studentservice_studentservice_stripaccents",
-      "quanlytacphongsv_app_services_studentservice_studentservice_today",
-      "quanlytacphongsv_app_services_studentservice_studentservice_upsertstudent",
-      "quanlytacphongsv_app_services_studentservice_studentservice_verifyexportpassword"
-    ],
-    "11": [
-      "asyncio",
-      "authenticatedcamera",
-      "evidencestorage",
-      "final_system_api_repositories_violations_mark_evidence_missing",
-      "final_system_api_routers_violations",
-      "final_system_api_routers_violations_broadcast_violation",
-      "final_system_api_routers_violations_device_me",
-      "final_system_api_routers_violations_encode",
-      "final_system_api_routers_violations_get_evidence",
-      "final_system_api_routers_violations_get_storage",
-      "final_system_api_routers_violations_get_violation",
-      "final_system_api_routers_violations_ingest_violation",
-      "final_system_api_routers_violations_list_violations",
-      "final_system_api_routers_violations_parse_confidence",
-      "final_system_api_routers_violations_parse_occurred_at",
-      "final_system_api_routers_violations_py_currentuser",
-      "final_system_api_routers_violations_py_database",
-      "final_system_api_routers_violations_py_date",
-      "final_system_api_routers_violations_py_datetime",
-      "final_system_api_routers_violations_py_get",
-      "final_system_api_routers_violations_py_post",
-      "final_system_api_routers_violations_py_request",
-      "final_system_api_routers_violations_py_settings",
-      "final_system_api_routers_violations_rationale_1",
-      "final_system_api_routers_violations_rationale_170",
-      "final_system_api_routers_violations_rationale_70",
-      "final_system_api_routers_violations_update_violation",
-      "final_system_api_routers_violations_violation_stream",
-      "final_system_api_routers_violations_violation_stream_event_generator",
-      "final_system_api_routers_violations_violation_types",
-      "math",
-      "patch",
-      "starlette_datastructures"
-    ],
-    "12": [
-      "final_system_ai_reporting_stats_prompt_builder_py_any",
-      "final_system_ai_reporting_stats_prompt_builder_rationale_126",
-      "final_system_ai_reporting_stats_prompt_builder_rationale_24",
-      "final_system_ai_reporting_stats_prompt_builder_rationale_95",
-      "final_system_ai_reporting_stats_prompt_builder_statspromptbuilder",
-      "final_system_ai_reporting_stats_prompt_builder_statspromptbuilder_build_fallback_analysis",
-      "final_system_ai_reporting_stats_prompt_builder_statspromptbuilder_build_from_sql_summary",
-      "final_system_ai_reporting_stats_prompt_builder_statspromptbuilder_clean_analysis",
-      "final_system_ai_reporting_stats_prompt_builder_statspromptbuilder_init",
-      "final_system_api_exporters",
-      "final_system_api_exporters_build_pdf",
-      "final_system_api_exporters_build_pdf_fpdf2",
-      "final_system_api_exporters_build_pdf_fpdf2_footer",
-      "final_system_api_exporters_build_pdf_matplotlib",
-      "final_system_api_exporters_build_xlsx",
-      "final_system_api_exporters_build_xlsx_write_table",
-      "final_system_api_exporters_excel_safe",
-      "final_system_api_exporters_fmt_detail_time",
-      "final_system_api_exporters_format_table_cell",
-      "final_system_api_exporters_py_any",
-      "final_system_api_exporters_py_datetime",
-      "final_system_api_exporters_rationale_1",
-      "final_system_api_exporters_rationale_179",
-      "final_system_api_exporters_rationale_189",
-      "final_system_api_exporters_rationale_217",
-      "final_system_api_exporters_rationale_28",
-      "final_system_api_exporters_rationale_812",
-      "final_system_api_exporters_render_styled_table",
-      "path",
-      "textwrap"
-    ],
-    "13": [
+    "9": [
       "final_system_test_integration_test_api_integration",
+      "final_system_test_integration_test_api_integration_admin",
+      "final_system_test_integration_test_api_integration_ctsv",
       "final_system_test_integration_test_api_integration_jpeg",
       "final_system_test_integration_test_api_integration_local_now",
       "final_system_test_integration_test_api_integration_py_datetime",
+      "final_system_test_integration_test_api_integration_py_fixture",
       "final_system_test_integration_test_api_integration_py_parametrize",
       "final_system_test_integration_test_api_integration_rationale_1",
       "final_system_test_integration_test_api_integration_send",
+      "final_system_test_integration_test_api_integration_setup_camera",
       "final_system_test_integration_test_api_integration_test_admin_protection_rules",
       "final_system_test_integration_test_api_integration_test_camera_sensitive_fields_hidden_from_ctsv",
       "final_system_test_integration_test_api_integration_test_ct_vipham_allows_repeated_violation_of_same_type",
@@ -643,40 +475,143 @@
       "final_system_test_integration_test_api_integration_test_processing_update_never_assigns_identity",
       "final_system_test_integration_test_api_integration_test_report_exports",
       "final_system_test_integration_test_api_integration_test_retention_deletes_files_but_keeps_statistics",
-      "final_system_test_integration_test_api_integration_test_rotated_device_key_invalidates_old_one",
-      "io"
+      "final_system_test_integration_test_api_integration_test_rotated_device_key_invalidates_old_one"
     ],
-    "14": [
-      "base64",
-      "final_system_api_security",
-      "final_system_api_security_b64decode",
-      "final_system_api_security_b64encode",
-      "final_system_api_security_create_token",
-      "final_system_api_security_hash_device_key",
-      "final_system_api_security_hash_password",
-      "final_system_api_security_py_valueerror",
-      "final_system_api_security_rationale_1",
-      "final_system_api_security_rationale_45",
-      "final_system_api_security_require_secret",
-      "final_system_api_security_tokenerror",
-      "final_system_api_security_tokenpayload",
-      "final_system_api_security_validate_password_strength",
-      "final_system_api_security_verify_device_key",
-      "final_system_api_security_verify_password",
-      "final_system_api_security_verify_token",
-      "final_system_test_unit_test_security",
-      "final_system_test_unit_test_security_test_device_key_hash_and_verify",
-      "final_system_test_unit_test_security_test_password_hash_roundtrip_and_salt",
-      "final_system_test_unit_test_security_test_password_strength_rules",
-      "final_system_test_unit_test_security_test_token_requires_long_secret",
-      "final_system_test_unit_test_security_test_token_roundtrip_expiry_and_tamper",
-      "hmac",
+    "10": [
+      "illuminate_support_facades_route",
+      "illuminate_view_view",
+      "quanlytacphongsv_app_http_controllers_accountcontroller",
+      "quanlytacphongsv_app_http_controllers_accountcontroller_accountcontroller",
+      "quanlytacphongsv_app_http_controllers_accountcontroller_accountcontroller_index",
+      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_showchangepassword",
+      "quanlytacphongsv_app_http_controllers_controller",
+      "quanlytacphongsv_app_http_controllers_controller_controller",
+      "quanlytacphongsv_app_http_controllers_dashboardcontroller",
+      "quanlytacphongsv_app_http_controllers_dashboardcontroller_dashboardcontroller",
+      "quanlytacphongsv_app_http_controllers_dashboardcontroller_dashboardcontroller_index",
+      "quanlytacphongsv_app_http_controllers_facilitycontroller",
+      "quanlytacphongsv_app_http_controllers_facilitycontroller_facilitycontroller",
+      "quanlytacphongsv_app_http_controllers_facilitycontroller_facilitycontroller_index",
+      "quanlytacphongsv_app_http_controllers_reportcontroller",
+      "quanlytacphongsv_app_http_controllers_reportcontroller_reportcontroller",
+      "quanlytacphongsv_app_http_controllers_reportcontroller_reportcontroller_index",
+      "quanlytacphongsv_app_http_controllers_violationcontroller",
+      "quanlytacphongsv_app_http_controllers_violationcontroller_violationcontroller",
+      "quanlytacphongsv_app_http_controllers_violationcontroller_violationcontroller_index",
+      "quanlytacphongsv_routes_web",
+      "quanlytacphongsv_routes_web_closure_1",
+      "quanlytacphongsv_routes_web_closure_2",
+      "quanlytacphongsv_routes_web_get",
+      "quanlytacphongsv_routes_web_get_camera_khuvuc_php",
+      "quanlytacphongsv_routes_web_get_danh_muc_php",
+      "quanlytacphongsv_routes_web_get_doi_mat_khau_php",
+      "quanlytacphongsv_routes_web_get_home_php",
+      "quanlytacphongsv_routes_web_get_list_vipham_php",
+      "quanlytacphongsv_routes_web_get_login_php",
+      "quanlytacphongsv_routes_web_get_phanquyen_php",
+      "quanlytacphongsv_routes_web_get_ql_sinhvien_php",
+      "quanlytacphongsv_routes_web_get_reporting_php"
+    ],
+    "11": [
+      "dataclasses",
+      "final_system_ai_card_detector",
+      "final_system_ai_card_detector_carddetection",
+      "final_system_ai_card_detector_carddetector_detect",
+      "final_system_ai_card_detector_carddetector_detect_batch",
+      "final_system_ai_card_detector_py_ndarray",
+      "final_system_ai_card_detector_rationale_10",
+      "final_system_ai_card_detector_rationale_43",
+      "final_system_ai_card_detector_rationale_71",
+      "final_system_ai_classifier",
+      "final_system_ai_detector",
+      "final_system_ai_detector_detector_track",
+      "final_system_ai_detector_py_ndarray",
+      "final_system_ai_detector_rationale_30",
+      "final_system_ai_detector_trackresult",
+      "final_system_ai_my_utils",
+      "final_system_ai_my_utils_py_ndarray",
+      "final_system_ai_my_utils_rationale_22",
+      "final_system_ai_my_utils_rationale_34",
+      "final_system_ai_my_utils_utils",
+      "final_system_ai_my_utils_utils_crop_person",
+      "final_system_ai_my_utils_utils_get_crop_ratio",
+      "final_system_ai_pipeline",
+      "final_system_ai_pipeline_pipeline_run",
+      "final_system_ai_pipeline_rationale_33",
+      "numpy",
+      "timm",
+      "timm_data",
+      "torch",
+      "torchvision",
+      "ultralytics"
+    ],
+    "12": [
+      "final_system_api_cli",
+      "final_system_api_cli_check_config",
+      "final_system_api_cli_create_admin",
+      "final_system_api_cli_line",
+      "final_system_api_cli_main",
+      "final_system_api_cli_rationale_1",
+      "final_system_api_cli_rationale_51",
+      "final_system_api_cli_read_password",
+      "final_system_api_init",
+      "final_system_api_settings",
+      "final_system_api_settings_env",
+      "final_system_api_settings_env_bool",
+      "final_system_api_settings_env_int",
+      "final_system_api_settings_get_settings",
+      "final_system_api_settings_py_datetime",
+      "final_system_api_settings_rationale_1",
+      "final_system_api_settings_rationale_107",
+      "final_system_api_settings_resolve_dir",
+      "final_system_api_settings_settings_now_local",
+      "final_system_test_integration_test_cli",
+      "final_system_test_integration_test_cli_rationale_1",
+      "final_system_test_integration_test_cli_test_check_config_hides_secrets",
+      "final_system_test_integration_test_cli_test_create_admin_only_once_without_flag",
+      "final_system_test_integration_test_cli_test_main_reports_errors_without_traceback",
+      "functools",
+      "getpass",
+      "os",
       "re",
-      "secrets",
       "task_refactor",
       "task_refactor2"
     ],
-    "15": [
+    "13": [
+      "argparse",
+      "bcrypt",
+      "dotenv",
+      "final_system_ai_reporting_gemini_service",
+      "final_system_ai_reporting_llm_service",
+      "final_system_ai_reporting_llm_service_llmservice",
+      "final_system_ai_reporting_llm_service_llmservice_generate",
+      "final_system_ai_reporting_llm_service_py_abc",
+      "final_system_api_auth",
+      "final_system_api_auth_create_access_token",
+      "final_system_api_auth_decode_access_token",
+      "final_system_api_auth_get_password_hash",
+      "final_system_api_auth_verify_password",
+      "final_system_api_create_admin",
+      "final_system_api_create_admin_main",
+      "final_system_test_conftest",
+      "final_system_test_conftest_client",
+      "final_system_test_conftest_database",
+      "final_system_test_conftest_evidence_dir",
+      "final_system_test_conftest_py_fixture",
+      "final_system_test_conftest_py_path",
+      "final_system_test_conftest_pytest_collection_modifyitems",
+      "final_system_test_conftest_rationale_1",
+      "google",
+      "jwt",
+      "passlib_context",
+      "sqlalchemy",
+      "sys",
+      "tempfile"
+    ],
+    "14": [
+      "final_system_ai_card_detector_carddetector",
+      "final_system_ai_card_detector_carddetector_init",
+      "final_system_ai_card_detector_rationale_22",
       "final_system_ai_classifier_classifier",
       "final_system_ai_classifier_classifier_init",
       "final_system_ai_classifier_rationale_16",
@@ -685,27 +620,146 @@
       "final_system_ai_detector_detector_reset_tracker",
       "final_system_ai_detector_rationale_14",
       "final_system_ai_detector_rationale_54",
-      "final_system_ai_pipeline",
       "final_system_ai_pipeline_pipeline",
-      "final_system_ai_pipeline_pipeline_init",
       "final_system_api_factories",
       "final_system_api_factories_create_mapper",
       "final_system_api_factories_create_service",
       "final_system_api_factories_create_service_pipeline_factory",
       "final_system_api_factories_create_voting",
-      "final_system_api_factories_py_mapper",
       "final_system_api_factories_rationale_1",
-      "final_system_api_factories_rationale_26",
+      "final_system_api_factories_rationale_27",
       "final_system_desktop_app_app_init",
       "final_system_test_unit_test_models_smoke",
       "final_system_test_unit_test_models_smoke_pipeline",
-      "final_system_test_unit_test_models_smoke_py_fixture",
       "final_system_test_unit_test_models_smoke_rationale_1",
       "final_system_test_unit_test_models_smoke_sample_frame",
       "final_system_test_unit_test_models_smoke_test_pipeline_runs_on_real_weights",
-      "final_system_test_unit_test_models_smoke_test_tracker_reset_restarts_ids"
+      "final_system_test_unit_test_models_smoke_test_tracker_reset_restarts_ids",
+      "fixture",
+      "inferenceservice",
+      "mapper"
+    ],
+    "15": [
+      "quanlytacphongsv_public_assets_js_students",
+      "quanlytacphongsv_public_assets_js_students_actionbutton",
+      "quanlytacphongsv_public_assets_js_students_addoptions",
+      "quanlytacphongsv_public_assets_js_students_closedrawer",
+      "quanlytacphongsv_public_assets_js_students_closeexportmodal",
+      "quanlytacphongsv_public_assets_js_students_closestudentresetmodal",
+      "quanlytacphongsv_public_assets_js_students_confirmimport",
+      "quanlytacphongsv_public_assets_js_students_currentdataset",
+      "quanlytacphongsv_public_assets_js_students_downloadtemplate",
+      "quanlytacphongsv_public_assets_js_students_filters",
+      "quanlytacphongsv_public_assets_js_students_handlestudentsubmit",
+      "quanlytacphongsv_public_assets_js_students_initialize",
+      "quanlytacphongsv_public_assets_js_students_loadstudents",
+      "quanlytacphongsv_public_assets_js_students_makecell",
+      "quanlytacphongsv_public_assets_js_students_opendrawer",
+      "quanlytacphongsv_public_assets_js_students_openexportmodal",
+      "quanlytacphongsv_public_assets_js_students_openstudent",
+      "quanlytacphongsv_public_assets_js_students_openstudentresetmodal",
+      "quanlytacphongsv_public_assets_js_students_pagebutton",
+      "quanlytacphongsv_public_assets_js_students_previewimport",
+      "quanlytacphongsv_public_assets_js_students_refreshclasschoices",
+      "quanlytacphongsv_public_assets_js_students_refreshmajorchoices",
+      "quanlytacphongsv_public_assets_js_students_rendercatalog",
+      "quanlytacphongsv_public_assets_js_students_renderpreview",
+      "quanlytacphongsv_public_assets_js_students_renderrows",
+      "quanlytacphongsv_public_assets_js_students_request",
+      "quanlytacphongsv_public_assets_js_students_setformvalue",
+      "quanlytacphongsv_public_assets_js_students_setreadonly",
+      "quanlytacphongsv_public_assets_js_students_showstatus"
     ],
     "16": [
+      "basemodel",
+      "final_system_api_dependencies_currentuser",
+      "final_system_api_dependencies_currentuser_is_admin",
+      "final_system_api_routers_auth",
+      "final_system_api_routers_auth_change_password",
+      "final_system_api_routers_auth_create_account",
+      "final_system_api_routers_auth_list_accounts",
+      "final_system_api_routers_auth_login",
+      "final_system_api_routers_auth_me",
+      "final_system_api_routers_auth_py_get",
+      "final_system_api_routers_auth_py_post",
+      "final_system_api_routers_auth_py_put",
+      "final_system_api_routers_auth_rationale_1",
+      "final_system_api_routers_auth_reset_password",
+      "final_system_api_routers_auth_update_account",
+      "final_system_api_v1_schemas",
+      "final_system_api_v1_schemas_accountcreaterequest",
+      "final_system_api_v1_schemas_accountupdaterequest",
+      "final_system_api_v1_schemas_aipdfreportrequest",
+      "final_system_api_v1_schemas_arearequest",
+      "final_system_api_v1_schemas_camerarequest",
+      "final_system_api_v1_schemas_changepasswordrequest",
+      "final_system_api_v1_schemas_loginrequest",
+      "final_system_api_v1_schemas_passwordresetrequest",
+      "final_system_api_v1_schemas_processingupdaterequest",
+      "final_system_api_v1_schemas_rationale_1",
+      "final_system_api_v1_schemas_semesterrequest",
+      "final_system_api_v1_schemas_strictmodel"
+    ],
+    "17": [
+      "final_system_ai_classifier_prediction",
+      "final_system_ai_pipeline_pipelineresult",
+      "final_system_ai_pipeline_pipelineresult_post_init",
+      "final_system_ai_pipeline_rationale_10",
+      "final_system_ai_temporal_voting_rationale_112",
+      "final_system_ai_temporal_voting_rationale_39",
+      "final_system_ai_temporal_voting_rationale_50",
+      "final_system_ai_temporal_voting_rationale_67",
+      "final_system_ai_temporal_voting_temporalvoting",
+      "final_system_ai_temporal_voting_temporalvoting_append",
+      "final_system_ai_temporal_voting_temporalvoting_init",
+      "final_system_ai_temporal_voting_temporalvoting_remove_track_id",
+      "final_system_ai_temporal_voting_temporalvoting_reset",
+      "final_system_ai_temporal_voting_temporalvoting_update",
+      "final_system_test_unit_test_voting_and_events",
+      "final_system_test_unit_test_voting_and_events_default_config",
+      "final_system_test_unit_test_voting_and_events_feed",
+      "final_system_test_unit_test_voting_and_events_frame",
+      "final_system_test_unit_test_voting_and_events_py_fixture",
+      "final_system_test_unit_test_voting_and_events_rationale_42",
+      "final_system_test_unit_test_voting_and_events_result",
+      "final_system_test_unit_test_voting_and_events_test_crop_evidence_validation",
+      "final_system_test_unit_test_voting_and_events_test_event_detector_reports_once_per_track_and_respects_dedup_window",
+      "final_system_test_unit_test_voting_and_events_test_low_confidence_predictions_are_ignored",
+      "final_system_test_unit_test_voting_and_events_test_majority_ratio_prevents_false_alarm",
+      "final_system_test_unit_test_voting_and_events_test_no_event_for_compliant_or_waiting",
+      "final_system_test_unit_test_voting_and_events_test_track_removed_after_missing_frames_and_reset",
+      "final_system_test_unit_test_voting_and_events_test_waiting_until_minimum_frames"
+    ],
+    "18": [
+      "final_system_api_database_database",
+      "final_system_api_database_database_connect",
+      "final_system_api_database_database_fetch_all",
+      "final_system_api_database_database_fetch_one",
+      "final_system_api_database_database_get_connection_string",
+      "final_system_api_database_database_health",
+      "final_system_api_database_database_init",
+      "final_system_api_database_database_settings",
+      "final_system_api_database_database_transaction",
+      "final_system_api_database_py_any",
+      "final_system_api_database_rationale_125",
+      "final_system_api_database_rationale_154",
+      "final_system_api_database_row_to_dict",
+      "final_system_api_database_rows_to_dicts",
+      "final_system_api_migrate",
+      "final_system_api_migrate_applied_versions",
+      "final_system_api_migrate_apply",
+      "final_system_api_migrate_existing_tables",
+      "final_system_api_migrate_main",
+      "final_system_api_migrate_migration_files",
+      "final_system_api_migrate_py_path",
+      "final_system_api_migrate_rationale_1",
+      "final_system_api_migrate_run_script",
+      "final_system_api_migrate_split_batches",
+      "final_system_api_migrate_status",
+      "final_system_api_settings_databasesettings",
+      "final_system_api_settings_databasesettings_missing_fields"
+    ],
+    "19": [
       "illuminate_database_console_seeds_withoutmodelevents",
       "illuminate_database_eloquent_attributes_fillable",
       "illuminate_database_eloquent_attributes_hidden",
@@ -734,36 +788,7 @@
       "quanlytacphongsv_database_seeders_databaseseeder_databaseseeder_run",
       "static"
     ],
-    "17": [
-      "quanlytacphongsv_public_assets_js_students",
-      "quanlytacphongsv_public_assets_js_students_actionbutton",
-      "quanlytacphongsv_public_assets_js_students_addoptions",
-      "quanlytacphongsv_public_assets_js_students_closedrawer",
-      "quanlytacphongsv_public_assets_js_students_closeexportmodal",
-      "quanlytacphongsv_public_assets_js_students_confirmimport",
-      "quanlytacphongsv_public_assets_js_students_currentdataset",
-      "quanlytacphongsv_public_assets_js_students_downloadtemplate",
-      "quanlytacphongsv_public_assets_js_students_filters",
-      "quanlytacphongsv_public_assets_js_students_handlestudentsubmit",
-      "quanlytacphongsv_public_assets_js_students_initialize",
-      "quanlytacphongsv_public_assets_js_students_loadstudents",
-      "quanlytacphongsv_public_assets_js_students_makecell",
-      "quanlytacphongsv_public_assets_js_students_opendrawer",
-      "quanlytacphongsv_public_assets_js_students_openexportmodal",
-      "quanlytacphongsv_public_assets_js_students_openstudent",
-      "quanlytacphongsv_public_assets_js_students_pagebutton",
-      "quanlytacphongsv_public_assets_js_students_previewimport",
-      "quanlytacphongsv_public_assets_js_students_refreshclasschoices",
-      "quanlytacphongsv_public_assets_js_students_refreshmajorchoices",
-      "quanlytacphongsv_public_assets_js_students_rendercatalog",
-      "quanlytacphongsv_public_assets_js_students_renderpreview",
-      "quanlytacphongsv_public_assets_js_students_renderrows",
-      "quanlytacphongsv_public_assets_js_students_request",
-      "quanlytacphongsv_public_assets_js_students_setformvalue",
-      "quanlytacphongsv_public_assets_js_students_setreadonly",
-      "quanlytacphongsv_public_assets_js_students_showstatus"
-    ],
-    "18": [
+    "20": [
       "website_ui_includes_student_module",
       "website_ui_includes_student_module_closure_1",
       "website_ui_includes_student_module_php_pdo",
@@ -792,7 +817,7 @@
       "website_ui_includes_student_module_student_violation_types",
       "website_ui_includes_student_module_student_year"
     ],
-    "19": [
+    "21": [
       "final_system_ai_reporting_event_logger_eventlogger",
       "final_system_ai_reporting_event_logger_eventlogger_create_active_event",
       "final_system_ai_reporting_event_logger_eventlogger_finalize_event",
@@ -820,34 +845,34 @@
       "final_system_test_reporting_test_event_logger_testeventlogger_test_update_track",
       "timedelta"
     ],
-    "20": [
-      "app_services_cimapiclient",
-      "controller",
-      "illuminate_http_request",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_cleanutf8",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_construct",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_decodehexunicode",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_getpdo",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_getsummarydata",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handle",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleaccounts",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleareas",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handlecameras",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handledashboard",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handlereportexport",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handlereportsummary",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handlesemesters",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolationdetail",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolations",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolationtypes",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_resolvedaterange",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_closure_1",
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_closure_2",
-      "symfony_component_httpfoundation_response"
+    "22": [
+      "base64",
+      "final_system_api_security",
+      "final_system_api_security_b64decode",
+      "final_system_api_security_b64encode",
+      "final_system_api_security_create_token",
+      "final_system_api_security_hash_device_key",
+      "final_system_api_security_hash_password",
+      "final_system_api_security_py_valueerror",
+      "final_system_api_security_rationale_1",
+      "final_system_api_security_rationale_45",
+      "final_system_api_security_require_secret",
+      "final_system_api_security_tokenerror",
+      "final_system_api_security_tokenpayload",
+      "final_system_api_security_validate_password_strength",
+      "final_system_api_security_verify_device_key",
+      "final_system_api_security_verify_password",
+      "final_system_api_security_verify_token",
+      "final_system_test_unit_test_security",
+      "final_system_test_unit_test_security_test_device_key_hash_and_verify",
+      "final_system_test_unit_test_security_test_password_hash_roundtrip_and_salt",
+      "final_system_test_unit_test_security_test_password_strength_rules",
+      "final_system_test_unit_test_security_test_token_requires_long_secret",
+      "final_system_test_unit_test_security_test_token_roundtrip_expiry_and_tamper",
+      "hmac",
+      "secrets"
     ],
-    "21": [
+    "23": [
       "website_ui_assets_js_students",
       "website_ui_assets_js_students_actionbutton",
       "website_ui_assets_js_students_addoptions",
@@ -874,33 +899,33 @@
       "website_ui_assets_js_students_setreadonly",
       "website_ui_assets_js_students_showstatus"
     ],
-    "22": [
-      "final_system_api_dependencies",
-      "final_system_api_dependencies_authenticatedcamera",
-      "final_system_api_dependencies_get_current_user",
-      "final_system_api_dependencies_get_db",
-      "final_system_api_dependencies_get_device_camera",
-      "final_system_api_dependencies_get_mapper",
-      "final_system_api_dependencies_get_service",
-      "final_system_api_dependencies_get_settings_dep",
-      "final_system_api_dependencies_py_mapper",
-      "final_system_api_dependencies_py_request",
-      "final_system_api_dependencies_rationale_1",
-      "final_system_api_dependencies_rationale_104",
-      "final_system_api_dependencies_require_roles",
-      "final_system_api_dependencies_require_roles_dependency",
-      "final_system_api_errors_forbidden",
-      "final_system_api_errors_unauthorized",
-      "final_system_api_routers_system",
-      "final_system_api_routers_system_jsonable",
-      "final_system_api_routers_system_liveness",
-      "final_system_api_routers_system_py_get",
-      "final_system_api_routers_system_py_request",
-      "final_system_api_routers_system_py_settings",
-      "final_system_api_routers_system_rationale_1",
-      "final_system_api_routers_system_readiness"
+    "24": [
+      "final_system_api_errors_apierror",
+      "final_system_api_errors_apierror_init",
+      "final_system_api_errors_bad_request",
+      "final_system_api_errors_py_any",
+      "final_system_api_errors_py_exception",
+      "final_system_api_errors_validation_error",
+      "final_system_api_repositories_accounts",
+      "final_system_api_repositories_accounts_account_to_dict",
+      "final_system_api_repositories_accounts_authenticate",
+      "final_system_api_repositories_accounts_change_own_password",
+      "final_system_api_repositories_accounts_count_other_active_admins",
+      "final_system_api_repositories_accounts_create_account",
+      "final_system_api_repositories_accounts_get_account",
+      "final_system_api_repositories_accounts_list_accounts",
+      "final_system_api_repositories_accounts_loginresult",
+      "final_system_api_repositories_accounts_py_any",
+      "final_system_api_repositories_accounts_rationale_1",
+      "final_system_api_repositories_accounts_rationale_69",
+      "final_system_api_repositories_accounts_reset_password",
+      "final_system_api_repositories_accounts_update_account",
+      "final_system_api_repositories_accounts_validate_full_name",
+      "final_system_api_repositories_accounts_validate_new_password",
+      "final_system_api_repositories_accounts_validate_role",
+      "final_system_api_repositories_accounts_validate_username"
     ],
-    "23": [
+    "25": [
       "illuminate_foundation_testing_testcase",
       "illuminate_http_uploadedfile",
       "quanlytacphongsv_tests_feature_exampletest",
@@ -924,7 +949,31 @@
       "quanlytacphongsv_tests_testcase",
       "quanlytacphongsv_tests_testcase_testcase"
     ],
-    "24": [
+    "26": [
+      "illuminate_http_request",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_cleanutf8",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_decodehexunicode",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_getpdo",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_getr2presignedurl",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_getsummarydata",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handle",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleaccounts",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleareas",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handlecameras",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handledashboard",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleevidence",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handlereportexport",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handlereportsummary",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handlesemesters",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolationdetail",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolations",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_handleviolationtypes",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_resolvedaterange",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_php_pdo",
+      "symfony_component_httpfoundation_response"
+    ],
+    "27": [
       "quanlytacphongsv_package",
       "quanlytacphongsv_package_devdependencies",
       "quanlytacphongsv_package_devdependencies_concurrently",
@@ -948,7 +997,54 @@
       "ref_tailwindcss_vite",
       "ref_vite"
     ],
-    "25": [
+    "28": [
+      "quanlytacphongsv_public_assets_js_violations",
+      "quanlytacphongsv_public_assets_js_violations_badge",
+      "quanlytacphongsv_public_assets_js_violations_closeredflagmodal",
+      "quanlytacphongsv_public_assets_js_violations_closeresetmodal",
+      "quanlytacphongsv_public_assets_js_violations_connectsse",
+      "quanlytacphongsv_public_assets_js_violations_field",
+      "quanlytacphongsv_public_assets_js_violations_fillfilters",
+      "quanlytacphongsv_public_assets_js_violations_handleexcelupload",
+      "quanlytacphongsv_public_assets_js_violations_load",
+      "quanlytacphongsv_public_assets_js_violations_loadredflagmeta",
+      "quanlytacphongsv_public_assets_js_violations_opendetail",
+      "quanlytacphongsv_public_assets_js_violations_openredflagmodal",
+      "quanlytacphongsv_public_assets_js_violations_openresetmodal",
+      "quanlytacphongsv_public_assets_js_violations_params",
+      "quanlytacphongsv_public_assets_js_violations_percent",
+      "quanlytacphongsv_public_assets_js_violations_renderevidence",
+      "quanlytacphongsv_public_assets_js_violations_renderexcelpreview",
+      "quanlytacphongsv_public_assets_js_violations_renderrow",
+      "quanlytacphongsv_public_assets_js_violations_startpolling",
+      "quanlytacphongsv_public_assets_js_violations_stoppolling",
+      "quanlytacphongsv_public_assets_js_violations_switchtab",
+      "quanlytacphongsv_public_assets_js_violations_updatessestatus"
+    ],
+    "29": [
+      "datetimezone",
+      "illuminate_http_redirectresponse",
+      "illuminate_support_facades_db",
+      "invalidargumentexception",
+      "pdo",
+      "quanlytacphongsv_app_http_controllers_authcontroller",
+      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller",
+      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_changepassword",
+      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_decodehexunicode",
+      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_getpdo",
+      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_login",
+      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_logout",
+      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_safenext",
+      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_showlogin",
+      "quanlytacphongsv_app_http_controllers_authcontroller_php_pdo",
+      "quanlytacphongsv_app_services_catalogservice",
+      "quanlytacphongsv_app_services_studentservice",
+      "quanlytacphongsv_app_services_studentservice_closure_1",
+      "quanlytacphongsv_app_services_studentservice_closure_2",
+      "quanlytacphongsv_app_services_studentservice_closure_3",
+      "ziparchive"
+    ],
+    "30": [
       "final_system_ai_reporting_gemini_service_geminiservice",
       "final_system_ai_reporting_gemini_service_geminiservice_generate",
       "final_system_ai_reporting_gemini_service_geminiservice_init",
@@ -971,34 +1067,16 @@
       "final_system_test_reporting_test_api_gemini_test_gemini_generates_report",
       "llmservice"
     ],
-    "26": [
-      "datetimezone",
-      "illuminate_http_jsonresponse",
-      "illuminate_http_response",
-      "illuminate_support_facades_db",
-      "invalidargumentexception",
-      "pdoexception",
-      "quanlytacphongsv_app_http_controllers_catalogcontroller",
-      "quanlytacphongsv_app_http_controllers_catalogcontroller_catalogcontroller",
-      "quanlytacphongsv_app_http_controllers_catalogcontroller_catalogcontroller_api",
-      "quanlytacphongsv_app_http_controllers_catalogcontroller_catalogcontroller_construct",
-      "quanlytacphongsv_app_http_controllers_catalogcontroller_catalogcontroller_index",
-      "quanlytacphongsv_app_http_controllers_studentcontroller",
-      "quanlytacphongsv_app_http_controllers_studentcontroller_studentcontroller_api",
-      "quanlytacphongsv_app_services_catalogservice",
-      "quanlytacphongsv_app_services_studentservice",
-      "quanlytacphongsv_app_services_studentservice_closure_1",
-      "quanlytacphongsv_app_services_studentservice_closure_2",
-      "quanlytacphongsv_app_services_studentservice_closure_3",
-      "throwable",
-      "ziparchive"
-    ],
-    "27": [
+    "31": [
       "fastapi_exceptions",
-      "fastapi_responses",
+      "final_system_api_database_build_connection_string",
+      "final_system_api_database_databaseconfigerror",
+      "final_system_api_database_databaseunavailable",
+      "final_system_api_database_odbc_value",
+      "final_system_api_database_rationale_35",
+      "final_system_api_database_rationale_39",
+      "final_system_api_database_rationale_43",
       "final_system_api_errors",
-      "final_system_api_errors_apierror",
-      "final_system_api_errors_bad_request",
       "final_system_api_errors_error_body",
       "final_system_api_errors_install_error_handlers",
       "final_system_api_errors_install_error_handlers_api_error",
@@ -1006,16 +1084,12 @@
       "final_system_api_errors_install_error_handlers_http_error",
       "final_system_api_errors_install_error_handlers_unhandled",
       "final_system_api_errors_install_error_handlers_validation",
-      "final_system_api_errors_py_exception",
       "final_system_api_errors_py_fastapi",
       "final_system_api_errors_rationale_1",
-      "final_system_api_repositories_accounts_authenticate",
-      "final_system_api_repositories_accounts_loginresult",
-      "final_system_api_repositories_accounts_rationale_69",
-      "final_system_desktop_violation_sender_apiconfig_headers",
+      "runtimeerror",
       "starlette_exceptions"
     ],
-    "28": [
+    "32": [
       "illuminate_database_migrations_migration",
       "illuminate_database_schema_blueprint",
       "illuminate_support_facades_schema",
@@ -1037,29 +1111,7 @@
       "quanlytacphongsv_database_migrations_0001_01_01_000002_create_jobs_table_down",
       "quanlytacphongsv_database_migrations_0001_01_01_000002_create_jobs_table_up"
     ],
-    "29": [
-      "illuminate_http_redirectresponse",
-      "pdo",
-      "quanlytacphongsv_app_http_controllers_authcontroller",
-      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller",
-      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_changepassword",
-      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_construct",
-      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_decodehexunicode",
-      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_getpdo",
-      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_login",
-      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_logout",
-      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_safenext",
-      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_showlogin",
-      "quanlytacphongsv_app_http_controllers_authcontroller_php_pdo",
-      "quanlytacphongsv_app_services_cimapiclient",
-      "quanlytacphongsv_app_services_cimapiclient_cimapiclient",
-      "quanlytacphongsv_app_services_cimapiclient_cimapiclient_construct",
-      "quanlytacphongsv_app_services_cimapiclient_cimapiclient_errormessage",
-      "quanlytacphongsv_app_services_cimapiclient_cimapiclient_getcandidatebaseurls",
-      "quanlytacphongsv_app_services_cimapiclient_cimapiclient_json",
-      "quanlytacphongsv_app_services_cimapiclient_cimapiclient_request"
-    ],
-    "30": [
+    "33": [
       "website_tests_student_violation_db_test",
       "website_tests_student_violation_db_test_closure_1",
       "website_tests_student_violation_db_test_closure_10",
@@ -1081,28 +1133,7 @@
       "website_ui_includes_student_module_student_violation_date",
       "website_ui_includes_student_module_student_violation_delete"
     ],
-    "31": [
-      "cv2",
-      "final_system_desktop_app",
-      "final_system_desktop_camera",
-      "final_system_desktop_camera_camera",
-      "final_system_desktop_camera_camera_init",
-      "final_system_desktop_camera_camera_read",
-      "final_system_desktop_camera_camera_release",
-      "final_system_desktop_ui",
-      "final_system_desktop_violation_sender",
-      "final_system_desktop_violation_sender_api_message",
-      "final_system_desktop_violation_sender_check_connection",
-      "final_system_desktop_violation_sender_rationale_1",
-      "final_system_desktop_violation_sender_rationale_67",
-      "logging",
-      "pil",
-      "queue",
-      "threading",
-      "time",
-      "tkinter"
-    ],
-    "32": [
+    "34": [
       "fastapi_concurrency",
       "fastapi_params",
       "final_system_api_mapper",
@@ -1123,27 +1154,7 @@
       "final_system_api_schemas_rationale_1",
       "pydantic"
     ],
-    "33": [
-      "dataclasses",
-      "final_system_ai_card_detector",
-      "final_system_ai_classifier",
-      "final_system_ai_config",
-      "final_system_ai_detector",
-      "final_system_ai_detector_detector_track",
-      "final_system_ai_detector_py_ndarray",
-      "final_system_ai_detector_rationale_30",
-      "final_system_ai_detector_trackresult",
-      "final_system_ai_my_utils",
-      "final_system_ai_violation_events",
-      "final_system_ai_violation_events_rationale_1",
-      "numpy",
-      "timm",
-      "timm_data",
-      "torch",
-      "torchvision",
-      "ultralytics"
-    ],
-    "34": [
+    "35": [
       "pdostatement",
       "website_tests_student_module_test_studenttestpdo",
       "website_tests_student_module_test_studenttestpdo_begintransaction",
@@ -1163,7 +1174,7 @@
       "website_tests_student_module_test_studentteststatement_fetchcolumn",
       "website_tests_student_module_test_studentteststatement_rowcount"
     ],
-    "35": [
+    "36": [
       "website_ui_includes_api_client",
       "website_ui_includes_api_client_cim_api_error_message",
       "website_ui_includes_api_client_cim_api_json",
@@ -1183,7 +1194,7 @@
       "website_ui_includes_student_module_student_csrf_token",
       "website_ui_includes_student_module_student_start_session"
     ],
-    "36": [
+    "37": [
       "connection",
       "final_system_ai_reporting_sqlite_outbox_py_eventrepository",
       "final_system_ai_reporting_sqlite_outbox_py_path",
@@ -1202,7 +1213,26 @@
       "final_system_ai_reporting_sqlite_outbox_sqliteoutboxrepository_mark_events_synced",
       "final_system_ai_reporting_sqlite_outbox_sqliteoutboxrepository_mark_image_status"
     ],
-    "37": [
+    "38": [
+      "final_system_desktop_ui_campusmonitorui",
+      "final_system_desktop_ui_campusmonitorui_clear_alert",
+      "final_system_desktop_ui_campusmonitorui_create_left_panel",
+      "final_system_desktop_ui_campusmonitorui_create_left_panel_bind_cfg_mousewheel",
+      "final_system_desktop_ui_campusmonitorui_create_left_panel_on_cfg_mousewheel",
+      "final_system_desktop_ui_campusmonitorui_create_left_panel_unbind_cfg_mousewheel",
+      "final_system_desktop_ui_campusmonitorui_create_modern_stat_card",
+      "final_system_desktop_ui_campusmonitorui_create_right_panel",
+      "final_system_desktop_ui_campusmonitorui_create_widgets",
+      "final_system_desktop_ui_campusmonitorui_on_source_change",
+      "final_system_desktop_ui_campusmonitorui_refresh_sender_status",
+      "final_system_desktop_ui_campusmonitorui_reset_stats",
+      "final_system_desktop_ui_campusmonitorui_select_source_type",
+      "final_system_desktop_ui_campusmonitorui_switch_tab",
+      "final_system_desktop_ui_campusmonitorui_update_segmented_ui",
+      "final_system_desktop_ui_rationale_1030",
+      "final_system_desktop_ui_rationale_788"
+    ],
+    "39": [
       "website_tests_catalog_module_test",
       "website_tests_catalog_module_test_catalog_check",
       "website_tests_catalog_module_test_catalog_expect_invalid",
@@ -1221,7 +1251,7 @@
       "website_ui_includes_catalog_module_closure_2",
       "website_ui_includes_catalog_module_php_pdo"
     ],
-    "38": [
+    "40": [
       "runtimeexception",
       "simplexmlelement",
       "website_tests_student_module_test",
@@ -1239,75 +1269,92 @@
       "website_ui_includes_student_module_studentworkbookexception",
       "website_ui_includes_student_module_studentworkbookexception_construct"
     ],
-    "39": [
-      "basemodel",
-      "contextlib",
-      "fastapi",
-      "fastapi_middleware_cors",
-      "final_system_api_main",
-      "final_system_api_main_lifespan",
-      "final_system_api_main_rationale_1",
-      "final_system_api_routers_reports",
-      "final_system_api_routers_reports_generate_ai_analysis",
-      "final_system_api_routers_reports_get_prompt_builder",
-      "final_system_api_routers_reports_py_post",
-      "final_system_api_routers_reports_rationale_1",
-      "final_system_api_routers_reports_report_ai_pdf",
-      "final_system_api_v1_schemas_aipdfreportrequest",
-      "os"
-    ],
-    "40": [
-      "final_system_ai_classifier_classifier_classify",
-      "final_system_ai_classifier_classifier_classify_batch",
-      "final_system_ai_classifier_prediction",
-      "final_system_ai_classifier_rationale_34",
-      "final_system_ai_classifier_rationale_64",
-      "final_system_ai_my_utils_py_ndarray",
-      "final_system_ai_my_utils_rationale_11",
-      "final_system_ai_my_utils_rationale_22",
-      "final_system_ai_my_utils_rationale_34",
-      "final_system_ai_my_utils_utils",
-      "final_system_ai_my_utils_utils_crop_person",
-      "final_system_ai_my_utils_utils_get_crop_ratio",
-      "final_system_ai_my_utils_utils_preprocess",
-      "final_system_ai_pipeline_pipeline_run",
-      "final_system_ai_pipeline_rationale_30"
-    ],
     "41": [
-      "final_system_api_evidence",
-      "final_system_api_evidence_evidenceerror",
-      "final_system_api_evidence_py_valueerror",
-      "final_system_api_evidence_rationale_1",
-      "final_system_api_evidence_rationale_53",
-      "final_system_api_evidence_unsafeevidencepath",
-      "final_system_api_evidence_validate_and_normalize_image",
-      "final_system_test_unit_test_evidence",
-      "final_system_test_unit_test_evidence_jpeg_bytes",
-      "final_system_test_unit_test_evidence_py_parametrize",
-      "final_system_test_unit_test_evidence_test_invalid_images_rejected",
-      "final_system_test_unit_test_evidence_test_size_and_dimension_limits",
-      "final_system_test_unit_test_evidence_test_unsafe_keys_never_resolve",
-      "final_system_test_unit_test_evidence_test_valid_image_is_reencoded_as_jpeg",
-      "hashlib"
+      "controller",
+      "illuminate_http_jsonresponse",
+      "illuminate_http_response",
+      "pdoexception",
+      "quanlytacphongsv_app_http_controllers_catalogcontroller",
+      "quanlytacphongsv_app_http_controllers_catalogcontroller_catalogcontroller",
+      "quanlytacphongsv_app_http_controllers_catalogcontroller_catalogcontroller_api",
+      "quanlytacphongsv_app_http_controllers_catalogcontroller_catalogcontroller_construct",
+      "quanlytacphongsv_app_http_controllers_catalogcontroller_catalogcontroller_index",
+      "quanlytacphongsv_app_http_controllers_studentcontroller",
+      "quanlytacphongsv_app_http_controllers_studentcontroller_studentcontroller",
+      "quanlytacphongsv_app_http_controllers_studentcontroller_studentcontroller_api",
+      "quanlytacphongsv_app_http_controllers_studentcontroller_studentcontroller_construct",
+      "quanlytacphongsv_app_http_controllers_studentcontroller_studentcontroller_index",
+      "throwable"
     ],
     "42": [
-      "final_system_api_settings",
-      "final_system_api_settings_env",
-      "final_system_api_settings_env_bool",
-      "final_system_api_settings_env_int",
-      "final_system_api_settings_get_settings",
-      "final_system_api_settings_py_datetime",
-      "final_system_api_settings_py_path",
-      "final_system_api_settings_rationale_1",
-      "final_system_api_settings_rationale_102",
-      "final_system_api_settings_resolve_dir",
-      "final_system_api_settings_settings",
-      "final_system_api_settings_settings_local_tz",
-      "final_system_api_settings_settings_now_local",
-      "functools",
-      "timezone"
+      "cv2",
+      "final_system_desktop_app",
+      "final_system_desktop_camera",
+      "final_system_desktop_camera_camera",
+      "final_system_desktop_camera_camera_init",
+      "final_system_desktop_camera_camera_read",
+      "final_system_desktop_camera_camera_release",
+      "final_system_desktop_ui",
+      "pil",
+      "queue",
+      "socket",
+      "subprocess",
+      "threading",
+      "time",
+      "tkinter"
     ],
     "43": [
+      "final_system_ai_config",
+      "final_system_ai_violation_events",
+      "final_system_ai_violation_events_combined_status",
+      "final_system_ai_violation_events_crop_evidence",
+      "final_system_ai_violation_events_py_datetime",
+      "final_system_ai_violation_events_py_ndarray",
+      "final_system_ai_violation_events_rationale_1",
+      "final_system_ai_violation_events_rationale_36",
+      "final_system_ai_violation_events_rationale_51",
+      "final_system_ai_violation_events_violationeventdetector",
+      "final_system_ai_violation_events_violationeventdetector_forget_old",
+      "final_system_ai_violation_events_violationeventdetector_init",
+      "final_system_ai_violation_events_violationeventdetector_process",
+      "final_system_ai_violation_events_violationeventdetector_reset",
+      "final_system_test_unit_test_voting_and_events_test_combined_status_four_states"
+    ],
+    "44": [
+      "final_system_api_evidence_evidenceerror_init",
+      "final_system_api_evidence_evidencestorage",
+      "final_system_api_evidence_evidencestorage_delete",
+      "final_system_api_evidence_evidencestorage_ensure_root",
+      "final_system_api_evidence_evidencestorage_exists",
+      "final_system_api_evidence_evidencestorage_init",
+      "final_system_api_evidence_evidencestorage_resolve",
+      "final_system_api_evidence_evidencestorage_save",
+      "final_system_api_evidence_py_datetime",
+      "final_system_api_evidence_py_path",
+      "final_system_api_evidence_rationale_113",
+      "final_system_api_evidence_rationale_82",
+      "final_system_api_evidence_unsafeevidencepath",
+      "final_system_test_unit_test_evidence_py_parametrize",
+      "final_system_test_unit_test_evidence_test_unsafe_keys_never_resolve"
+    ],
+    "45": [
+      "final_system_api_retention",
+      "final_system_api_retention_log",
+      "final_system_api_retention_main",
+      "final_system_api_retention_purge_expired_evidence",
+      "final_system_api_retention_purge_one",
+      "final_system_api_retention_purgereport",
+      "final_system_api_retention_purgereport_as_dict",
+      "final_system_api_retention_py_datetime",
+      "final_system_api_retention_rationale_1",
+      "final_system_api_retention_rationale_134",
+      "final_system_api_retention_retentionscheduler",
+      "final_system_api_retention_retentionscheduler_init",
+      "final_system_api_retention_retentionscheduler_run",
+      "final_system_api_retention_retentionscheduler_start",
+      "final_system_api_retention_retentionscheduler_stop"
+    ],
+    "46": [
       "quanlytacphongsv_public_assets_js_common",
       "quanlytacphongsv_public_assets_js_common_api",
       "quanlytacphongsv_public_assets_js_common_apierror",
@@ -1324,7 +1371,7 @@
       "quanlytacphongsv_public_assets_js_common_staterow",
       "quanlytacphongsv_public_assets_js_common_toast"
     ],
-    "44": [
+    "47": [
       "website_ui_assets_js_common",
       "website_ui_assets_js_common_api",
       "website_ui_assets_js_common_apierror",
@@ -1341,23 +1388,7 @@
       "website_ui_assets_js_common_staterow",
       "website_ui_assets_js_common_toast"
     ],
-    "45": [
-      "final_system_api_evidence_evidenceerror_init",
-      "final_system_api_evidence_evidencestorage",
-      "final_system_api_evidence_evidencestorage_delete",
-      "final_system_api_evidence_evidencestorage_ensure_root",
-      "final_system_api_evidence_evidencestorage_exists",
-      "final_system_api_evidence_evidencestorage_init",
-      "final_system_api_evidence_evidencestorage_resolve",
-      "final_system_api_evidence_evidencestorage_save",
-      "final_system_api_evidence_py_datetime",
-      "final_system_api_evidence_py_path",
-      "final_system_api_evidence_rationale_113",
-      "final_system_api_evidence_rationale_82",
-      "final_system_api_evidence_storedevidence",
-      "final_system_test_unit_test_evidence_test_storage_save_resolve_delete"
-    ],
-    "46": [
+    "48": [
       "final_system_api_routes_predict",
       "final_system_api_routes_py_mapper",
       "final_system_api_routes_py_post",
@@ -1373,7 +1404,7 @@
       "final_system_api_service_rationale_53",
       "uploadfile"
     ],
-    "47": [
+    "49": [
       "quanlytacphongsv_app_services_catalogservice_catalogservice",
       "quanlytacphongsv_app_services_catalogservice_catalogservice_cleanutf8",
       "quanlytacphongsv_app_services_catalogservice_catalogservice_code",
@@ -1389,7 +1420,7 @@
       "quanlytacphongsv_app_services_catalogservice_catalogservice_save",
       "quanlytacphongsv_app_services_catalogservice_php_pdo"
     ],
-    "48": [
+    "50": [
       "website_tests_student_module_test_temporaryworkbook",
       "website_ui_api_students",
       "website_ui_api_students_closure_1",
@@ -1405,7 +1436,7 @@
       "website_ui_includes_student_module_student_json_response",
       "website_ui_includes_student_module_student_xlsx_cell"
     ],
-    "49": [
+    "51": [
       "final_system_ai_reporting_report_stats",
       "final_system_ai_reporting_report_stats_build_statistics",
       "final_system_ai_reporting_report_stats_get_period_range",
@@ -1420,22 +1451,22 @@
       "final_system_ai_reporting_report_stats_summary",
       "final_system_ai_reporting_report_stats_to_local"
     ],
-    "50": [
-      "final_system_api_database",
-      "final_system_api_database_build_connection_string",
-      "final_system_api_database_database_init",
-      "final_system_api_database_database_settings",
-      "final_system_api_database_databaseconfigerror",
-      "final_system_api_database_odbc_value",
-      "final_system_api_database_rationale_1",
-      "final_system_api_database_rationale_39",
-      "final_system_api_database_rationale_43",
-      "final_system_api_settings_databasesettings",
-      "final_system_api_settings_databasesettings_missing_fields",
-      "pyodbc",
-      "typing"
+    "52": [
+      "final_system_desktop_ui_campusmonitorui_create_left_panel_add_slider",
+      "final_system_desktop_ui_campusmonitorui_create_left_panel_add_slider_on_slide",
+      "final_system_desktop_ui_modernslider",
+      "final_system_desktop_ui_modernslider_draw",
+      "final_system_desktop_ui_modernslider_get",
+      "final_system_desktop_ui_modernslider_init",
+      "final_system_desktop_ui_modernslider_on_click",
+      "final_system_desktop_ui_modernslider_on_drag",
+      "final_system_desktop_ui_modernslider_set",
+      "final_system_desktop_ui_modernslider_set_from_x",
+      "final_system_desktop_ui_modernslider_val_to_x",
+      "final_system_desktop_ui_modernslider_x_to_val",
+      "final_system_desktop_ui_rationale_21"
     ],
-    "51": [
+    "53": [
       "final_system_ai_reporting_sync_worker_rationale_44",
       "final_system_ai_reporting_sync_worker_rationale_59",
       "final_system_ai_reporting_sync_worker_rationale_98",
@@ -1449,21 +1480,47 @@
       "final_system_ai_reporting_sync_worker_syncworker_sync_once",
       "final_system_ai_reporting_sync_worker_syncworker_upload_one_image"
     ],
-    "52": [
-      "quanlytacphongsv_public_assets_js_violations",
-      "quanlytacphongsv_public_assets_js_violations_badge",
-      "quanlytacphongsv_public_assets_js_violations_connectsse",
-      "quanlytacphongsv_public_assets_js_violations_field",
-      "quanlytacphongsv_public_assets_js_violations_fillfilters",
-      "quanlytacphongsv_public_assets_js_violations_load",
-      "quanlytacphongsv_public_assets_js_violations_opendetail",
-      "quanlytacphongsv_public_assets_js_violations_params",
-      "quanlytacphongsv_public_assets_js_violations_renderevidence",
-      "quanlytacphongsv_public_assets_js_violations_renderrow",
-      "quanlytacphongsv_public_assets_js_violations_startpolling",
-      "quanlytacphongsv_public_assets_js_violations_stoppolling"
+    "54": [
+      "quanlytacphongsv_app_http_controllers_authcontroller_authcontroller_construct",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller_construct",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_closure_1",
+      "quanlytacphongsv_app_http_controllers_cimproxycontroller_closure_2",
+      "quanlytacphongsv_app_services_cimapiclient",
+      "quanlytacphongsv_app_services_cimapiclient_cimapiclient",
+      "quanlytacphongsv_app_services_cimapiclient_cimapiclient_construct",
+      "quanlytacphongsv_app_services_cimapiclient_cimapiclient_errormessage",
+      "quanlytacphongsv_app_services_cimapiclient_cimapiclient_getcandidatebaseurls",
+      "quanlytacphongsv_app_services_cimapiclient_cimapiclient_json",
+      "quanlytacphongsv_app_services_cimapiclient_cimapiclient_request"
     ],
-    "53": [
+    "55": [
+      "boto3",
+      "botocore_config",
+      "final_system_api_evidence",
+      "final_system_api_evidence_rationale_1",
+      "final_system_api_evidence_storedevidence",
+      "final_system_api_r2_storage",
+      "final_system_api_r2_storage_py_datetime",
+      "final_system_api_r2_storage_r2evidencestorage_save",
+      "final_system_api_r2_storage_rationale_1",
+      "hashlib",
+      "storedevidence"
+    ],
+    "56": [
+      "final_system_desktop_ui_campusmonitorui_drain_alerts",
+      "final_system_desktop_ui_campusmonitorui_draw_fps_overlay",
+      "final_system_desktop_ui_campusmonitorui_draw_overlay",
+      "final_system_desktop_ui_campusmonitorui_draw_text_overlays_pil",
+      "final_system_desktop_ui_campusmonitorui_update_frame",
+      "final_system_desktop_ui_campusmonitorui_update_statistics",
+      "final_system_desktop_ui_rationale_1117",
+      "final_system_desktop_ui_rationale_1121",
+      "final_system_desktop_ui_rationale_1164",
+      "final_system_desktop_ui_rationale_1244",
+      "final_system_desktop_ui_rationale_1294"
+    ],
+    "57": [
       "quanlytacphongsv_public_assets_js_catalogs",
       "quanlytacphongsv_public_assets_js_catalogs_displayvalue",
       "quanlytacphongsv_public_assets_js_catalogs_fieldcontrol",
@@ -1476,7 +1533,7 @@
       "quanlytacphongsv_public_assets_js_catalogs_showstatus",
       "quanlytacphongsv_public_assets_js_catalogs_startedit"
     ],
-    "54": [
+    "58": [
       "website_ui_assets_js_catalogs",
       "website_ui_assets_js_catalogs_displayvalue",
       "website_ui_assets_js_catalogs_fieldcontrol",
@@ -1489,7 +1546,7 @@
       "website_ui_assets_js_catalogs_showstatus",
       "website_ui_assets_js_catalogs_startedit"
     ],
-    "55": [
+    "59": [
       "concurrent_futures",
       "final_system_ai_reporting_prompt_builder",
       "final_system_ai_reporting_stats_prompt_builder",
@@ -1501,19 +1558,67 @@
       "requests",
       "yaml"
     ],
-    "56": [
-      "final_system_ai_card_detector_carddetection",
-      "final_system_ai_card_detector_carddetector",
-      "final_system_ai_card_detector_carddetector_detect",
-      "final_system_ai_card_detector_carddetector_detect_batch",
-      "final_system_ai_card_detector_carddetector_init",
-      "final_system_ai_card_detector_py_ndarray",
-      "final_system_ai_card_detector_rationale_10",
-      "final_system_ai_card_detector_rationale_22",
-      "final_system_ai_card_detector_rationale_43",
-      "final_system_ai_card_detector_rationale_71"
+    "60": [
+      "final_system_api_evidence_evidenceerror",
+      "final_system_api_evidence_py_valueerror",
+      "final_system_api_evidence_rationale_53",
+      "final_system_api_evidence_validate_and_normalize_image",
+      "final_system_test_unit_test_evidence",
+      "final_system_test_unit_test_evidence_jpeg_bytes",
+      "final_system_test_unit_test_evidence_test_invalid_images_rejected",
+      "final_system_test_unit_test_evidence_test_size_and_dimension_limits",
+      "final_system_test_unit_test_evidence_test_storage_save_resolve_delete",
+      "final_system_test_unit_test_evidence_test_valid_image_is_reencoded_as_jpeg"
     ],
-    "57": [
+    "61": [
+      "final_system_api_r2_storage_r2evidencestorage",
+      "final_system_api_r2_storage_r2evidencestorage_delete",
+      "final_system_api_r2_storage_r2evidencestorage_ensure_root",
+      "final_system_api_r2_storage_r2evidencestorage_exists",
+      "final_system_api_r2_storage_r2evidencestorage_init",
+      "final_system_api_r2_storage_r2evidencestorage_presign_url",
+      "final_system_api_r2_storage_r2evidencestorage_resolve",
+      "final_system_api_r2_storage_rationale_42",
+      "final_system_api_r2_storage_rationale_68",
+      "final_system_api_r2_storage_rationale_90"
+    ],
+    "62": [
+      "final_system_desktop_ui_campusmonitorui_browse_video",
+      "final_system_desktop_ui_campusmonitorui_draw_standby_screen",
+      "final_system_desktop_ui_campusmonitorui_on_close",
+      "final_system_desktop_ui_campusmonitorui_show_api_result",
+      "final_system_desktop_ui_campusmonitorui_start_monitoring",
+      "final_system_desktop_ui_campusmonitorui_start_monitoring_begin",
+      "final_system_desktop_ui_campusmonitorui_start_stream",
+      "final_system_desktop_ui_campusmonitorui_stop_monitoring",
+      "final_system_desktop_ui_campusmonitorui_toggle_monitoring",
+      "final_system_desktop_ui_rationale_815"
+    ],
+    "63": [
+      "final_system_desktop_ui_campusmonitorui_check_api_connection",
+      "final_system_desktop_ui_campusmonitorui_form_parameters",
+      "final_system_desktop_ui_campusmonitorui_run_in_background",
+      "final_system_desktop_ui_campusmonitorui_run_in_background_poll",
+      "final_system_desktop_ui_campusmonitorui_save_parameters",
+      "final_system_desktop_ui_campusmonitorui_sync_sliders_from_params",
+      "final_system_desktop_ui_rationale_847",
+      "final_system_desktop_ui_rationale_881",
+      "final_system_desktop_ui_rationale_892",
+      "final_system_desktop_ui_rationale_903"
+    ],
+    "64": [
+      "final_system_desktop_ui_campusmonitorui_create_left_panel_add_entry",
+      "final_system_desktop_ui_campusmonitorui_init",
+      "final_system_desktop_ui_campusmonitorui_setup_styles",
+      "final_system_desktop_ui_modernentry",
+      "final_system_desktop_ui_modernentry_delete",
+      "final_system_desktop_ui_modernentry_get",
+      "final_system_desktop_ui_modernentry_init",
+      "final_system_desktop_ui_modernentry_insert",
+      "final_system_desktop_ui_modernspinbox_init",
+      "final_system_desktop_ui_rationale_163"
+    ],
+    "65": [
       "quanlytacphongsv_public_assets_js_facilities",
       "quanlytacphongsv_public_assets_js_facilities_actionbutton",
       "quanlytacphongsv_public_assets_js_facilities_loadall",
@@ -1525,7 +1630,7 @@
       "quanlytacphongsv_public_assets_js_facilities_showkey",
       "quanlytacphongsv_public_assets_js_facilities_showtab"
     ],
-    "58": [
+    "66": [
       "website_ui_assets_js_facilities",
       "website_ui_assets_js_facilities_actionbutton",
       "website_ui_assets_js_facilities_loadall",
@@ -1537,29 +1642,18 @@
       "website_ui_assets_js_facilities_showkey",
       "website_ui_assets_js_facilities_showtab"
     ],
-    "59": [
+    "67": [
       "collections",
       "final_system_ai_temporal_voting",
       "final_system_ai_temporal_voting_decide",
       "final_system_ai_temporal_voting_rationale_22",
-      "final_system_ai_temporal_voting_rationale_86",
+      "final_system_ai_temporal_voting_rationale_90",
       "final_system_ai_temporal_voting_temporalvoting_vote",
       "final_system_ai_temporal_voting_votingresult",
       "final_system_api_service",
       "final_system_api_service_rationale_1"
     ],
-    "60": [
-      "final_system_api_retention",
-      "final_system_api_retention_log",
-      "final_system_api_retention_main",
-      "final_system_api_retention_purge_expired_evidence",
-      "final_system_api_retention_purge_one",
-      "final_system_api_retention_purgereport",
-      "final_system_api_retention_purgereport_as_dict",
-      "final_system_api_retention_py_datetime",
-      "final_system_api_retention_rationale_1"
-    ],
-    "61": [
+    "68": [
       "quanlytacphongsv_public_assets_js_student_violations",
       "quanlytacphongsv_public_assets_js_student_violations_addviolation",
       "quanlytacphongsv_public_assets_js_student_violations_call",
@@ -1570,7 +1664,7 @@
       "quanlytacphongsv_public_assets_js_student_violations_setstatus",
       "quanlytacphongsv_public_assets_js_student_violations_show"
     ],
-    "62": [
+    "69": [
       "website_ui_assets_js_student_violations",
       "website_ui_assets_js_student_violations_addviolation",
       "website_ui_assets_js_student_violations_call",
@@ -1581,7 +1675,7 @@
       "website_ui_assets_js_student_violations_setstatus",
       "website_ui_assets_js_student_violations_show"
     ],
-    "63": [
+    "70": [
       "website_ui_assets_js_violations",
       "website_ui_assets_js_violations_badge",
       "website_ui_assets_js_violations_field",
@@ -1592,7 +1686,7 @@
       "website_ui_assets_js_violations_renderevidence",
       "website_ui_assets_js_violations_renderrow"
     ],
-    "64": [
+    "71": [
       "final_system_test_reporting_test_prompt_builder",
       "final_system_test_reporting_test_prompt_builder_builder",
       "final_system_test_reporting_test_prompt_builder_make_event",
@@ -1602,7 +1696,7 @@
       "final_system_test_reporting_test_prompt_builder_test_multiple_mixed_events_generation",
       "pytest"
     ],
-    "65": [
+    "72": [
       "illuminate_foundation_application",
       "illuminate_foundation_configuration_exceptions",
       "illuminate_foundation_configuration_middleware",
@@ -1612,7 +1706,7 @@
       "quanlytacphongsv_bootstrap_app_closure_3",
       "quanlytacphongsv_public_index"
     ],
-    "66": [
+    "73": [
       "closure",
       "quanlytacphongsv_app_http_middleware_cimauthenticate",
       "quanlytacphongsv_app_http_middleware_cimauthenticate_cimauthenticate",
@@ -1621,7 +1715,16 @@
       "quanlytacphongsv_app_http_middleware_cimrole_cimrole",
       "quanlytacphongsv_app_http_middleware_cimrole_cimrole_handle"
     ],
-    "67": [
+    "74": [
+      "final_system_desktop_ui_campusmonitorui_create_left_panel_add_spinbox",
+      "final_system_desktop_ui_modernspinbox",
+      "final_system_desktop_ui_modernspinbox_get",
+      "final_system_desktop_ui_modernspinbox_set",
+      "final_system_desktop_ui_modernspinbox_step_down",
+      "final_system_desktop_ui_modernspinbox_step_up",
+      "final_system_desktop_ui_rationale_112"
+    ],
+    "75": [
       "website_ui_api_students_php_datetimeimmutable",
       "website_ui_api_students_student_today",
       "website_ui_includes_env",
@@ -1630,15 +1733,15 @@
       "website_ui_includes_env_cim_load_env",
       "website_ui_includes_student_module_student_db"
     ],
-    "68": [
-      "final_system_api_retention_rationale_134",
-      "final_system_api_retention_retentionscheduler",
-      "final_system_api_retention_retentionscheduler_init",
-      "final_system_api_retention_retentionscheduler_run",
-      "final_system_api_retention_retentionscheduler_start",
-      "final_system_api_retention_retentionscheduler_stop"
+    "76": [
+      "final_system_ai_classifier_classifier_classify",
+      "final_system_ai_classifier_classifier_classify_batch",
+      "final_system_ai_classifier_rationale_34",
+      "final_system_ai_classifier_rationale_64",
+      "final_system_ai_my_utils_rationale_11",
+      "final_system_ai_my_utils_utils_preprocess"
     ],
-    "69": [
+    "77": [
       "final_system_test_reporting_test_full_event_flow_testfulleventflow",
       "final_system_test_reporting_test_full_event_flow_testfulleventflow_setup",
       "final_system_test_reporting_test_full_event_flow_testfulleventflow_test_device_registration",
@@ -1646,7 +1749,7 @@
       "final_system_test_reporting_test_full_event_flow_testfulleventflow_test_log_access",
       "final_system_test_reporting_test_full_event_flow_testfulleventflow_test_retention_and_orphan_images"
     ],
-    "70": [
+    "78": [
       "illuminate_support_serviceprovider",
       "quanlytacphongsv_app_providers_appserviceprovider",
       "quanlytacphongsv_app_providers_appserviceprovider_appserviceprovider",
@@ -1654,410 +1757,437 @@
       "quanlytacphongsv_app_providers_appserviceprovider_appserviceprovider_register",
       "quanlytacphongsv_bootstrap_providers"
     ],
-    "71": [
+    "79": [
       "monolog_handler_nullhandler",
       "monolog_handler_streamhandler",
       "monolog_handler_syslogudphandler",
       "monolog_processor_psrlogmessageprocessor",
       "quanlytacphongsv_config_logging"
     ],
-    "72": [
+    "80": [
       "quanlytacphongsv_public_assets_js_charts",
       "quanlytacphongsv_public_assets_js_charts_baseoptions",
       "quanlytacphongsv_public_assets_js_charts_filltable",
       "quanlytacphongsv_public_assets_js_charts_render",
       "quanlytacphongsv_public_assets_js_charts_rendersummary"
     ],
-    "73": [
+    "81": [
       "quanlytacphongsv_public_assets_js_filters",
       "quanlytacphongsv_public_assets_js_filters_fillselect",
       "quanlytacphongsv_public_assets_js_filters_init",
       "quanlytacphongsv_public_assets_js_filters_init_params",
       "quanlytacphongsv_public_assets_js_filters_init_syncvisibility"
     ],
-    "74": [
+    "82": [
       "website_ui_assets_js_charts",
       "website_ui_assets_js_charts_baseoptions",
       "website_ui_assets_js_charts_filltable",
       "website_ui_assets_js_charts_render",
       "website_ui_assets_js_charts_rendersummary"
     ],
-    "75": [
+    "83": [
       "website_ui_assets_js_filters",
       "website_ui_assets_js_filters_fillselect",
       "website_ui_assets_js_filters_init",
       "website_ui_assets_js_filters_init_params",
       "website_ui_assets_js_filters_init_syncvisibility"
     ],
-    "76": [
-      "final_system_test_integration_test_api_integration_admin",
-      "final_system_test_integration_test_api_integration_ctsv",
-      "final_system_test_integration_test_api_integration_py_fixture",
-      "final_system_test_integration_test_api_integration_setup_camera"
+    "84": [
+      "carddetector",
+      "classifier",
+      "detector",
+      "final_system_ai_pipeline_pipeline_init"
     ],
-    "77": [
+    "85": [
+      "final_system_desktop_ui_campusmonitorui_make_modern_button",
+      "final_system_desktop_ui_campusmonitorui_make_modern_button_on_enter",
+      "final_system_desktop_ui_campusmonitorui_make_modern_button_on_leave",
+      "final_system_desktop_ui_rationale_387"
+    ],
+    "86": [
       "illuminate_foundation_inspiring",
       "illuminate_support_facades_artisan",
       "quanlytacphongsv_routes_console",
       "quanlytacphongsv_routes_console_closure_1"
     ],
-    "78": [
+    "87": [
       "phpunit_framework_testcase",
       "quanlytacphongsv_tests_unit_exampletest",
       "quanlytacphongsv_tests_unit_exampletest_exampletest",
       "quanlytacphongsv_tests_unit_exampletest_exampletest_test_that_true_is_true"
     ],
-    "79": [
+    "88": [
       "quanlytacphongsv_public_assets_js_accounts",
       "quanlytacphongsv_public_assets_js_accounts_load",
       "quanlytacphongsv_public_assets_js_accounts_renderrow",
       "quanlytacphongsv_public_assets_js_accounts_setmode"
     ],
-    "80": [
+    "89": [
       "quanlytacphongsv_public_assets_js_reports",
       "quanlytacphongsv_public_assets_js_reports_exportreport",
       "quanlytacphongsv_public_assets_js_reports_kpi",
       "quanlytacphongsv_public_assets_js_reports_load"
     ],
-    "81": [
+    "90": [
       "website_ui_assets_js_accounts",
       "website_ui_assets_js_accounts_load",
       "website_ui_assets_js_accounts_renderrow",
       "website_ui_assets_js_accounts_setmode"
     ],
-    "82": [
+    "91": [
       "website_ui_assets_js_reports",
       "website_ui_assets_js_reports_exportreport",
       "website_ui_assets_js_reports_kpi",
       "website_ui_assets_js_reports_load"
     ],
-    "83": [
+    "92": [
       "application",
       "argvinput",
       "quanlytacphongsv_artisan"
     ],
-    "84": [
+    "93": [
       "quanlytacphongsv_resources_views_dashboard_index_blade",
       "quanlytacphongsv_resources_views_dashboard_index_blade_php_layouts_app",
       "quanlytacphongsv_resources_views_dashboard_index_blade_php_partials_report_filters"
     ],
-    "85": [
+    "94": [
       "quanlytacphongsv_resources_views_reports_index_blade",
       "quanlytacphongsv_resources_views_reports_index_blade_php_layouts_app",
       "quanlytacphongsv_resources_views_reports_index_blade_php_partials_report_filters"
     ],
-    "86": [
+    "95": [
       "scripts_common",
       "scripts_common_get_cimphp",
       "scripts_common_get_cimpython"
     ],
-    "87": [
+    "96": [
       "quanlytacphongsv_public_assets_js_dashboard",
       "quanlytacphongsv_public_assets_js_dashboard_load"
     ],
-    "88": [
+    "97": [
       "quanlytacphongsv_resources_views_accounts_index_blade",
       "quanlytacphongsv_resources_views_accounts_index_blade_php_layouts_app"
     ],
-    "89": [
+    "98": [
       "quanlytacphongsv_resources_views_auth_change_password_blade",
       "quanlytacphongsv_resources_views_auth_change_password_blade_php_layouts_app"
     ],
-    "90": [
+    "99": [
       "quanlytacphongsv_resources_views_catalogs_index_blade",
       "quanlytacphongsv_resources_views_catalogs_index_blade_php_layouts_app"
     ],
-    "91": [
+    "100": [
       "quanlytacphongsv_resources_views_facilities_index_blade",
       "quanlytacphongsv_resources_views_facilities_index_blade_php_layouts_app"
     ],
-    "92": [
+    "101": [
       "quanlytacphongsv_resources_views_students_index_blade",
       "quanlytacphongsv_resources_views_students_index_blade_php_layouts_app"
     ],
-    "93": [
+    "102": [
       "quanlytacphongsv_resources_views_violations_index_blade",
       "quanlytacphongsv_resources_views_violations_index_blade_php_layouts_app"
     ],
-    "94": [
+    "103": [
       "website_tests_web_auth_test",
       "website_tests_web_auth_test_web_check"
     ],
-    "95": [
+    "104": [
       "website_tools_check_web",
       "website_tools_check_web_check_line"
     ],
-    "96": [
+    "105": [
       "website_ui_assets_js_dashboard",
       "website_ui_assets_js_dashboard_load"
     ],
-    "97": [
+    "106": [
       "website_ui_includes_website_status",
       "website_ui_includes_website_status_website_render_unavailable"
     ],
-    "98": [
-      "currentuser"
-    ],
-    "99": [
-      "database"
-    ],
-    "100": [
-      "date"
-    ],
-    "101": [
-      "exception"
-    ],
-    "102": [
-      "final_system_ai_init"
-    ],
-    "103": [
-      "final_system_ai_reporting_event_logger_py_path"
-    ],
-    "104": [
-      "final_system_ai_reporting_gemini_service_py_llmservice"
-    ],
-    "105": [
-      "final_system_ai_reporting_stats_prompt_builder_py_path"
-    ],
-    "106": [
-      "final_system_api_exporters_py_path"
-    ],
     "107": [
-      "final_system_api_main_py_fastapi"
+      "app_services_cimapiclient"
     ],
     "108": [
-      "final_system_api_object_store_py_abc"
+      "currentuser"
     ],
     "109": [
-      "final_system_api_routers_violations_py_patch"
+      "database"
     ],
     "110": [
-      "final_system_api_routes_py_request"
+      "date"
     ],
     "111": [
-      "final_system_api_v1_schemas_py_basemodel"
+      "evidencestorage"
     ],
     "112": [
-      "final_system_test_init"
+      "final_system_ai_init"
     ],
     "113": [
-      "final_system_test_integration_init"
+      "final_system_ai_reporting_event_logger_py_path"
     ],
     "114": [
-      "final_system_test_reporting_init"
+      "final_system_ai_reporting_gemini_service_py_llmservice"
     ],
     "115": [
-      "final_system_test_unit_init"
+      "final_system_ai_reporting_stats_prompt_builder_py_path"
     ],
     "116": [
-      "get"
+      "final_system_api_exporters_py_path"
     ],
     "117": [
-      "post"
+      "final_system_api_factories_py_mapper"
     ],
     "118": [
-      "quanlytacphongsv_app_http_controllers_cimproxycontroller_php_pdo"
+      "final_system_api_main_py_fastapi"
     ],
     "119": [
-      "quanlytacphongsv_config_app"
+      "final_system_api_object_store_py_abc"
     ],
     "120": [
-      "quanlytacphongsv_config_filesystems"
+      "final_system_api_repositories_facilities_py_exception"
     ],
     "121": [
-      "quanlytacphongsv_config_mail"
+      "final_system_api_routers_facilities_py_put"
     ],
     "122": [
-      "quanlytacphongsv_config_queue"
+      "final_system_api_routers_violations_py_patch"
     ],
     "123": [
-      "quanlytacphongsv_config_services"
+      "final_system_api_routers_violations_py_settings"
     ],
     "124": [
-      "quanlytacphongsv_public_assets_js_tailwind_config"
+      "final_system_api_routes_py_request"
     ],
     "125": [
-      "quanlytacphongsv_resources_js_app"
+      "final_system_api_settings_py_path"
     ],
     "126": [
-      "quanlytacphongsv_resources_views_auth_login_blade"
+      "final_system_api_v1_schemas_py_basemodel"
     ],
     "127": [
-      "quanlytacphongsv_resources_views_layouts_app_blade"
+      "final_system_test_init"
     ],
     "128": [
-      "quanlytacphongsv_resources_views_partials_report_filters_blade"
+      "final_system_test_integration_init"
     ],
     "129": [
-      "quanlytacphongsv_resources_views_welcome_blade"
+      "final_system_test_reporting_init"
     ],
     "130": [
-      "scripts_check_system"
+      "final_system_test_unit_init"
     ],
     "131": [
-      "scripts_setup_php_windows"
+      "final_system_test_unit_test_models_smoke_py_fixture"
     ],
     "132": [
-      "scripts_start_api"
+      "get"
     ],
     "133": [
-      "scripts_start_desktop"
+      "incomingviolation"
     ],
     "134": [
-      "scripts_start_laravel_web"
+      "post"
     ],
     "135": [
-      "scripts_start_web"
+      "quanlytacphongsv_config_app"
     ],
     "136": [
-      "traceback"
+      "quanlytacphongsv_config_filesystems"
     ],
     "137": [
-      "website_ui_api_catalogs"
+      "quanlytacphongsv_config_mail"
     ],
     "138": [
-      "website_ui_api_cim"
+      "quanlytacphongsv_config_queue"
     ],
     "139": [
-      "website_ui_assets_js_tailwind_config"
+      "quanlytacphongsv_config_services"
     ],
     "140": [
-      "website_ui_camera_khuvuc"
+      "quanlytacphongsv_public_assets_js_tailwind_config"
     ],
     "141": [
-      "website_ui_danh_muc"
+      "quanlytacphongsv_resources_js_app"
     ],
     "142": [
-      "website_ui_doi_mat_khau"
+      "quanlytacphongsv_resources_views_auth_login_blade"
     ],
     "143": [
-      "website_ui_home"
+      "quanlytacphongsv_resources_views_layouts_app_blade"
     ],
     "144": [
-      "website_ui_includes_footer"
+      "quanlytacphongsv_resources_views_partials_report_filters_blade"
     ],
     "145": [
-      "website_ui_includes_header"
+      "quanlytacphongsv_resources_views_welcome_blade"
     ],
     "146": [
-      "website_ui_includes_report_filters"
+      "scripts_check_system"
     ],
     "147": [
-      "website_ui_list_vipham"
+      "scripts_setup_php_windows"
     ],
     "148": [
-      "website_ui_login"
+      "scripts_start_api"
     ],
     "149": [
-      "website_ui_logout"
+      "scripts_start_desktop"
     ],
     "150": [
-      "website_ui_phanquyen"
+      "scripts_start_laravel_web"
     ],
     "151": [
-      "website_ui_ql_sinhvien"
+      "scripts_start_web"
     ],
     "152": [
+      "traceback"
+    ],
+    "153": [
+      "website_ui_api_catalogs"
+    ],
+    "154": [
+      "website_ui_api_cim"
+    ],
+    "155": [
+      "website_ui_assets_js_tailwind_config"
+    ],
+    "156": [
+      "website_ui_camera_khuvuc"
+    ],
+    "157": [
+      "website_ui_danh_muc"
+    ],
+    "158": [
+      "website_ui_doi_mat_khau"
+    ],
+    "159": [
+      "website_ui_home"
+    ],
+    "160": [
+      "website_ui_includes_footer"
+    ],
+    "161": [
+      "website_ui_includes_header"
+    ],
+    "162": [
+      "website_ui_includes_report_filters"
+    ],
+    "163": [
+      "website_ui_list_vipham"
+    ],
+    "164": [
+      "website_ui_login"
+    ],
+    "165": [
+      "website_ui_logout"
+    ],
+    "166": [
+      "website_ui_phanquyen"
+    ],
+    "167": [
+      "website_ui_ql_sinhvien"
+    ],
+    "168": [
       "website_ui_reporting"
     ]
   },
   "cohesion": {
-    "0": 0.05142941349837902,
-    "1": 0.05263157894736842,
+    "0": 0.0546218487394958,
+    "1": 0.09497882637628555,
     "2": 0.041666666666666664,
-    "3": 0.06763285024154589,
-    "4": 0.11794871794871795,
-    "5": 0.09581646423751687,
-    "6": 0.10384068278805121,
-    "7": 0.07936507936507936,
-    "8": 0.07563025210084033,
-    "9": 0.13725490196078433,
-    "10": 0.1354723707664884,
-    "11": 0.11931818181818182,
-    "12": 0.11954022988505747,
-    "13": 0.10344827586206896,
-    "14": 0.14814814814814814,
-    "15": 0.13675213675213677,
-    "16": 0.09971509971509972,
-    "17": 0.18518518518518517,
-    "18": 0.18233618233618235,
-    "19": 0.12923076923076923,
-    "20": 0.29,
-    "21": 0.21,
-    "22": 0.13405797101449277,
-    "23": 0.12987012987012986,
-    "24": 0.09956709956709957,
-    "25": 0.12380952380952381,
-    "26": 0.13157894736842105,
-    "27": 0.1368421052631579,
-    "28": 0.1631578947368421,
-    "29": 0.1736842105263158,
-    "30": 0.17894736842105263,
-    "31": 0.18128654970760233,
-    "32": 0.2222222222222222,
-    "33": 0.16339869281045752,
-    "34": 0.1503267973856209,
-    "35": 0.17647058823529413,
-    "36": 0.16911764705882354,
-    "37": 0.18382352941176472,
-    "38": 0.16666666666666666,
-    "39": 0.19047619047619047,
-    "40": 0.1523809523809524,
-    "41": 0.26666666666666666,
-    "42": 0.20952380952380953,
-    "43": 0.2,
+    "3": 0.08985200845665962,
+    "4": 0.09268292682926829,
+    "5": 0.12550607287449392,
+    "6": 0.07112375533428165,
+    "7": 0.1111111111111111,
+    "8": 0.13725490196078433,
+    "9": 0.0946969696969697,
+    "10": 0.08522727272727272,
+    "11": 0.09462365591397849,
+    "12": 0.10804597701149425,
+    "13": 0.08374384236453201,
+    "14": 0.11576354679802955,
+    "15": 0.16502463054187191,
+    "16": 0.15079365079365079,
+    "17": 0.13756613756613756,
+    "18": 0.15954415954415954,
+    "19": 0.09971509971509972,
+    "20": 0.18233618233618235,
+    "21": 0.12923076923076923,
+    "22": 0.17666666666666667,
+    "23": 0.21,
+    "24": 0.18478260869565216,
+    "25": 0.12987012987012986,
+    "26": 0.37662337662337664,
+    "27": 0.09956709956709957,
+    "28": 0.15151515151515152,
+    "29": 0.15714285714285714,
+    "30": 0.12380952380952381,
+    "31": 0.1368421052631579,
+    "32": 0.1631578947368421,
+    "33": 0.17894736842105263,
+    "34": 0.2222222222222222,
+    "35": 0.1503267973856209,
+    "36": 0.17647058823529413,
+    "37": 0.16911764705882354,
+    "38": 0.19117647058823528,
+    "39": 0.18382352941176472,
+    "40": 0.16666666666666666,
+    "41": 0.17142857142857143,
+    "42": 0.18095238095238095,
+    "43": 0.19047619047619047,
     "44": 0.2,
-    "45": 0.1978021978021978,
-    "46": 0.15384615384615385,
-    "47": 0.2857142857142857,
-    "48": 0.2087912087912088,
-    "49": 0.2564102564102564,
-    "50": 0.19230769230769232,
-    "51": 0.21212121212121213,
-    "52": 0.30303030303030304,
-    "53": 0.43636363636363634,
-    "54": 0.43636363636363634,
-    "55": 0.2222222222222222,
-    "56": 0.24444444444444444,
-    "57": 0.37777777777777777,
-    "58": 0.37777777777777777,
-    "59": 0.2777777777777778,
-    "60": 0.4444444444444444,
-    "61": 0.5833333333333334,
-    "62": 0.5833333333333334,
-    "63": 0.3888888888888889,
-    "64": 0.32142857142857145,
-    "65": 0.32142857142857145,
-    "66": 0.38095238095238093,
-    "67": 0.42857142857142855,
-    "68": 0.3333333333333333,
-    "69": 0.3333333333333333,
-    "70": 0.4,
-    "71": 0.4,
-    "72": 0.6,
-    "73": 0.5,
-    "74": 0.6,
-    "75": 0.5,
-    "76": 0.5,
-    "77": 0.5,
-    "78": 0.6666666666666666,
-    "79": 0.8333333333333334,
-    "80": 0.6666666666666666,
-    "81": 0.8333333333333334,
-    "82": 0.6666666666666666,
-    "83": 0.6666666666666666,
-    "84": 0.6666666666666666,
-    "85": 0.6666666666666666,
-    "86": 0.6666666666666666,
-    "87": 1.0,
-    "88": 1.0,
-    "89": 1.0,
-    "90": 1.0,
-    "91": 1.0,
-    "92": 1.0,
-    "93": 1.0,
-    "94": 1.0,
-    "95": 1.0,
+    "45": 0.21904761904761905,
+    "46": 0.2,
+    "47": 0.2,
+    "48": 0.15384615384615385,
+    "49": 0.2857142857142857,
+    "50": 0.2087912087912088,
+    "51": 0.2564102564102564,
+    "52": 0.24358974358974358,
+    "53": 0.21212121212121213,
+    "54": 0.19696969696969696,
+    "55": 0.21818181818181817,
+    "56": 0.18181818181818182,
+    "57": 0.43636363636363634,
+    "58": 0.43636363636363634,
+    "59": 0.2222222222222222,
+    "60": 0.37777777777777777,
+    "61": 0.2,
+    "62": 0.2222222222222222,
+    "63": 0.2,
+    "64": 0.2,
+    "65": 0.37777777777777777,
+    "66": 0.37777777777777777,
+    "67": 0.2777777777777778,
+    "68": 0.5833333333333334,
+    "69": 0.5833333333333334,
+    "70": 0.3888888888888889,
+    "71": 0.32142857142857145,
+    "72": 0.32142857142857145,
+    "73": 0.38095238095238093,
+    "74": 0.2857142857142857,
+    "75": 0.42857142857142855,
+    "76": 0.3333333333333333,
+    "77": 0.3333333333333333,
+    "78": 0.4,
+    "79": 0.4,
+    "80": 0.6,
+    "81": 0.5,
+    "82": 0.6,
+    "83": 0.5,
+    "84": 0.5,
+    "85": 0.5,
+    "86": 0.5,
+    "87": 0.6666666666666666,
+    "88": 0.8333333333333334,
+    "89": 0.6666666666666666,
+    "90": 0.8333333333333334,
+    "91": 0.6666666666666666,
+    "92": 0.6666666666666666,
+    "93": 0.6666666666666666,
+    "94": 0.6666666666666666,
+    "95": 0.6666666666666666,
     "96": 1.0,
     "97": 1.0,
     "98": 1.0,
@@ -2114,18 +2244,39 @@
     "149": 1.0,
     "150": 1.0,
     "151": 1.0,
-    "152": 1.0
+    "152": 1.0,
+    "153": 1.0,
+    "154": 1.0,
+    "155": 1.0,
+    "156": 1.0,
+    "157": 1.0,
+    "158": 1.0,
+    "159": 1.0,
+    "160": 1.0,
+    "161": 1.0,
+    "162": 1.0,
+    "163": 1.0,
+    "164": 1.0,
+    "165": 1.0,
+    "166": 1.0,
+    "167": 1.0,
+    "168": 1.0
   },
   "gods": [
     {
       "id": "final_system_api_database_database",
       "label": "Database",
-      "degree": 98
+      "degree": 64
     },
     {
       "id": "quanlytacphongsv_app_services_studentservice_studentservice",
       "label": "StudentService",
-      "degree": 36
+      "degree": 41
+    },
+    {
+      "id": "final_system_desktop_ui_campusmonitorui",
+      "label": "CampusMonitorUI",
+      "degree": 37
     },
     {
       "id": "final_system_ai_reporting_models_event",
@@ -2133,18 +2284,18 @@
       "degree": 34
     },
     {
-      "id": "final_system_desktop_ui_campusmonitorui",
-      "label": "CampusMonitorUI",
-      "degree": 32
-    },
-    {
       "id": "final_system_api_errors_apierror",
       "label": "ApiError",
       "degree": 26
     },
     {
-      "id": "final_system_api_dependencies_currentuser",
-      "label": "CurrentUser",
+      "id": "final_system_desktop_app_app",
+      "label": "App",
+      "degree": 26
+    },
+    {
+      "id": "final_system_ai_temporal_voting_temporalvoting",
+      "label": "TemporalVoting",
       "degree": 25
     },
     {
@@ -2153,72 +2304,67 @@
       "degree": 25
     },
     {
+      "id": "quanlytacphongsv_app_http_controllers_cimproxycontroller_cimproxycontroller",
+      "label": "CimProxyController",
+      "degree": 23
+    },
+    {
       "id": "final_system_api_evidence_evidencestorage",
       "label": "EvidenceStorage",
-      "degree": 24
-    },
-    {
-      "id": "final_system_ai_temporal_voting_temporalvoting",
-      "label": "TemporalVoting",
-      "degree": 24
-    },
-    {
-      "id": "final_system_desktop_app_app",
-      "label": "App",
-      "degree": 22
+      "degree": 23
     }
   ],
   "surprises": [
     {
-      "source": "create_admin()",
-      "target": "Database",
+      "source": "_CameraState",
+      "target": "Pipeline",
       "source_files": [
-        "Final_System/api/cli.py",
-        "Final_System/api/database.py"
+        "Final_System/api/service.py",
+        "Final_System/ai/pipeline.py"
       ],
       "confidence": "INFERRED",
       "relation": "uses",
       "why": "inferred connection - not explicitly stated in source; bridges separate communities"
     },
     {
-      "source": "Database",
-      "target": "DatabaseSettings",
+      "source": "InferenceService",
+      "target": "Pipeline",
       "source_files": [
-        "Final_System/api/database.py",
-        "Final_System/api/settings.py"
+        "Final_System/api/service.py",
+        "Final_System/ai/pipeline.py"
       ],
       "confidence": "INFERRED",
       "relation": "uses",
       "why": "inferred connection - not explicitly stated in source; bridges separate communities"
     },
     {
-      "source": "get_current_user()",
-      "target": "Database",
+      "source": "App",
+      "target": "Pipeline",
       "source_files": [
-        "Final_System/api/dependencies.py",
-        "Final_System/api/database.py"
+        "Final_System/desktop/app.py",
+        "Final_System/ai/pipeline.py"
       ],
       "confidence": "INFERRED",
       "relation": "uses",
       "why": "inferred connection - not explicitly stated in source; bridges separate communities"
     },
     {
-      "source": "get_db()",
-      "target": "Database",
+      "source": "report_ai_pdf()",
+      "target": "AiPdfReportRequest",
       "source_files": [
-        "Final_System/api/dependencies.py",
-        "Final_System/api/database.py"
+        "Final_System/api/routers/reports.py",
+        "Final_System/api/v1_schemas.py"
       ],
       "confidence": "INFERRED",
       "relation": "uses",
       "why": "inferred connection - not explicitly stated in source; bridges separate communities"
     },
     {
-      "source": "get_device_camera()",
-      "target": "Database",
+      "source": "_CameraState",
+      "target": "TemporalVoting",
       "source_files": [
-        "Final_System/api/dependencies.py",
-        "Final_System/api/database.py"
+        "Final_System/api/service.py",
+        "Final_System/ai/temporal_voting.py"
       ],
       "confidence": "INFERRED",
       "relation": "uses",
@@ -2228,23 +2374,23 @@
   "questions": [
     {
       "type": "bridge_node",
-      "question": "Why does `Database` connect `Database` to `cli.py`, `RetentionScheduler`, `routers/auth.py`, `routers/reports.py`, `routers/violations.py`, `test_api_integration.py`, `database.py`, `dependencies.py`, `errors.py`, `retention.py`?",
-      "why": "High betweenness centrality (0.039) - this node is a cross-community bridge."
+      "question": "Why does `App` connect `App` to `CampusMonitorUI`, `test_voting_and_events.py`, `app.py`, `factories.py`?",
+      "why": "High betweenness centrality (0.033) - this node is a cross-community bridge."
     },
     {
       "type": "bridge_node",
-      "question": "Why does `CampusMonitorUI` connect `CampusMonitorUI` to `App`, `app.py`?",
-      "why": "High betweenness centrality (0.030) - this node is a cross-community bridge."
+      "question": "Why does `Database` connect `Database` to `repositories/violations.py`, `repositories/facilities.py`, `dependencies.py`, `routers/violations.py`, `test_api_integration.py`, `settings.py`, `retention.py`, `conftest.py`, `routers/auth.py`, `accounts.py`?",
+      "why": "High betweenness centrality (0.027) - this node is a cross-community bridge."
     },
     {
       "type": "bridge_node",
-      "question": "Why does `SyncWorker` connect `SyncWorker` to `SqliteOutboxRepository`, `pathlib`?",
-      "why": "High betweenness centrality (0.019) - this node is a cross-community bridge."
+      "question": "Why does `CampusMonitorUI` connect `CampusMonitorUI` to `.__init__`, `App`, `app.py`, `.make_modern_button`, `.update_frame`, `.stop_monitoring`, `.run_in_background`?",
+      "why": "High betweenness centrality (0.015) - this node is a cross-community bridge."
     },
     {
       "type": "verify_inferred",
-      "question": "Are the 66 inferred relationships involving `Database` (e.g. with `create_admin()` and `DatabaseSettings`) actually correct?",
-      "why": "`Database` has 66 INFERRED edges - model-reasoned connections that need verification."
+      "question": "Are the 32 inferred relationships involving `Database` (e.g. with `create_admin()` and `DatabaseSettings`) actually correct?",
+      "why": "`Database` has 32 INFERRED edges - model-reasoned connections that need verification."
     },
     {
       "type": "verify_inferred",
@@ -2253,13 +2399,13 @@
     },
     {
       "type": "isolated_nodes",
-      "question": "What connects `pestphp/pest-plugin`, `php-http/discovery`, `optimize-autoloader` to the rest of the system?",
+      "question": "What connects `layouts.app`, `layouts.app`, `layouts.app` to the rest of the system?",
       "why": "60 weakly-connected nodes found - possible documentation gaps or missing edges."
     },
     {
       "type": "low_cohesion",
-      "question": "Should `Database` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.05142941349837902 - nodes in this community are weakly interconnected."
+      "question": "Should `repositories/violations.py` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.0546218487394958 - nodes in this community are weakly interconnected."
     }
   ]
 }

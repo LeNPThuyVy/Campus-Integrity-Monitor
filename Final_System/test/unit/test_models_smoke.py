@@ -24,17 +24,18 @@ def sample_frame():
 
 @pytest.fixture(scope="module")
 def pipeline():
-    for weight in (my_config.DETECT_PERSON_PATH, my_config.CLASSIFY_UNIFORM_PATH, my_config.CLASSIFY_CARD_PATH):
+    for weight in (my_config.DETECT_PERSON_PATH, my_config.CLASSIFY_UNIFORM_PATH, my_config.DETECT_CARD_PATH):
         if not Path(weight).exists():
             pytest.skip(f"Thiếu trọng số {weight}")
     from ai.classifier import Classifier
+    from ai.card_detector import CardDetector
     from ai.detector import Detector
     from ai.pipeline import Pipeline
 
     detector = Detector(my_config.DETECT_PERSON_PATH, my_config.DEVICE, my_config.DETECT_CONF, my_config.IOU_THRESHOLD)
     uniform = Classifier(my_config.CLASSIFY_UNIFORM_PATH, 2, labels=my_config.UNIFORM_LABELS)
-    card = Classifier(my_config.CLASSIFY_CARD_PATH, 2, labels=my_config.CARD_LABELS)
-    return Pipeline(detector=detector, uniform_classifier=uniform, card_classifier=card)
+    card_detector = CardDetector(my_config.DETECT_CARD_PATH, my_config.DEVICE, my_config.DETECT_CARD_CONF, my_config.DETECT_CARD_IOU, my_config.DETECT_CARD_IMAGE_SIZE)
+    return Pipeline(detector=detector, uniform_classifier=uniform, card_detector=card_detector)
 
 
 def test_pipeline_runs_on_real_weights(pipeline, sample_frame):
@@ -44,6 +45,7 @@ def test_pipeline_runs_on_real_weights(pipeline, sample_frame):
         assert result.uniform_prediction.label in my_config.UNIFORM_LABELS
         assert result.card_prediction.label in my_config.CARD_LABELS
         assert 0.0 <= result.uniform_prediction.confidence <= 1.0
+        assert hasattr(result, "card_detections")
         x1, y1, x2, y2 = result.bbox
         assert x2 > x1 and y2 > y1
 

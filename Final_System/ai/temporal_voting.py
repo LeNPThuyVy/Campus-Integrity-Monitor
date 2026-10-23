@@ -54,8 +54,11 @@ class TemporalVoting:
         self.card_histories.clear()
         self.missing_counter.clear()
 
-    def _append(self, histories: dict, track_id: int, prediction):
-        if prediction is None or prediction.confidence < my_config.CLASSIFY_CONF:
+    def _append(self, histories: dict, track_id: int, prediction, min_conf: float = None):
+        if prediction is None:
+            return
+        threshold = my_config.CLASSIFY_CONF if min_conf is None else min_conf
+        if prediction.confidence < threshold:
             return
         histories.setdefault(track_id, deque(maxlen=self.len_history)).append(
             (prediction.label, float(prediction.confidence)))
@@ -65,9 +68,10 @@ class TemporalVoting:
         this function will update history by appending new class results
         and update missing counter if the id doesn't appear after k frames
         """
+        card_min_conf = getattr(my_config, "DETECT_CARD_CONF", my_config.CLASSIFY_CONF)
         for result in new_pipeline_result:
-            self._append(self.uniform_histories, result.track_id, result.uniform_prediction)
-            self._append(self.card_histories, result.track_id, result.card_prediction)
+            self._append(self.uniform_histories, result.track_id, result.uniform_prediction, min_conf=my_config.CLASSIFY_CONF)
+            self._append(self.card_histories, result.track_id, result.card_prediction, min_conf=card_min_conf)
             self.missing_counter[result.track_id]=0
 
         #Get the id doesn't appear in new_pipeline_result to update the missing counter
