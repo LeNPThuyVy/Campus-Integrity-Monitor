@@ -38,7 +38,8 @@ class TemporalVoting:
     def __init__(self):
         """
         histories contain track_id history for uniform and card classification.
-        Each entry is (label, confidence); only predictions with confidence >= CLASSIFY_CONF are kept.
+        For uniform: Uniform with confidence >= CLASSIFY_CONF stays Uniform;
+        Uniform with confidence < CLASSIFY_CONF becomes Non_Uniform; Non_Uniform stays Non_Uniform.
         """
         self.len_history=my_config.LEN_HISTORY
         self.uniform_histories = {}
@@ -63,6 +64,17 @@ class TemporalVoting:
         histories.setdefault(track_id, deque(maxlen=self.len_history)).append(
             (prediction.label, float(prediction.confidence)))
 
+    def _append_uniform(self, track_id: int, prediction, min_conf: float = None):
+        if prediction is None:
+            return
+        threshold = my_config.CLASSIFY_CONF if min_conf is None else min_conf
+        if prediction.label == UNIFORM:
+            label = UNIFORM if prediction.confidence >= threshold else NON_UNIFORM
+        else:
+            label = NON_UNIFORM
+        self.uniform_histories.setdefault(track_id, deque(maxlen=self.len_history)).append(
+            (label, float(prediction.confidence)))
+
     def update(self,new_pipeline_result: list[PipelineResult]):
         """
         this function will update history by appending new class results
@@ -70,7 +82,7 @@ class TemporalVoting:
         """
         card_min_conf = getattr(my_config, "DETECT_CARD_CONF", my_config.CLASSIFY_CONF)
         for result in new_pipeline_result:
-            self._append(self.uniform_histories, result.track_id, result.uniform_prediction, min_conf=my_config.CLASSIFY_CONF)
+            self._append_uniform(result.track_id, result.uniform_prediction, min_conf=my_config.CLASSIFY_CONF)
             self._append(self.card_histories, result.track_id, result.card_prediction, min_conf=card_min_conf)
             self.missing_counter[result.track_id]=0
 

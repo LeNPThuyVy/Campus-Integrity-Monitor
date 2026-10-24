@@ -49,11 +49,39 @@ def test_majority_ratio_prevents_false_alarm():
     assert votes[1].uniform_label == "Non_Uniform"
 
 
-def test_low_confidence_predictions_are_ignored():
+def test_uniform_confidence_threshold_demotes_low_conf_uniform_and_keeps_non_uniform():
     voting = TemporalVoting()
-    votes = feed(voting, [[result(1, "Non_Uniform", "No_Card", conf=0.2)]] * 10)
-    assert votes[1].uniform_label == "Waiting"
-    assert votes[1].matched_count == 0
+    # Uniform with conf < CLASSIFY_CONF (0.4) becomes Non_Uniform in the queue
+    votes = feed(voting, [[PipelineResult(
+        track_id=1,
+        bbox=[10, 10, 110, 210],
+        uniform_prediction=Prediction("Uniform", 0.2),
+        card_prediction=Prediction("Card", 0.9),
+    )]] * 5)
+    assert votes[1].uniform_label == "Non_Uniform"
+    assert votes[1].matched_count == 5
+
+    # Non_Uniform with conf < CLASSIFY_CONF (0.4) stays Non_Uniform in the queue
+    voting.reset()
+    votes = feed(voting, [[PipelineResult(
+        track_id=1,
+        bbox=[10, 10, 110, 210],
+        uniform_prediction=Prediction("Non_Uniform", 0.2),
+        card_prediction=Prediction("Card", 0.9),
+    )]] * 5)
+    assert votes[1].uniform_label == "Non_Uniform"
+    assert votes[1].matched_count == 5
+
+    # Uniform with conf >= CLASSIFY_CONF (0.4) stays Uniform in the queue
+    voting.reset()
+    votes = feed(voting, [[PipelineResult(
+        track_id=1,
+        bbox=[10, 10, 110, 210],
+        uniform_prediction=Prediction("Uniform", 0.7),
+        card_prediction=Prediction("Card", 0.9),
+    )]] * 5)
+    assert votes[1].uniform_label == "Uniform"
+    assert votes[1].matched_count == 5
 
 
 def test_track_removed_after_missing_frames_and_reset():
