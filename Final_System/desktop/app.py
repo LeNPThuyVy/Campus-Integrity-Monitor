@@ -21,6 +21,7 @@ from ai.detector import Detector
 from ai.pipeline import Pipeline
 from ai.temporal_voting import TemporalVoting
 from ai.violation_events import ViolationEventDetector, combined_status
+from ai.brightness import BrightnessNormalizer
 from desktop.camera import Camera
 from desktop.violation_sender import ApiConfig, ViolationSender, check_connection
 import ai.config as my_config
@@ -71,6 +72,7 @@ class App:
         )
         self.voting = TemporalVoting()
         self.event_detector = ViolationEventDetector()
+        self.brightness = BrightnessNormalizer()
         self.camera: Camera | None = None
 
         self.is_running = False
@@ -112,6 +114,7 @@ class App:
             "DETECT_CARD_IMAGE_SIZE":    getattr(my_config, "DETECT_CARD_IMAGE_SIZE", 224),
             "IOU_THRESHOLD":             my_config.IOU_THRESHOLD,
             "FRAME_SKIP":                my_config.FRAME_SKIP,
+            "BRIGHTNESS_ENABLED":        getattr(my_config, "BRIGHTNESS_ENABLED", 1),
             "LEN_HISTORY":               my_config.LEN_HISTORY,
             "VOTING_THREDSHOLD":         my_config.VOTING_THREDSHOLD,
             "VIOLATION_RATIO":           my_config.VIOLATION_RATIO,
@@ -149,6 +152,7 @@ class App:
         p["DETECT_CARD_IMAGE_SIZE"] = int(p.get("DETECT_CARD_IMAGE_SIZE", 224))
         p["IOU_THRESHOLD"] = min(max(float(p["IOU_THRESHOLD"]), 0.1), 1.0)
         p["FRAME_SKIP"] = min(max(int(p["FRAME_SKIP"]), 1), 30)
+        p["BRIGHTNESS_ENABLED"] = 1 if int(p.get("BRIGHTNESS_ENABLED", 1)) else 0
         p["LEN_HISTORY"] = min(max(int(p["LEN_HISTORY"]), 3), 100)
         p["VOTING_THREDSHOLD"] = min(max(int(p["VOTING_THREDSHOLD"]), 1), p["LEN_HISTORY"])
         p["VIOLATION_RATIO"] = min(max(float(p["VIOLATION_RATIO"]), 0.5), 1.0)
@@ -187,6 +191,7 @@ class App:
         my_config.DETECT_CARD_IMAGE_SIZE    = self.params["DETECT_CARD_IMAGE_SIZE"]
         my_config.IOU_THRESHOLD             = self.params["IOU_THRESHOLD"]
         my_config.FRAME_SKIP                = self.params["FRAME_SKIP"]
+        my_config.BRIGHTNESS_ENABLED        = self.params.get("BRIGHTNESS_ENABLED", 1)
         my_config.LEN_HISTORY               = self.params["LEN_HISTORY"]
         my_config.VOTING_THREDSHOLD         = self.params["VOTING_THREDSHOLD"]
         my_config.VIOLATION_RATIO           = self.params["VIOLATION_RATIO"]
@@ -291,6 +296,7 @@ class App:
             self.detector.reset_tracker()
             self.voting.reset(self.params["LEN_HISTORY"])
             self.event_detector.reset()
+            self.brightness.reset()
         self.is_running = True
         self.frame_queue = queue.Queue(maxsize=2)
         self.result_queue = queue.Queue(maxsize=2)
@@ -361,7 +367,8 @@ class App:
           - results_voting: voted results per track_id (dict)
         """
         with self._state_lock:
-            results = self.pipeline.run(frame=frame)
+            ai_frame = self.brightness.apply(frame)
+            results = self.pipeline.run(frame=ai_frame)
             self.voting.update(results)
             results_voting = self.voting.vote()
             now = datetime.now().astimezone().replace(microsecond=0)
@@ -398,6 +405,7 @@ class App:
         with self._state_lock:
             self.voting.reset()
             self.event_detector.reset()
+            self.brightness.reset()
 
     @staticmethod
     def compute_statistics(results_voting: dict) -> dict:

@@ -171,6 +171,12 @@ class CatalogService
             if ($bin !== false) {
                 $utf8 = @mb_convert_encoding($bin, 'UTF-8', 'UTF-16LE');
                 if ($utf8 !== false && mb_check_encoding($utf8, 'UTF-8')) {
+                $unmojibake = @mb_convert_encoding($utf8, 'Windows-1252', 'UTF-8');
+                if ($unmojibake !== false && mb_check_encoding($unmojibake, 'UTF-8') && !str_contains($unmojibake, '?')) {
+                    if (preg_match('/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/u', $unmojibake)) {
+                        return $unmojibake;
+                    }
+                }
                     return $utf8;
                 }
             }

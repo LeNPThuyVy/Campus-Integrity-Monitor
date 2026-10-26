@@ -111,6 +111,12 @@ class StudentService
             if ($bin !== false) {
                 $utf8 = @mb_convert_encoding($bin, 'UTF-8', 'UTF-16LE');
                 if ($utf8 !== false && mb_check_encoding($utf8, 'UTF-8')) {
+                $unmojibake = @mb_convert_encoding($utf8, 'Windows-1252', 'UTF-8');
+                if ($unmojibake !== false && mb_check_encoding($unmojibake, 'UTF-8') && !str_contains($unmojibake, '?')) {
+                    if (preg_match('/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/u', $unmojibake)) {
+                        return $unmojibake;
+                    }
+                }
                     return $utf8;
                 }
             }
@@ -1432,7 +1438,7 @@ class StudentService
                     $inserted++;
                 }
             } elseif ($dataset === 'VIPHAM') {
-                $students = $pdo->query('SELECT ID, UPPER(MA_SV) as code FROM SINHVIEN')->fetchAll(PDO::FETCH_KEY_PAIR);
+                $students = $pdo->query('SELECT UPPER(RTRIM(LTRIM(MA_SV))) as code, ID FROM SINHVIEN')->fetchAll(PDO::FETCH_KEY_PAIR);
                 $types = $pdo->query('SELECT ID, TEN_LOI, CONVERT(VARCHAR(MAX), CAST(TEN_LOI AS VARBINARY(MAX)), 2) AS TEN_LOI_HEX FROM LOI_VIPHAM')->fetchAll();
                 $typeMap = [];
                 foreach ($types as $t) {
@@ -1451,7 +1457,7 @@ class StudentService
                         continue;
                     }
                     $val = $item['values'];
-                    $codeUpper = strtoupper((string)($val['MA_SV'] ?? ''));
+                    $codeUpper = strtoupper(trim((string)($val['MA_SV'] ?? '')));
                     $studentId = $students[$codeUpper] ?? null;
                     if (!$studentId) {
                         $skipped++;

@@ -65,6 +65,26 @@ MISSING_COUNTER_THRESHOLD=5  #Frames a track may be missing before its history i
 
 
 #==========================
+#Brightness
+#==========================
+BRIGHTNESS_ENABLED=1              #1 = normalize brightness before AI, 0 = off
+BRIGHTNESS_MEASURE_INTERVAL=15    #Measure once per N AI frames (result is cached)
+BRIGHTNESS_TARGET=120             #Mean gray level to aim for
+BRIGHTNESS_DARK_ON=60             #Mean below this = too dark
+BRIGHTNESS_DARK_OFF=75            #Leave dark mode when mean rises above this
+BRIGHTNESS_BRIGHT_ON=195          #Mean above this = too bright
+BRIGHTNESS_BRIGHT_OFF=180         #Leave bright mode when mean falls below this
+BRIGHTNESS_CLIP_ON=0.10           #Share of near-white pixels that counts as glare
+BRIGHTNESS_CLIP_OFF=0.07          #Leave glare mode when clip falls below this
+BRIGHTNESS_GLARE_GAMMA=1.25       #Fixed gamma when only glare is detected
+BRIGHTNESS_GAMMA_MIN=0.6          #Max brightening limit
+BRIGHTNESS_GAMMA_MAX=1.8          #Max darkening limit
+BRIGHTNESS_EMA_ALPHA=0.3          #Smoothing factor to avoid flicker
+BRIGHTNESS_DEAD_ZONE=0.08         #|gamma-1| below this = leave frame untouched
+
+
+
+#==========================
 #Violation events (Desktop -> API)
 #==========================
 EVENT_DEDUP_SECONDS=600      #Same track is never reported twice within this window

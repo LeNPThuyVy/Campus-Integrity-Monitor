@@ -342,6 +342,12 @@ class CimProxyController extends Controller
             if ($bin !== false) {
                 $utf8 = @mb_convert_encoding($bin, 'UTF-8', 'UTF-16LE');
                 if ($utf8 !== false && mb_check_encoding($utf8, 'UTF-8')) {
+                $unmojibake = @mb_convert_encoding($utf8, 'Windows-1252', 'UTF-8');
+                if ($unmojibake !== false && mb_check_encoding($unmojibake, 'UTF-8') && !str_contains($unmojibake, '?')) {
+                    if (preg_match('/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/u', $unmojibake)) {
+                        return $unmojibake;
+                    }
+                }
                     return $utf8;
                 }
             }
@@ -523,7 +529,7 @@ class CimProxyController extends Controller
                 $description = trim((string)($data['description'] ?? ''));
                 $active = !empty($data['active']) ? 1 : 0;
 
-                $upd = $pdo->prepare('UPDATE KHU_VUC SET TEN_KHU_VUC = COALESCE(NULLIF(:n, \'\'), TEN_KHU_VUC), MO_TA = :d, DANG_SU_DUNG = :act WHERE ID = :id');
+                $upd = $pdo->prepare('UPDATE KHU_VUC SET TEN_KHU_VUC = COALESCE(NULLIF(CAST(:n AS NVARCHAR(100)), \'\'), TEN_KHU_VUC), MO_TA = CAST(:d AS NVARCHAR(255)), DANG_SU_DUNG = :act WHERE ID = :id');
                 $upd->execute([
                     'n' => $name,
                     'd' => $description ?: null,
@@ -660,7 +666,7 @@ class CimProxyController extends Controller
                 $streamSource = trim((string)($data['stream_source'] ?? ''));
                 $active = !empty($data['active']) ? 1 : 0;
 
-                $upd = $pdo->prepare('UPDATE CAMERA SET TEN_CAMERA = COALESCE(NULLIF(:n, \'\'), TEN_CAMERA), KHU_VUC_ID = :a, VI_TRI = :loc, NGUON_VIDEO = :src, DANG_SU_DUNG = :act, NGAY_CAP_NHAT = SYSDATETIME() WHERE ID = :id');
+                $upd = $pdo->prepare('UPDATE CAMERA SET TEN_CAMERA = COALESCE(NULLIF(CAST(:n AS NVARCHAR(100)), \'\'), TEN_CAMERA), KHU_VUC_ID = :a, VI_TRI = CAST(:loc AS NVARCHAR(255)), NGUON_VIDEO = CAST(:src AS NVARCHAR(500)), DANG_SU_DUNG = :act, NGAY_CAP_NHAT = SYSDATETIME() WHERE ID = :id');
                 $upd->execute([
                     'n' => $name,
                     'a' => $areaId,
@@ -763,7 +769,7 @@ class CimProxyController extends Controller
                     $pdo->exec('UPDATE HOCKY SET HIEN_TAI = 0');
                 }
 
-                $upd = $pdo->prepare('UPDATE HOCKY SET TEN_HK = COALESCE(NULLIF(:name, \'\'), TEN_HK), NGAY_BAT_DAU = COALESCE(NULLIF(:s, \'\'), NGAY_BAT_DAU), NGAY_KET_THUC = COALESCE(NULLIF(:e, \'\'), NGAY_KET_THUC), HIEN_TAI = :curr WHERE ID = :id');
+                $upd = $pdo->prepare('UPDATE HOCKY SET TEN_HK = COALESCE(NULLIF(CAST(:name AS NVARCHAR(100)), \'\'), TEN_HK), NGAY_BAT_DAU = COALESCE(NULLIF(CAST(:s AS VARCHAR(10)), \'\'), NGAY_BAT_DAU), NGAY_KET_THUC = COALESCE(NULLIF(CAST(:e AS VARCHAR(10)), \'\'), NGAY_KET_THUC), HIEN_TAI = :curr WHERE ID = :id');
                 $upd->execute([
                     'name' => $name,
                     's' => $startDate,

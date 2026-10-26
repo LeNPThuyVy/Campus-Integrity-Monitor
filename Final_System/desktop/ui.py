@@ -581,6 +581,7 @@ class CampusMonitorUI:
         self.spin_voting_thresh  = add_spinbox(spin_panel, 1, 0, "Khung tối thiểu:",   "VOTING_THREDSHOLD",        1, 50)
         self.spin_missing_thresh = add_spinbox(spin_panel, 1, 1, "Ngưỡng biến mất:",  "MISSING_COUNTER_THRESHOLD",1, 60)
         self.spin_dedup          = add_spinbox(spin_panel, 2, 0, "Chống lặp (giây):",  "EVENT_DEDUP_SECONDS",     10, 3600)
+        self.spin_brightness     = add_spinbox(spin_panel, 2, 1, "Chuẩn hoá sáng (0/1):", "BRIGHTNESS_ENABLED",     0, 1)
 
         # API Connection Section (Using ModernEntry)
         api_panel = tk.Frame(scroll_frame, bg="#F8FAFC",
@@ -857,6 +858,7 @@ class CampusMonitorUI:
         self.spin_missing_thresh.set(p["MISSING_COUNTER_THRESHOLD"])
         self.slider_violation_ratio.set(p["VIOLATION_RATIO"])
         self.spin_dedup.set(p["EVENT_DEDUP_SECONDS"])
+        self.spin_brightness.set(p.get("BRIGHTNESS_ENABLED", 1))
 
     def _form_parameters(self) -> dict:
         return {
@@ -872,6 +874,7 @@ class CampusMonitorUI:
             "VIOLATION_RATIO":           float(self.slider_violation_ratio.get()),
             "MISSING_COUNTER_THRESHOLD": int(self.spin_missing_thresh.get()),
             "EVENT_DEDUP_SECONDS":       int(self.spin_dedup.get()),
+            "BRIGHTNESS_ENABLED":        int(self.spin_brightness.get()),
             "API_URL":                   self.entry_api_url.get(),
             "CAMERA_CODE":               self.entry_camera_code.get(),
             "DEVICE_KEY":                self.entry_device_key.get(),
