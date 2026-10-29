@@ -90,8 +90,8 @@ class TemporalVoting:
         """
         Histories contain track_id history for uniform and card classification.
         Independent thresholds:
-        - Uniform with confidence >= CLASSIFY_CONF stays Uniform; < CLASSIFY_CONF becomes Non_Uniform
-        - Non_Uniform with confidence >= NON_UNIFORM_CONF stays Non_Uniform; < NON_UNIFORM_CONF becomes Uniform
+        - Uniform votes need confidence >= CLASSIFY_CONF, otherwise the frame is skipped
+        - Non_Uniform votes need confidence >= NON_UNIFORM_CONF, otherwise the frame is skipped
         """
         self.len_history = my_config.LEN_HISTORY
         self.uniform_histories = {}
@@ -132,18 +132,18 @@ class TemporalVoting:
             return
         uniform_thresh = my_config.CLASSIFY_CONF if min_conf is None else min_conf
         non_uniform_thresh = (
-            getattr(my_config, "NON_UNIFORM_CONF", 0.0)
+            getattr(my_config, "NON_UNIFORM_CONF", my_config.CLASSIFY_CONF)
             if non_uniform_min_conf is None
             else non_uniform_min_conf
         )
 
-        if prediction.label == UNIFORM:
-            label = UNIFORM if prediction.confidence >= uniform_thresh else NON_UNIFORM
-        else:
-            label = NON_UNIFORM if prediction.confidence >= non_uniform_thresh else UNIFORM
+        # Uncertain predictions are skipped, never converted into a vote for the opposite class
+        threshold = uniform_thresh if prediction.label == UNIFORM else non_uniform_thresh
+        if prediction.confidence < threshold:
+            return
 
         self.uniform_histories.setdefault(track_id, deque(maxlen=self.len_history)).append(
-            (label, float(prediction.confidence))
+            (prediction.label, float(prediction.confidence))
         )
 
     def update(self, new_pipeline_result: list[PipelineResult]):
@@ -157,7 +157,7 @@ class TemporalVoting:
                 result.track_id,
                 result.uniform_prediction,
                 min_conf=my_config.CLASSIFY_CONF,
-                non_uniform_min_conf=getattr(my_config, "NON_UNIFORM_CONF", 0.0)
+                non_uniform_min_conf=getattr(my_config, "NON_UNIFORM_CONF", my_config.CLASSIFY_CONF)
             )
             self._append(self.card_histories, result.track_id, result.card_prediction, min_conf=card_min_conf)
             self.missing_counter[result.track_id] = 0

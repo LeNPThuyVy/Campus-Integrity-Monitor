@@ -9,7 +9,7 @@ import torch
 CURRENT_FILE=Path(__file__).resolve() #Get current folder path
 ROOT_DIR=CURRENT_FILE  .parent.parent
 DETECT_PERSON_PATH=ROOT_DIR /"models"/"detector.pt"
-CLASSIFY_UNIFORM_PATH = ROOT_DIR /"models"/"kd_student_seed42_best.pt"
+CLASSIFY_UNIFORM_PATH = ROOT_DIR /"models"/"kd_student_seed42_best_ver1.pt"
 DETECT_CARD_PATH = ROOT_DIR / "models" / "detect_card.pt"
 CLASSIFY_CARD_PATH = DETECT_CARD_PATH
 DETECTOR_MODEL_NAME="YOLO26"
@@ -28,10 +28,15 @@ LABELS = UNIFORM_LABELS
 DETECT_IMAGE_SIZE=640
 CLASSIFY_IMAGE_SIZE=224
 DETECT_CONF=0.3
-CLASSIFY_CONF=0.4
-NON_UNIFORM_CONF=0.7         #Min confidence to keep "Non_Uniform"; below this -> becomes "Uniform"
+CLASSIFY_CONF=0.7            #Min confidence for a "Uniform" vote; below this the frame is skipped
+NON_UNIFORM_CONF=0.7         #Min confidence for a "Non_Uniform" vote; below this the frame is skipped
 MIN_PERSON_HEIGHT_RATIO=0.25 #Ignore detected person if bbox_height / frame_height < this ratio
-UPPER_BODY_CROP_RATIO=0.68   #Consistent upper-body crop ratio across distances
+UPPER_BODY_CROP_RATIO=0.68   #Consistent upper-body crop ratio across distances (card detector crop)
+UNIFORM_CROP_TOP=0.20        #Uniform crop starts below the head (share of bbox height) for a fully visible person
+UNIFORM_CROP_BOTTOM=0.85     #Uniform crop ends above the feet for a fully visible person
+UNIFORM_CROP_TOP_TRUNCATED=0.30    #Uniform crop top when the bbox is cut by the bottom frame edge (close-up)
+UNIFORM_CROP_BOTTOM_TRUNCATED=1.0  #Uniform crop bottom when the bbox is cut by the bottom frame edge
+TRUNCATED_EDGE_RATIO=0.02    #bbox bottom within this share of frame height from the edge = person cut off
 DETECT_CARD_CONF=0.3
 DETECT_CARD_IOU=0.3
 DETECT_CARD_IMAGE_SIZE=224
@@ -66,7 +71,10 @@ VIOLATION_RATIO=0.6          #Share of "violation" votes needed to conclude a vi
 MISSING_COUNTER_THRESHOLD=5  #Frames a track may be missing before its history is dropped
 LABEL_HOLD_SECONDS=2         #Seconds to hold a decided label before allowing a class flip
 HYSTERESIS_MARGIN=0.20       #Margin below VIOLATION_RATIO required to flip Non_Uniform -> Uniform
-CROP_CLAHE_ENABLED=1         #1 = apply local CLAHE on each cropped person when lighting is poor
+CROP_CLAHE_ENABLED=0         #1 = apply local CLAHE on each cropped person when lighting is extreme (model was trained without it)
+DEBUG_SAVE_CROPS=0           #1 = save every classified crop with its raw label/confidence to DEBUG_CROPS_DIR
+DEBUG_CROPS_MAX_PER_TRACK=30 #Max crops saved per track when DEBUG_SAVE_CROPS=1
+DEBUG_CROPS_DIR=ROOT_DIR/"debug_crops"
 
 
 

@@ -54,64 +54,60 @@ def test_majority_ratio_prevents_false_alarm():
     assert votes[1].uniform_label == "Non_Uniform"
 
 
-def test_uniform_confidence_threshold_demotes_low_conf_uniform_and_keeps_non_uniform():
-    voting = TemporalVoting()
-    # Uniform with conf < CLASSIFY_CONF (0.4) becomes Non_Uniform in the queue
-    votes = feed(voting, [[PipelineResult(
+def uniform_only(label, conf):
+    return PipelineResult(
         track_id=1,
         bbox=[10, 10, 110, 210],
-        uniform_prediction=Prediction("Uniform", 0.2),
+        uniform_prediction=Prediction(label, conf),
         card_prediction=Prediction("Card", 0.9),
-    )]] * 5)
-    assert votes[1].uniform_label == "Non_Uniform"
-    assert votes[1].matched_count == 5
+    )
 
-    # Non_Uniform with conf < CLASSIFY_CONF (0.4) stays Non_Uniform when NON_UNIFORM_CONF=0.0
+
+def test_uniform_confidence_threshold_skips_low_conf_uniform():
+    voting = TemporalVoting()
+    # Uniform with conf < CLASSIFY_CONF (0.4) is skipped, never turned into Non_Uniform
+    votes = feed(voting, [[uniform_only("Uniform", 0.2)]] * 5)
+    assert votes[1].uniform_label == "Waiting"
+    assert len(voting.uniform_histories.get(1, ())) == 0
+
+    # Non_Uniform with conf 0.2 is kept when NON_UNIFORM_CONF=0.0
     voting.reset()
-    votes = feed(voting, [[PipelineResult(
-        track_id=1,
-        bbox=[10, 10, 110, 210],
-        uniform_prediction=Prediction("Non_Uniform", 0.2),
-        card_prediction=Prediction("Card", 0.9),
-    )]] * 5)
+    votes = feed(voting, [[uniform_only("Non_Uniform", 0.2)]] * 5)
     assert votes[1].uniform_label == "Non_Uniform"
     assert votes[1].matched_count == 5
 
     # Uniform with conf >= CLASSIFY_CONF (0.4) stays Uniform in the queue
     voting.reset()
-    votes = feed(voting, [[PipelineResult(
-        track_id=1,
-        bbox=[10, 10, 110, 210],
-        uniform_prediction=Prediction("Uniform", 0.7),
-        card_prediction=Prediction("Card", 0.9),
-    )]] * 5)
+    votes = feed(voting, [[uniform_only("Uniform", 0.7)]] * 5)
     assert votes[1].uniform_label == "Uniform"
     assert votes[1].matched_count == 5
 
 
-def test_non_uniform_confidence_threshold_flips_low_conf_to_uniform(monkeypatch):
+def test_non_uniform_confidence_threshold_skips_low_conf_non_uniform(monkeypatch):
     monkeypatch.setattr(my_config, "NON_UNIFORM_CONF", 0.70)
     monkeypatch.setattr(my_config, "CLASSIFY_CONF", 0.40)
     voting = TemporalVoting()
 
-    # Non_Uniform with conf 0.55 (< NON_UNIFORM_CONF 0.70) is converted to Uniform
-    votes = feed(voting, [[PipelineResult(
-        track_id=1,
-        bbox=[10, 10, 110, 210],
-        uniform_prediction=Prediction("Non_Uniform", 0.55),
-        card_prediction=Prediction("Card", 0.9),
-    )]] * 5)
-    assert votes[1].uniform_label == "Uniform"
+    # Non_Uniform with conf 0.55 (< NON_UNIFORM_CONF 0.70) is skipped, never turned into Uniform
+    votes = feed(voting, [[uniform_only("Non_Uniform", 0.55)]] * 5)
+    assert votes[1].uniform_label == "Waiting"
+    assert len(voting.uniform_histories.get(1, ())) == 0
 
     # Non_Uniform with conf 0.85 (>= NON_UNIFORM_CONF 0.70) stays Non_Uniform
     voting.reset()
-    votes = feed(voting, [[PipelineResult(
-        track_id=1,
-        bbox=[10, 10, 110, 210],
-        uniform_prediction=Prediction("Non_Uniform", 0.85),
-        card_prediction=Prediction("Card", 0.9),
-    )]] * 5)
+    votes = feed(voting, [[uniform_only("Non_Uniform", 0.85)]] * 5)
     assert votes[1].uniform_label == "Non_Uniform"
+
+
+def test_uncertain_uniform_votes_do_not_hide_violation(monkeypatch):
+    monkeypatch.setattr(my_config, "NON_UNIFORM_CONF", 0.6)
+    monkeypatch.setattr(my_config, "CLASSIFY_CONF", 0.6)
+    voting = TemporalVoting()
+    # Confident Non_Uniform mixed with uncertain Uniform: only the confident votes count
+    frames = [[uniform_only("Non_Uniform", 0.65)], [uniform_only("Uniform", 0.55)]] * 5
+    votes = feed(voting, frames)
+    assert votes[1].uniform_label == "Non_Uniform"
+    assert len(voting.uniform_histories[1]) == 5
 
 
 def test_label_hold_seconds_prevents_rapid_class_switching(monkeypatch):
@@ -208,6 +204,35 @@ def test_crop_evidence_validation():
     assert crop_evidence(np.zeros((480, 640, 3), np.uint8), (100, 100, 200, 300)) is None  # blank frame
     assert crop_evidence(None, (1, 2, 3, 4)) is None
     assert crop_evidence(frame, (200, 200, 100, 100)) is None  # inverted box
+
+
+def _row_frame():
+    # Each row stores its own index so a crop reveals which rows it covers
+    rows = np.arange(480, dtype=np.uint16).reshape(480, 1, 1) % 256
+    return np.broadcast_to(rows, (480, 640, 3)).astype(np.uint8).copy()
+
+
+def test_crop_uniform_region_skips_head_for_full_body(monkeypatch):
+    monkeypatch.setattr(my_config, "UNIFORM_CROP_TOP", 0.2)
+    monkeypatch.setattr(my_config, "UNIFORM_CROP_BOTTOM", 0.85)
+    crop = Utils.crop_uniform_region(_row_frame(), [100, 100, 200, 300])
+    assert crop.shape[:2] == (130, 100)  # rows 140..269 of a 200px tall person
+    assert crop[0, 0, 0] == 140
+
+
+def test_crop_uniform_region_uses_truncated_ratios_at_bottom_edge(monkeypatch):
+    monkeypatch.setattr(my_config, "UNIFORM_CROP_TOP_TRUNCATED", 0.3)
+    monkeypatch.setattr(my_config, "UNIFORM_CROP_BOTTOM_TRUNCATED", 1.0)
+    crop = Utils.crop_uniform_region(_row_frame(), [100, 80, 300, 480])
+    assert crop.shape[:2] == (280, 200)  # rows 200..479: head excluded, torso kept to the frame edge
+    assert crop[0, 0, 0] == 200
+
+
+def test_crop_uniform_region_handles_degenerate_boxes():
+    frame = _row_frame()
+    assert Utils.crop_uniform_region(frame, [700, 500, 800, 600]).size == 0  # fully outside
+    assert Utils.crop_uniform_region(frame, [200, 200, 100, 100]).size == 0  # inverted box
+    assert Utils.crop_uniform_region(frame, [-50, -50, 100, 600]).size > 0  # clamped to frame
 
 
 def test_event_detector_reports_once_per_track_and_respects_dedup_window():

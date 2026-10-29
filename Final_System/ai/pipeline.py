@@ -1,4 +1,7 @@
 from dataclasses import dataclass, field
+from pathlib import Path
+import cv2
+import ai.config as my_config
 from ai.classifier import Prediction, Classifier
 from ai.card_detector import CardDetector, CardDetection
 from ai.detector import Detector
@@ -28,7 +31,8 @@ class Pipeline:
         self.card_classifier = card_classifier
         self.card_detector = card_detector
         self.classifier = self.uniform_classifier
-    
+        self._debug_counts: dict[int, int] = {}
+
     def run(self, frame) -> list[PipelineResult]:
         """
         The process would be:
@@ -45,8 +49,9 @@ class Pipeline:
         
         valid_results = []
         valid_crops = []
+        uniform_crops = []
         crop_offsets = []
-        
+
         for result in results_detected:
             if not Utils.is_person_large_enough(frame.shape, result.bbox):
                 continue
@@ -54,16 +59,18 @@ class Pipeline:
             x1 = max(0, int(result.bbox[0]))
             y1 = max(0, int(result.bbox[1]))
             image_cropped = Utils.crop_person(frame=frame, bbox=result.bbox)
-            if image_cropped is not None and image_cropped.size > 0:
+            uniform_cropped = Utils.crop_uniform_region(frame=frame, bbox=result.bbox)
+            if image_cropped is not None and image_cropped.size > 0 and uniform_cropped.size > 0:
                 valid_results.append(result)
                 valid_crops.append(image_cropped)
+                uniform_crops.append(uniform_cropped)
                 crop_offsets.append((x1, y1))
-                
+
         if not valid_crops:
             return []
 
-        # 1. Uniform classification
-        uniform_preds = self.uniform_classifier.classify_batch(valid_crops) if self.uniform_classifier else [None] * len(valid_crops)
+        # 1. Uniform classification on the shirt region (head excluded)
+        uniform_preds = self.uniform_classifier.classify_batch(uniform_crops) if self.uniform_classifier else [None] * len(uniform_crops)
         
         # 2. Card detection via YOLO (or fallback to card_classifier if present)
         card_detections_batch = []
@@ -92,6 +99,9 @@ class Pipeline:
             card_preds = [None] * len(valid_crops)
             card_detections_batch = [[] for _ in valid_crops]
 
+        if getattr(my_config, "DEBUG_SAVE_CROPS", 0):
+            self._save_debug_crops(valid_results, uniform_crops, uniform_preds)
+
         for i, result in enumerate(valid_results):
             results.append(PipelineResult(
                 track_id=result.track_id,
@@ -103,3 +113,21 @@ class Pipeline:
             ))
         
         return results
+
+    def _save_debug_crops(self, detections, crops, predictions):
+        """
+        Save each classified crop as <track_id>_<n>_<label>_<conf>.jpg so the raw model
+        output can be inspected separately from temporal voting
+        """
+        out_dir = Path(my_config.DEBUG_CROPS_DIR)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        max_per_track = getattr(my_config, "DEBUG_CROPS_MAX_PER_TRACK", 30)
+        for detection, crop, pred in zip(detections, crops, predictions):
+            if pred is None:
+                continue
+            count = self._debug_counts.get(detection.track_id, 0)
+            if count >= max_per_track:
+                continue
+            self._debug_counts[detection.track_id] = count + 1
+            name = f"{detection.track_id}_{count:03d}_{pred.label}_{pred.confidence:.2f}.jpg"
+            cv2.imwrite(str(out_dir / name), crop)

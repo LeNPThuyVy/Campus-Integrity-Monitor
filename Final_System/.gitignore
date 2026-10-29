@@ -9,3 +9,5 @@ task/
 .env
 graphify-out/
 Architecture_system.md
+# Debug crops saved by DEBUG_SAVE_CROPS
+debug_crops/

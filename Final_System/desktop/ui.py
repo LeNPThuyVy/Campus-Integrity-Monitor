@@ -549,8 +549,8 @@ class CampusMonitorUI:
 
         # Detection & Classification Sliders (including YOLO Card Detector)
         self.slider_detect_conf          = add_slider("Độ nhạy phát hiện người (Detect Conf)",         "DETECT_CONF",              0.1,  1.0, 0.05)
-        self.slider_classify_conf        = add_slider("Ngưỡng tin cậy đồng phục (Uniform Conf)",       "CLASSIFY_CONF",            0.0,  1.0, 0.05)
-        self.slider_non_uniform_conf     = add_slider("Ngưỡng tin cậy không đồng phục (Non-Uniform)", "NON_UNIFORM_CONF",         0.0,  1.0, 0.05)
+        self.slider_classify_conf        = add_slider("Ngưỡng tính phiếu đồng phục (Uniform Conf)",    "CLASSIFY_CONF",            0.0,  1.0, 0.05)
+        self.slider_non_uniform_conf     = add_slider("Ngưỡng tính phiếu không đồng phục (Non-Uniform)", "NON_UNIFORM_CONF",         0.0,  1.0, 0.05)
         self.slider_min_person_ratio     = add_slider("Tỷ lệ người tối thiểu (Bỏ qua ở xa)",           "MIN_PERSON_HEIGHT_RATIO",  0.05, 0.70, 0.05)
         self.slider_detect_card_conf     = add_slider("Độ nhạy phát hiện thẻ YOLO (Card Conf)",       "DETECT_CARD_CONF",         0.05, 1.0, 0.05)
         self.slider_detect_card_iou      = add_slider("Ngưỡng IOU phát hiện thẻ (Card IOU)",          "DETECT_CARD_IOU",          0.05, 1.0, 0.05)

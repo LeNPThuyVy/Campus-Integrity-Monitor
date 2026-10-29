@@ -36,18 +36,20 @@ class Utils:
         """
         This function preprocesses before classify (Optimized with adaptive per-crop CLAHE)
         """
-        img_resized = cv2.resize(image, (image_size, image_size))
-        
-        # Apply local CLAHE if enabled and lighting is poor/harsh
+        # INTER_AREA when shrinking approximates the antialiased PIL resize used in training
+        h, w = image.shape[:2]
+        interpolation = cv2.INTER_AREA if h > image_size or w > image_size else cv2.INTER_LINEAR
+        img_resized = cv2.resize(image, (image_size, image_size), interpolation=interpolation)
+
+        # Apply local CLAHE only when enabled and lighting is extreme (plain shirts must not trigger it)
         brightness_enabled = getattr(my_config, "BRIGHTNESS_ENABLED", 1)
-        clahe_enabled = getattr(my_config, "CROP_CLAHE_ENABLED", 1)
+        clahe_enabled = getattr(my_config, "CROP_CLAHE_ENABLED", 0)
         if brightness_enabled and clahe_enabled and img_resized.size > 0:
             try:
                 lab = cv2.cvtColor(img_resized, cv2.COLOR_BGR2LAB)
                 l_channel = lab[:, :, 0]
                 l_mean = float(l_channel.mean())
-                l_std = float(l_channel.std())
-                if l_mean < 80 or l_mean > 190 or l_std < 35:
+                if l_mean < 60 or l_mean > 200:
                     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
                     lab[:, :, 0] = clahe.apply(l_channel)
                     img_resized = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
@@ -69,6 +71,37 @@ class Utils:
         if person_height_ratio >= 0.90:
             return 0.85
         return float(base_ratio)
+
+    @staticmethod
+    def crop_uniform_region(frame: np.ndarray, bbox: list[float]) -> np.ndarray:
+        """
+        Crop the shirt region for the uniform classifier, leaving out the head (the model
+        otherwise keys on faces/background). A bbox cut by the bottom frame edge (close-up)
+        only shows head + torso, so its crop starts lower and runs to the bbox bottom.
+        """
+        image_h, image_w = frame.shape[:2]
+        x1, y1, x2, y2 = map(int, bbox)
+        is_truncated = y2 >= image_h * (1 - getattr(my_config, "TRUNCATED_EDGE_RATIO", 0.02))
+
+        x1 = max(0, x1)
+        y1 = max(0, y1)
+        x2 = min(image_w, x2)
+        y2 = min(image_h, y2)
+
+        person_h = y2 - y1
+        if person_h <= 0 or x2 - x1 <= 0:
+            return np.empty((0, 0, 3), dtype=frame.dtype)
+
+        if is_truncated:
+            top = getattr(my_config, "UNIFORM_CROP_TOP_TRUNCATED", 0.30)
+            bottom = getattr(my_config, "UNIFORM_CROP_BOTTOM_TRUNCATED", 1.0)
+        else:
+            top = getattr(my_config, "UNIFORM_CROP_TOP", 0.20)
+            bottom = getattr(my_config, "UNIFORM_CROP_BOTTOM", 0.85)
+
+        crop_y1 = y1 + int(person_h * top)
+        crop_y2 = max(crop_y1 + 1, min(y2, y1 + int(person_h * bottom)))
+        return frame[crop_y1:crop_y2, x1:x2]
 
     @staticmethod
     def crop_person(frame: np.ndarray, bbox: list[float]) -> np.ndarray:
