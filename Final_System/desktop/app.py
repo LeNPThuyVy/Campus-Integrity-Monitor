@@ -33,7 +33,6 @@ OUTBOX_DIR = Path(__file__).resolve().parent / "outbox"
 API_ENV = {
     "API_URL": "CIM_DESKTOP_API_URL",
     "CAMERA_CODE": "CIM_DESKTOP_CAMERA_CODE",
-    "DEVICE_KEY": "CIM_DESKTOP_DEVICE_KEY",
 }
 
 
@@ -109,6 +108,9 @@ class App:
         self.params = {
             "DETECT_CONF":               my_config.DETECT_CONF,
             "CLASSIFY_CONF":             my_config.CLASSIFY_CONF,
+            "NON_UNIFORM_CONF":          getattr(my_config, "NON_UNIFORM_CONF", 0.7),
+            "MIN_PERSON_HEIGHT_RATIO":   getattr(my_config, "MIN_PERSON_HEIGHT_RATIO", 0.25),
+            "LABEL_HOLD_SECONDS":        getattr(my_config, "LABEL_HOLD_SECONDS", 2),
             "DETECT_CARD_CONF":          getattr(my_config, "DETECT_CARD_CONF", 0.3),
             "DETECT_CARD_IOU":           getattr(my_config, "DETECT_CARD_IOU", 0.3),
             "DETECT_CARD_IMAGE_SIZE":    getattr(my_config, "DETECT_CARD_IMAGE_SIZE", 224),
@@ -122,7 +124,6 @@ class App:
             "EVENT_DEDUP_SECONDS":       my_config.EVENT_DEDUP_SECONDS,
             "API_URL":                   "http://127.0.0.1:8001",
             "CAMERA_CODE":               "",
-            "DEVICE_KEY":                "",
         }
 
         if os.path.exists(CONFIG_FILE_PATH):
@@ -147,6 +148,9 @@ class App:
         p = dict(params)
         p["DETECT_CONF"] = min(max(float(p["DETECT_CONF"]), 0.05), 1.0)
         p["CLASSIFY_CONF"] = min(max(float(p["CLASSIFY_CONF"]), 0.0), 1.0)
+        p["NON_UNIFORM_CONF"] = min(max(float(p.get("NON_UNIFORM_CONF", 0.7)), 0.0), 1.0)
+        p["MIN_PERSON_HEIGHT_RATIO"] = min(max(float(p.get("MIN_PERSON_HEIGHT_RATIO", 0.25)), 0.05), 0.80)
+        p["LABEL_HOLD_SECONDS"] = min(max(int(p.get("LABEL_HOLD_SECONDS", 2)), 0), 60)
         p["DETECT_CARD_CONF"] = min(max(float(p.get("DETECT_CARD_CONF", 0.3)), 0.05), 1.0)
         p["DETECT_CARD_IOU"] = min(max(float(p.get("DETECT_CARD_IOU", 0.3)), 0.05), 1.0)
         p["DETECT_CARD_IMAGE_SIZE"] = int(p.get("DETECT_CARD_IMAGE_SIZE", 224))
@@ -162,7 +166,6 @@ class App:
         if p["API_URL"] and not p["API_URL"].startswith(("http://", "https://")):
             raise ValueError("Địa chỉ API phải bắt đầu bằng http:// hoặc https://")
         p["CAMERA_CODE"] = str(p.get("CAMERA_CODE") or "").strip().upper()
-        p["DEVICE_KEY"] = str(p.get("DEVICE_KEY") or "").strip()
         return p
 
     def save_parameters(self, new_params: dict) -> None:
@@ -186,6 +189,9 @@ class App:
         """Pushes current params into ai.config and live model components."""
         my_config.DETECT_CONF               = self.params["DETECT_CONF"]
         my_config.CLASSIFY_CONF             = self.params["CLASSIFY_CONF"]
+        my_config.NON_UNIFORM_CONF          = self.params["NON_UNIFORM_CONF"]
+        my_config.MIN_PERSON_HEIGHT_RATIO   = self.params["MIN_PERSON_HEIGHT_RATIO"]
+        my_config.LABEL_HOLD_SECONDS        = self.params["LABEL_HOLD_SECONDS"]
         my_config.DETECT_CARD_CONF          = self.params["DETECT_CARD_CONF"]
         my_config.DETECT_CARD_IOU           = self.params["DETECT_CARD_IOU"]
         my_config.DETECT_CARD_IMAGE_SIZE    = self.params["DETECT_CARD_IMAGE_SIZE"]
@@ -256,11 +262,10 @@ class App:
         return False
 
     def api_config(self) -> ApiConfig:
-        return ApiConfig(base_url=self.params["API_URL"], camera_code=self.params["CAMERA_CODE"],
-                         device_key=self.params["DEVICE_KEY"])
+        return ApiConfig(base_url=self.params["API_URL"], camera_code=self.params["CAMERA_CODE"])
 
     def check_api(self) -> tuple[bool, str]:
-        """Validate API URL + camera + device key. Decides whether events may be recorded."""
+        """Validate API URL + camera code. Decides whether events may be recorded."""
         self.ensure_local_api()
         ok, message, data = check_connection(self.api_config())
         if ok:

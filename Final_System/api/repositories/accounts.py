@@ -15,7 +15,7 @@ USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{3,50}$")
 ROLES = ("ADMIN", "CTSV")
 
 _ACCOUNT_COLUMNS = ("ID, TEN_DANG_NHAP, HO_TEN, VAI_TRO, DANG_HOAT_DONG, KHOA_DEN, DANG_NHAP_CUOI, "
-                    "DOI_MAT_KHAU_LUC, NGAY_TAO, NGAY_CAP_NHAT")
+                    "DOI_MAT_KHAU_LUC")
 
 
 def account_to_dict(row: dict[str, Any]) -> dict[str, Any]:
@@ -28,8 +28,6 @@ def account_to_dict(row: dict[str, Any]) -> dict[str, Any]:
         "locked_until": row.get("KHOA_DEN"),
         "last_login_at": row.get("DANG_NHAP_CUOI"),
         "password_changed_at": row.get("DOI_MAT_KHAU_LUC"),
-        "created_at": row.get("NGAY_TAO"),
-        "updated_at": row.get("NGAY_CAP_NHAT"),
     }
 
 
@@ -169,7 +167,7 @@ def update_account(db: Database, account_id: int, actor_id: int, full_name: str,
         bump = 1 if (current[0] != role or bool(current[1]) != active) else 0
         cursor.execute(
             "UPDATE dbo.TAIKHOAN SET HO_TEN = ?, VAI_TRO = ?, DANG_HOAT_DONG = ?, "
-            "PHIEN_BAN_TOKEN = PHIEN_BAN_TOKEN + ?, NGAY_CAP_NHAT = SYSDATETIME() WHERE ID = ?",
+            "PHIEN_BAN_TOKEN = PHIEN_BAN_TOKEN + ? WHERE ID = ?",
             full_name, role, 1 if active else 0, bump, account_id,
         )
     return get_account(db, account_id)
@@ -180,7 +178,7 @@ def reset_password(db: Database, account_id: int, new_password: str) -> None:
     with db.transaction() as cursor:
         cursor.execute(
             "UPDATE dbo.TAIKHOAN SET MAT_KHAU_HASH = ?, PHIEN_BAN_TOKEN = PHIEN_BAN_TOKEN + 1, SO_LAN_SAI = 0, "
-            "KHOA_DEN = NULL, DOI_MAT_KHAU_LUC = SYSDATETIME(), NGAY_CAP_NHAT = SYSDATETIME() WHERE ID = ?",
+            "KHOA_DEN = NULL, DOI_MAT_KHAU_LUC = SYSDATETIME() WHERE ID = ?",
             hash_password(new_password), account_id,
         )
         if cursor.rowcount == 0:

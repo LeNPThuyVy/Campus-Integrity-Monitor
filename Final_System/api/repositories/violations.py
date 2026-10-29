@@ -62,11 +62,13 @@ class ViolationFilters:
 
 
 _SELECT = (
-    "SELECT b.ID, b.MA_SU_KIEN, b.THOI_DIEM, b.TRACK_ID, b.DO_TIN_CAY_DONG_PHUC, b.DO_TIN_CAY_THE, "
-    "b.ANH_TRANG_THAI, b.ANH_HET_HAN_LUC, b.ANH_DA_XOA_LUC, b.TRANG_THAI_XU_LY, b.GHI_CHU_XU_LY, b.XU_LY_LUC, "
-    "b.NGAY_TAO, l.ID AS LOI_ID, l.MA_LOI, l.TEN_LOI, c.ID AS CAMERA_ID, c.MA_CAMERA, c.TEN_CAMERA, "
+    "SELECT b.ID, b.MA_SU_KIEN, b.THOI_DIEM, b.TRACK_ID, "
+    "a.ANH_KHOA, a.TRANG_THAI AS ANH_TRANG_THAI, a.HET_HAN_LUC AS ANH_HET_HAN_LUC, a.DA_XOA_LUC AS ANH_DA_XOA_LUC, "
+    "b.TRANG_THAI_XU_LY, b.GHI_CHU_XU_LY, b.XU_LY_LUC, "
+    "l.ID AS LOI_ID, l.MA_LOI, l.TEN_LOI, c.ID AS CAMERA_ID, c.MA_CAMERA, c.TEN_CAMERA, "
     "k.ID AS KHU_VUC_ID, k.MA_KHU_VUC, k.TEN_KHU_VUC, t.FULL_NAME AS NGUOI_XU_LY "
     "FROM dbo.BAN_GHI_VIPHAM b "
+    "LEFT JOIN dbo.ANH_VIPHAM a ON a.BAN_GHI_ID = b.ID "
     "INNER JOIN dbo.LOI_VIPHAM l ON l.ID = b.LOI_ID "
     "INNER JOIN dbo.CAMERA c ON c.ID = b.CAMERA_ID "
     "INNER JOIN dbo.KHU_VUC k ON k.ID = b.KHU_VUC_ID "
@@ -97,9 +99,6 @@ def evidence_info(row: dict[str, Any], now: datetime) -> dict[str, Any]:
 
 
 def violation_to_dict(row: dict[str, Any], now: datetime) -> dict[str, Any]:
-    def _float(value):
-        return float(value) if value is not None else None
-
     return {
         "id": row["ID"],
         "event_id": str(row["MA_SU_KIEN"]).lower(),
@@ -108,8 +107,6 @@ def violation_to_dict(row: dict[str, Any], now: datetime) -> dict[str, Any]:
         "camera": {"id": row["CAMERA_ID"], "code": row["MA_CAMERA"], "name": row["TEN_CAMERA"]},
         "area": {"id": row["KHU_VUC_ID"], "code": row["MA_KHU_VUC"], "name": row["TEN_KHU_VUC"]},
         "track_id": row["TRACK_ID"],
-        "uniform_confidence": _float(row["DO_TIN_CAY_DONG_PHUC"]),
-        "card_confidence": _float(row["DO_TIN_CAY_THE"]),
         "evidence": evidence_info(row, now),
         "processing": {
             "status": row["TRANG_THAI_XU_LY"],
@@ -117,7 +114,6 @@ def violation_to_dict(row: dict[str, Any], now: datetime) -> dict[str, Any]:
             "processed_by": row["NGUOI_XU_LY"],
             "processed_at": row["XU_LY_LUC"],
         },
-        "created_at": row["NGAY_TAO"],
     }
 
 
@@ -181,8 +177,6 @@ class IncomingViolation:
     violation_code: str
     occurred_at: datetime  # local naive time
     track_id: int | None
-    uniform_confidence: float | None
-    card_confidence: float | None
 
 
 @dataclass(frozen=True)
@@ -226,15 +220,17 @@ def ingest_violation(db: Database, storage: EvidenceStorage, camera, incoming: I
     try:
         with db.transaction() as cursor:
             cursor.execute(
-                "INSERT INTO dbo.BAN_GHI_VIPHAM (MA_SU_KIEN, LOI_ID, CAMERA_ID, KHU_VUC_ID, THOI_DIEM, TRACK_ID, "
-                "DO_TIN_CAY_DONG_PHUC, DO_TIN_CAY_THE, ANH_KHOA, ANH_SHA256, ANH_KICH_THUOC, ANH_TRANG_THAI, "
-                "ANH_HET_HAN_LUC) OUTPUT INSERTED.ID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'AVAILABLE', ?)",
+                "INSERT INTO dbo.BAN_GHI_VIPHAM (MA_SU_KIEN, LOI_ID, CAMERA_ID, KHU_VUC_ID, THOI_DIEM, TRACK_ID) "
+                "OUTPUT INSERTED.ID VALUES (?, ?, ?, ?, ?, ?)",
                 str(incoming.event_id), violation_type["ID"], camera.id, camera.area_id, incoming.occurred_at,
-                incoming.track_id, incoming.uniform_confidence, incoming.card_confidence,
-                stored.key, stored.sha256, stored.size, expires_at,
+                incoming.track_id,
             )
             record_id = cursor.fetchone()[0]
-            cursor.execute("UPDATE dbo.CAMERA SET LAN_CUOI_KET_NOI = ? WHERE ID = ?", now, camera.id)
+            cursor.execute(
+                "INSERT INTO dbo.ANH_VIPHAM (BAN_GHI_ID, ANH_KHOA, ANH_SHA256, ANH_KICH_THUOC, TRANG_THAI, HET_HAN_LUC) "
+                "VALUES (?, ?, ?, ?, 'AVAILABLE', ?)",
+                record_id, stored.key, stored.sha256, stored.size, expires_at,
+            )
     except Exception as exc:
         # Never leave an orphan file when the row was not written.
         try:
@@ -257,15 +253,18 @@ def duplicate_result(db: Database, existing: tuple[int, int], camera_id: int, no
 
 
 def evidence_key_for(db: Database, violation_id: int, now: datetime) -> tuple[str | None, dict[str, Any]]:
-    row = db.fetch_one("SELECT ID, ANH_KHOA, ANH_TRANG_THAI, ANH_HET_HAN_LUC, ANH_DA_XOA_LUC "
-                       "FROM dbo.BAN_GHI_VIPHAM WHERE ID = ?", (violation_id,))
+    row = db.fetch_one("SELECT a.BAN_GHI_ID AS ID, a.ANH_KHOA, a.TRANG_THAI AS ANH_TRANG_THAI, "
+                       "a.HET_HAN_LUC AS ANH_HET_HAN_LUC, a.DA_XOA_LUC AS ANH_DA_XOA_LUC "
+                       "FROM dbo.ANH_VIPHAM a WHERE a.BAN_GHI_ID = ?", (violation_id,))
     if row is None:
-        raise not_found("Không tìm thấy bản ghi vi phạm.")
+        if not db.fetch_one("SELECT 1 FROM dbo.BAN_GHI_VIPHAM WHERE ID = ?", (violation_id,)):
+            raise not_found("Không tìm thấy bản ghi vi phạm.")
+        return None, evidence_info({"ANH_TRANG_THAI": "NONE", "ANH_HET_HAN_LUC": None, "ANH_DA_XOA_LUC": None}, now)
     info = evidence_info(row, now)
     return (row["ANH_KHOA"] if info["available"] else None), info
 
 
 def mark_evidence_missing(db: Database, violation_id: int) -> None:
     with db.transaction() as cursor:
-        cursor.execute("UPDATE dbo.BAN_GHI_VIPHAM SET ANH_TRANG_THAI = 'MISSING' "
-                       "WHERE ID = ? AND ANH_TRANG_THAI = 'AVAILABLE'", violation_id)
+        cursor.execute("UPDATE dbo.ANH_VIPHAM SET TRANG_THAI = 'MISSING' "
+                       "WHERE BAN_GHI_ID = ? AND TRANG_THAI = 'AVAILABLE'", violation_id)

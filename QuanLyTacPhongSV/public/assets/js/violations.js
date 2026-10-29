@@ -163,10 +163,12 @@
         ...field('Nguồn ghi nhận', isCoDo ? 'Đội Cờ Đỏ kiểm tra trực tiếp' : `${data.camera.code} - ${data.camera.name}`)
       );
 
-      if (!isCoDo) {
+      if (data.semester && (data.semester.name || data.semester.code)) {
+        fields.push(...field('Học kỳ', data.semester.name || data.semester.code));
+      }
+
+      if (!isCoDo && data.evidence && data.evidence.expires_at) {
         fields.push(
-          ...field('Độ tin cậy ĐP', percent(data.uniform_confidence)),
-          ...field('Độ tin cậy thẻ', percent(data.card_confidence)),
           ...field('Ảnh hết hạn', CIM.formatDateTime(data.evidence.expires_at))
         );
       }

@@ -46,7 +46,6 @@
         { name: 'TEN_HK', label: 'Tên học kỳ (VD: Học kỳ 1 (2026-2027))', maxLength: 100 },
         { name: 'NGAY_BAT_DAU', label: 'Ngày bắt đầu (YYYY-MM-DD)', maxLength: 10 },
         { name: 'NGAY_KET_THUC', label: 'Ngày kết thúc (YYYY-MM-DD)', maxLength: 10 },
-        { name: 'HIEN_TAI', label: 'Học kỳ hiện tại', choices: [['1', 'Có (Đang diễn ra)'], ['0', 'Không']] },
       ],
       columns: ['MA_HK', 'TEN_HK', 'NGAY_BAT_DAU', 'NGAY_KET_THUC', 'HIEN_TAI'],
     },

@@ -70,20 +70,6 @@
     return button;
   }
 
-  function showKey(cameraCode, key) {
-    document.getElementById('key-camera').textContent = cameraCode;
-    document.getElementById('key-value').textContent = key;
-    document.getElementById('key-dialog').showModal();
-  }
-  document.getElementById('key-copy').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(document.getElementById('key-value').textContent);
-      CIM.toast('Đã sao chép khóa thiết bị.');
-    } catch {
-      CIM.toast('Trình duyệt không cho phép sao chép; hãy chọn và sao chép thủ công.', 'error');
-    }
-  });
-
   // ------------------------------------------------------------------ areas
   const areaForm = setupForm('area-form', async (form, id) => {
     const body = { code: form.elements.code.value, name: form.elements.name.value,
@@ -129,37 +115,26 @@
   const cameraForm = setupForm('camera-form', async (form, id) => {
     const body = { code: form.elements.code.value, name: form.elements.name.value,
       area_id: Number(form.elements.area_id.value), location: form.elements.location.value || null,
-      stream_source: form.elements.stream_source.value || null, active: form.elements.active.checked };
+      active: form.elements.active.checked };
     if (id && !body.active && !(await CIM.confirmAction(
       'Ngừng sử dụng camera này? Desktop dùng camera này sẽ bị từ chối khi gửi vi phạm mới.', { danger: true }))) return;
-    const result = await CIM.api(id ? 'camera' : 'cameras', { method: id ? 'PUT' : 'POST', params: id ? { id } : {}, body });
+    await CIM.api(id ? 'camera' : 'cameras', { method: id ? 'PUT' : 'POST', params: id ? { id } : {}, body });
     CIM.toast(id ? 'Đã cập nhật camera.' : 'Đã thêm camera.');
-    if (!id && result.device_key) showKey(result.data.code, result.device_key);
     await loadAll();
   }, { create: 'Thêm camera', edit: 'Sửa camera' });
 
   function renderCameras() {
     const tbody = document.getElementById('camera-body');
-    if (!state.cameras.length) { CIM.stateRow(tbody, 6, 'Chưa có camera.'); return; }
+    if (!state.cameras.length) { CIM.stateRow(tbody, 5, 'Chưa có camera.'); return; }
     tbody.replaceChildren(...state.cameras.map((camera) => {
       const row = CIM.el('tr', 'border-t border-surface-container');
       const name = CIM.el('td', 'px-space-md py-3');
       name.append(CIM.el('div', 'font-semibold', camera.name), CIM.el('div', 'text-on-surface-variant', camera.location || '—'));
-      row.append(CIM.el('td', 'px-space-md py-3 font-data-mono', camera.code), name,
-        CIM.el('td', 'px-space-md py-3', camera.area.name),
-        CIM.el('td', 'px-space-md py-3', camera.last_seen_at ? CIM.formatDateTime(camera.last_seen_at) : 'Chưa kết nối'));
       const status = CIM.el('td', 'px-space-md py-3');
       status.append(statusBadge(camera.active));
       const actions = CIM.el('td', 'px-space-md py-3 text-right whitespace-nowrap');
       if (cameraForm) {
         actions.append(actionButton('Sửa', () => cameraForm.edit({ ...camera, area_id: camera.area.id })));
-        actions.append(actionButton('Cấp lại khóa', async () => {
-          if (!(await CIM.confirmAction(`Cấp khóa mới cho ${camera.code}? Khóa cũ trên Desktop sẽ mất hiệu lực ngay.`, { danger: true }))) return;
-          try {
-            const result = await CIM.api('camera-key', { method: 'POST', params: { id: camera.id } });
-            showKey(camera.code, result.device_key);
-          } catch (error) { CIM.toast(error.message, 'error'); }
-        }, 'bg-tertiary-container text-on-tertiary-container'));
         actions.append(actionButton('Xóa', async () => {
           if (!(await CIM.confirmAction(`Xóa camera ${camera.code} (${camera.name})? Thao tác này không thể hoàn tác.`, { danger: true, okText: 'Xóa' }))) return;
           try {
@@ -171,7 +146,13 @@
       } else {
         actions.textContent = 'Chỉ xem';
       }
-      row.append(status, actions);
+      row.append(
+        CIM.el('td', 'px-space-md py-3 font-data-mono', camera.code),
+        name,
+        CIM.el('td', 'px-space-md py-3', camera.area.name),
+        status,
+        actions
+      );
       return row;
     }));
   }
@@ -200,13 +181,21 @@
     if (!state.semesters.length) { CIM.stateRow(tbody, 5, 'Chưa khai báo học kỳ. Báo cáo theo học kỳ cần ít nhất một học kỳ.'); return; }
     tbody.replaceChildren(...state.semesters.map((semester) => {
       const row = CIM.el('tr', 'border-t border-surface-container');
-      row.append(CIM.el('td', 'px-space-md py-3 font-data-mono', semester.code), CIM.el('td', 'px-space-md py-3', semester.name),
-        CIM.el('td', 'px-space-md py-3', CIM.formatDate(semester.start_date)), CIM.el('td', 'px-space-md py-3', CIM.formatDate(semester.end_date)));
+      const nameTd = CIM.el('td', 'px-space-md py-3 flex items-center gap-2', semester.name);
+      if (semester.is_current) {
+        nameTd.append(CIM.el('span', 'rounded-full px-2 py-0.5 font-label-sm text-label-sm bg-primary-container text-on-primary-container font-semibold', 'Đang diễn ra'));
+      }
+      row.append(
+        CIM.el('td', 'px-space-md py-3 font-data-mono', semester.code),
+        nameTd,
+        CIM.el('td', 'px-space-md py-3', CIM.formatDate(semester.start_date)),
+        CIM.el('td', 'px-space-md py-3', CIM.formatDate(semester.end_date))
+      );
       const actions = CIM.el('td', 'px-space-md py-3 text-right whitespace-nowrap');
       if (semesterForm) {
         actions.append(actionButton('Sửa', () => semesterForm.edit(semester)));
         actions.append(actionButton('Xóa', async () => {
-          if (!(await CIM.confirmAction(`Xóa học kỳ ${semester.code}? Bản ghi vi phạm không bị ảnh hưởng.`, { danger: true, okText: 'Xóa' }))) return;
+          if (!(await CIM.confirmAction(`Xóa học kỳ ${semester.code}? Lưu ý: Không thể xóa học kỳ nếu đang có biên bản vi phạm liên kết.`, { danger: true, okText: 'Xóa' }))) return;
           try {
             await CIM.api('semester', { method: 'DELETE', params: { id: semester.id } });
             CIM.toast('Đã xóa học kỳ.');

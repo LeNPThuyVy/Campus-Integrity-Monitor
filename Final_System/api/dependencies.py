@@ -11,7 +11,7 @@ from fastapi import Depends, Header, Request
 from api.database import Database
 from api.errors import ApiError, forbidden, unauthorized
 from api.mapper import Mapper
-from api.security import TokenError, verify_device_key, verify_token
+from api.security import TokenError, verify_token
 from api.service import InferenceService
 from api.settings import Settings
 
@@ -101,17 +101,17 @@ def get_device_camera(
     x_device_key: str | None = Header(default=None),
     db: Database = Depends(get_db),
 ) -> AuthenticatedCamera:
-    """Authenticate a Desktop client by camera code + device key (sent as headers)."""
-    if not x_camera_code or not x_device_key or len(x_camera_code) > 30 or len(x_device_key) > 200:
-        raise unauthorized("Thiếu hoặc sai thông tin xác thực thiết bị (X-Camera-Code, X-Device-Key).")
+    """Authenticate a Desktop client by camera code."""
+    if not x_camera_code or len(x_camera_code) > 30:
+        raise unauthorized("Thiếu hoặc sai mã camera (X-Camera-Code).")
     camera = db.fetch_one(
-        "SELECT c.ID, c.MA_CAMERA, c.TEN_CAMERA, c.KHOA_THIET_BI_HASH, c.DANG_SU_DUNG, "
+        "SELECT c.ID, c.MA_CAMERA, c.TEN_CAMERA, c.DANG_SU_DUNG, "
         "       k.ID AS KHU_VUC_ID, k.MA_KHU_VUC, k.TEN_KHU_VUC, k.DANG_SU_DUNG AS KHU_VUC_DANG_SU_DUNG "
         "FROM dbo.CAMERA c INNER JOIN dbo.KHU_VUC k ON k.ID = c.KHU_VUC_ID WHERE c.MA_CAMERA = ?",
         (x_camera_code.strip(),),
     )
-    if camera is None or not verify_device_key(x_device_key.strip(), camera["KHOA_THIET_BI_HASH"]):
-        raise unauthorized("Thông tin xác thực thiết bị không hợp lệ.")
+    if camera is None:
+        raise unauthorized("Mã camera không tồn tại trong hệ thống.")
     if not camera["DANG_SU_DUNG"]:
         raise forbidden("Camera đã ngừng sử dụng; không thể ghi nhận vi phạm.")
     if not camera["KHU_VUC_DANG_SU_DUNG"]:

@@ -34,15 +34,14 @@ AUTH_PAUSE_SECONDS = 60
 class ApiConfig:
     base_url: str
     camera_code: str
-    device_key: str
     timeout: float = 10.0
 
     @property
     def configured(self) -> bool:
-        return bool(self.base_url and self.camera_code and self.device_key)
+        return bool(self.base_url and self.camera_code)
 
     def headers(self) -> dict[str, str]:
-        return {"X-Camera-Code": self.camera_code, "X-Device-Key": self.device_key}
+        return {"X-Camera-Code": self.camera_code}
 
 
 @dataclass
@@ -68,7 +67,7 @@ def check_connection(config: ApiConfig, session=None) -> tuple[bool, str, dict |
     import requests
 
     if not config.configured:
-        return False, "Chưa cấu hình đủ địa chỉ API, mã camera và khóa thiết bị.", None
+        return False, "Chưa cấu hình đủ địa chỉ API và mã camera.", None
     http = session or requests
     try:
         response = http.get(config.base_url.rstrip("/") + "/api/v1/device/me", headers=config.headers(),
@@ -122,8 +121,6 @@ class ViolationSender:
             "violation_code": event.violation_code,
             "occurred_at": event.occurred_at.isoformat(timespec="seconds"),
             "track_id": event.track_id,
-            "uniform_confidence": event.uniform_confidence,
-            "card_confidence": event.card_confidence,
             "attempts": 0,
         }
         image_path = self.pending_dir / f"{event.event_id}.jpg"
@@ -182,8 +179,7 @@ class ViolationSender:
             self._move_to_failed(meta_path, metadata, "Thiếu tệp ảnh bằng chứng trong outbox.")
             return "failed"
         fields = {key: ("" if metadata[key] is None else str(metadata[key]))
-                  for key in ("event_id", "violation_code", "occurred_at", "track_id", "uniform_confidence",
-                              "card_confidence")}
+                  for key in ("event_id", "violation_code", "occurred_at", "track_id")}
         try:
             with open(image_path, "rb") as image:
                 response = session.post(config.base_url.rstrip("/") + "/api/v1/violations",

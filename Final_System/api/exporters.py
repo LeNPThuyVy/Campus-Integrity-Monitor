@@ -72,7 +72,7 @@ def build_xlsx(title: str, generated_at: datetime, filters: list[tuple[str, str]
     row += 2
     row = write_table(overview, row, ["Loại vi phạm", "Số lượng"],
                       [[item.get("name", ""), item.get("count", 0)] for item in summary.get("by_type", [])])
-    write_table(overview, row, ["Khu vực / Phòng học - khung giờ nhiều vi phạm", "Số lượng"],
+    write_table(overview, row, ["Khu vực - khung giờ nhiều vi phạm", "Số lượng"],
                 [[item.get("label", item.get("area_name", "")), item.get("count", 0)] for item in summary.get("hotspots", [])])
 
     details_rows = []
@@ -80,7 +80,7 @@ def build_xlsx(title: str, generated_at: datetime, filters: list[tuple[str, str]
         t_time = d.get("THOI_DIEM") or d.get("occurred_at") or d.get("created_at") or d.get("time")
         time_str = t_time.strftime("%d/%m/%Y %H:%M:%S") if hasattr(t_time, "strftime") else str(t_time or "")
         t_loi = d.get("TEN_LOI") or d.get("type_name") or (d.get("type", {}).get("name") if isinstance(d.get("type"), dict) else "")
-        t_kv = d.get("PHONG_HOC") or d.get("location") or d.get("TEN_KHU_VUC") or (d.get("area", {}).get("name") if isinstance(d.get("area"), dict) else "")
+        t_kv = d.get("TEN_KHU_VUC") or d.get("location") or (d.get("area", {}).get("name") if isinstance(d.get("area"), dict) else "")
         t_cam = f"{d.get('MA_CAMERA', '')} - {d.get('TEN_CAMERA', '')}".strip(" -")
         t_status = d.get("TRANG_THAI_XU_LY") or (d.get("processing", {}).get("status") if isinstance(d.get("processing"), dict) else "DA_XU_LY")
         t_sv = d.get("HOTEN") or d.get("student_name") or d.get("MA_SV") or d.get("student_code") or (d.get("student", {}).get("name") if isinstance(d.get("student"), dict) else "")
@@ -480,7 +480,7 @@ def _build_pdf_fpdf2(
             mssv = str(d.get("MSSV") or d.get("MA_SV") or d.get("student_code") or d.get("student_id") or "—").strip()
             sv = str(d.get("HOTEN") or d.get("student_name") or (d.get("student", {}).get("name") if isinstance(d.get("student"), dict) else "") or "Chưa định danh").strip()
             loi = str(d.get("TEN_LOI") or d.get("type_name") or (d.get("type", {}).get("name") if isinstance(d.get("type"), dict) else "") or "").strip()
-            kv = str(d.get("PHONG_HOC") or d.get("TEN_KHU_VUC") or d.get("location") or (d.get("area", {}).get("name") if isinstance(d.get("area"), dict) else "") or "Khu vực chung").strip()
+            kv = str(d.get("TEN_KHU_VUC") or d.get("location") or (d.get("area", {}).get("name") if isinstance(d.get("area"), dict) else "") or "Khu vực chung").strip()
 
             pdf.cell(w4[0], h_cell, rec_id, border=1, align="C")
             pdf.cell(w4[1], h_cell, t_str, border=1, align="C")
@@ -697,7 +697,7 @@ def _build_pdf_matplotlib(
     ax_tbl.text(0.12, yt, "IV. DANH SÁCH SINH VIÊN VI PHẠM GHI NHẬN TRONG KỲ", ha="left", va="top", fontsize=11.5, weight="bold", color="#1E3A8A")
     yt -= 0.024
 
-    detail_headers = ["Mã\nbản\nghi", "Thời điểm\nghi nhận", "MSSV", "Sinh viên", "Hành vi vi phạm", "Vị trí /\nGiảng đường"]
+    detail_headers = ["Mã\nbản\nghi", "Thời điểm\nghi nhận", "MSSV", "Sinh viên", "Hành vi vi phạm", "Khu vực\nghi nhận"]
     detail_data_all: list[list[str]] = []
     for d in details[:30]:
         rec_id = str(d.get("ID", d.get("id", "")))
@@ -705,7 +705,7 @@ def _build_pdf_matplotlib(
         mssv = str(d.get("MSSV") or d.get("MA_SV") or d.get("student_code") or d.get("student_id") or "—").strip()
         sv_name = str(d.get("HOTEN") or d.get("student_name") or (d.get("student", {}).get("name") if isinstance(d.get("student"), dict) else "") or "Chưa định danh").strip()
         loi = str(d.get("TEN_LOI") or d.get("type_name") or (d.get("type", {}).get("name") if isinstance(d.get("type"), dict) else "") or "").strip()
-        kv = str(d.get("PHONG_HOC") or d.get("TEN_KHU_VUC") or d.get("location") or (d.get("area", {}).get("name") if isinstance(d.get("area"), dict) else "") or "Khu vực chung").strip()
+        kv = str(d.get("TEN_KHU_VUC") or d.get("location") or (d.get("area", {}).get("name") if isinstance(d.get("area"), dict) else "") or "Khu vực chung").strip()
 
         repeat_note = d.get("GHI_CHU") or d.get("note") or ""
         if repeat_note and ("lần" in repeat_note.lower() or "lan" in repeat_note.lower()):

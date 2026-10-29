@@ -52,13 +52,13 @@ window.CIMStudentViolations = (() => {
       title.className = 'font-label-md text-label-md';
       
       const timeStr = row.THOI_DIEM ? String(row.THOI_DIEM).slice(11, 16) : '';
-      const placeStr = row.PHONG_HOC || row.TEN_KHU_VUC || '';
+      const placeStr = row.TEN_KHU_VUC || '';
       const headerText = `${formatDate(row.NGAY_VIPHAM)}${timeStr ? ' ' + timeStr : ''} · ${row.TEN_LOI}${placeStr ? ' (' + placeStr + ')' : ''}`;
       title.textContent = headerText;
 
       const meta = document.createElement('p');
       meta.className = 'font-body-sm text-body-sm text-on-surface-variant';
-      meta.textContent = `Mã #${row.ID} · trừ ${row.DIEM_TRU}đ${row.GHI_CHU ? ' · ' + row.GHI_CHU : ''}`;
+      meta.textContent = `Mã #${row.ID} · trừ ${row.DIEM_TRU}đ${row.MA_HK ? ' · HK: ' + (row.TEN_HK || row.MA_HK) : ''}${row.GHI_CHU ? ' · ' + row.GHI_CHU : ''}`;
       text.append(title, meta);
       const remove = document.createElement('button');
       remove.type = 'button';

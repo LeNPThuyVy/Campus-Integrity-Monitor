@@ -31,7 +31,7 @@ window.CIMFilters = (() => {
     try {
       await Promise.all([
         fillSelect(form.elements.semester_id, 'semesters', (s) => s.id,
-          (s) => `${s.name} (${CIM.formatDate(s.start_date)} - ${CIM.formatDate(s.end_date)})`),
+          (s) => `${s.name}${s.is_current ? ' [Hiện tại]' : ''} (${CIM.formatDate(s.start_date)} - ${CIM.formatDate(s.end_date)})`),
         fillSelect(form.elements.area_id, 'areas', (a) => a.id, (a) => `${a.name}${a.active ? '' : ' (ngừng)'}`),
         fillSelect(form.elements.camera_id, 'cameras', (c) => c.id, (c) => `${c.code} - ${c.name}`),
         fillSelect(form.elements.type_id, 'violation-types', (t) => t.id, (t) => t.name),

@@ -434,10 +434,10 @@ class CimProxyController extends Controller
             return response()->json(['error' => 'Mã bản ghi không hợp lệ.'], 422);
         }
 
-        // 1. Kiểm tra trực tiếp trong SQL Server xem bản ghi có ANH_KHOA trên Cloudflare R2 không
+        // 1. Kiểm tra trực tiếp trong SQL Server xem bản ghi có ANH_KHOA trên Cloudflare R2 không (bảng ANH_VIPHAM)
         try {
             $pdo = $this->getPdo();
-            $stmt = $pdo->prepare('SELECT ANH_KHOA, ANH_TRANG_THAI FROM BAN_GHI_VIPHAM WHERE ID = CAST(:id AS BIGINT)');
+            $stmt = $pdo->prepare('SELECT ANH_KHOA, TRANG_THAI AS ANH_TRANG_THAI FROM ANH_VIPHAM WHERE BAN_GHI_ID = CAST(:id AS BIGINT)');
             $stmt->bindValue(':id', $numericId, \PDO::PARAM_INT);
             $stmt->execute();
             $rec = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -580,7 +580,7 @@ class CimProxyController extends Controller
             $pdo = $this->getPdo();
 
             if ($method === 'GET') {
-                $stmt = $pdo->query('SELECT c.ID as id, c.MA_CAMERA as code, c.TEN_CAMERA as name, CONVERT(VARCHAR(MAX), CAST(c.TEN_CAMERA AS VARBINARY(MAX)), 2) as name_hex, c.VI_TRI as location, c.DANG_SU_DUNG as active, c.LAN_CUOI_KET_NOI as last_seen_at, k.ID as area_id, k.TEN_KHU_VUC as area_name, CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex FROM CAMERA c LEFT JOIN KHU_VUC k ON k.ID = c.KHU_VUC_ID ORDER BY c.ID');
+                $stmt = $pdo->query('SELECT c.ID as id, c.MA_CAMERA as code, c.TEN_CAMERA as name, CONVERT(VARCHAR(MAX), CAST(c.TEN_CAMERA AS VARBINARY(MAX)), 2) as name_hex, c.VI_TRI as location, c.DANG_SU_DUNG as active, k.ID as area_id, k.TEN_KHU_VUC as area_name, CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex FROM CAMERA c LEFT JOIN KHU_VUC k ON k.ID = c.KHU_VUC_ID ORDER BY c.ID');
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 $items = [];
                 foreach ($rows as $r) {
@@ -594,24 +594,9 @@ class CimProxyController extends Controller
                             'id' => (int)($r['area_id'] ?? 1),
                             'name' => $this->decodeHexUnicode($r['area_name_hex'] ?? null, $r['area_name'] ?? 'Khu vực'),
                         ],
-                        'last_seen_at' => !empty($r['last_seen_at']) ? date('Y-m-d H:i:s', strtotime((string)$r['last_seen_at'])) : null,
                     ];
                 }
                 return response()->json(['items' => $items]);
-            }
-
-            if ($route === 'camera-key' && $method === 'POST') {
-                $numericId = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-                if ($numericId === false) {
-                    return response()->json(['error' => 'Mã camera không hợp lệ.'], 422);
-                }
-                $deviceKey = 'cimdev_' . bin2hex(random_bytes(16));
-                $hash = hash('sha256', $deviceKey);
-
-                $stmt = $pdo->prepare('UPDATE CAMERA SET KHOA_THIET_BI_HASH = :h, NGAY_CAP_NHAT = SYSDATETIME() WHERE ID = :id');
-                $stmt->execute(['h' => $hash, 'id' => $numericId]);
-
-                return response()->json(['device_key' => $deviceKey]);
             }
 
             if ($route === 'cameras' && $method === 'POST') {
@@ -620,7 +605,6 @@ class CimProxyController extends Controller
                 $name = trim((string)($data['name'] ?? ''));
                 $areaId = (int)($data['area_id'] ?? 1);
                 $location = trim((string)($data['location'] ?? ''));
-                $streamSource = trim((string)($data['stream_source'] ?? ''));
                 $active = !empty($data['active']) ? 1 : 0;
 
                 if ($code === '' || $name === '') {
@@ -633,23 +617,17 @@ class CimProxyController extends Controller
                     return response()->json(['error' => 'Mã camera đã tồn tại trong hệ thống.'], 409);
                 }
 
-                $deviceKey = 'cimdev_' . bin2hex(random_bytes(16));
-                $hash = hash('sha256', $deviceKey);
-
-                $ins = $pdo->prepare('INSERT INTO CAMERA (MA_CAMERA, TEN_CAMERA, KHU_VUC_ID, VI_TRI, NGUON_VIDEO, KHOA_THIET_BI_HASH, DANG_SU_DUNG) VALUES (:c, :n, :a, :loc, :src, :h, :act)');
+                $ins = $pdo->prepare('INSERT INTO CAMERA (MA_CAMERA, TEN_CAMERA, KHU_VUC_ID, VI_TRI, DANG_SU_DUNG) VALUES (:c, :n, :a, :loc, :act)');
                 $ins->execute([
                     'c' => $code,
                     'n' => $name,
                     'a' => $areaId,
                     'loc' => $location ?: null,
-                    'src' => $streamSource ?: null,
-                    'h' => $hash,
                     'act' => $active,
                 ]);
 
                 return response()->json([
                     'message' => 'Đã thêm camera thành công.',
-                    'device_key' => $deviceKey,
                     'data' => ['code' => $code],
                 ], 201);
             }
@@ -663,15 +641,13 @@ class CimProxyController extends Controller
                 $name = trim((string)($data['name'] ?? ''));
                 $areaId = (int)($data['area_id'] ?? 1);
                 $location = trim((string)($data['location'] ?? ''));
-                $streamSource = trim((string)($data['stream_source'] ?? ''));
                 $active = !empty($data['active']) ? 1 : 0;
 
-                $upd = $pdo->prepare('UPDATE CAMERA SET TEN_CAMERA = COALESCE(NULLIF(CAST(:n AS NVARCHAR(100)), \'\'), TEN_CAMERA), KHU_VUC_ID = :a, VI_TRI = CAST(:loc AS NVARCHAR(255)), NGUON_VIDEO = CAST(:src AS NVARCHAR(500)), DANG_SU_DUNG = :act, NGAY_CAP_NHAT = SYSDATETIME() WHERE ID = :id');
+                $upd = $pdo->prepare('UPDATE CAMERA SET TEN_CAMERA = COALESCE(NULLIF(CAST(:n AS NVARCHAR(100)), \'\'), TEN_CAMERA), KHU_VUC_ID = :a, VI_TRI = CAST(:loc AS NVARCHAR(255)), DANG_SU_DUNG = :act WHERE ID = :id');
                 $upd->execute([
                     'n' => $name,
                     'a' => $areaId,
                     'loc' => $location ?: null,
-                    'src' => $streamSource ?: null,
                     'act' => $active,
                     'id' => $numericId,
                 ]);
@@ -710,17 +686,21 @@ class CimProxyController extends Controller
             $pdo = $this->getPdo();
 
             if ($method === 'GET') {
-                $stmt = $pdo->query('SELECT ID as id, MA_HK as code, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK as name, NGAY_BAT_DAU as start_date, NGAY_KET_THUC as end_date, HIEN_TAI as is_current FROM HOCKY ORDER BY NGAY_BAT_DAU ASC');
+                $today = date('Y-m-d');
+                $stmt = $pdo->query('SELECT ID as id, MA_HK as code, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK as name, NGAY_BAT_DAU as start_date, NGAY_KET_THUC as end_date FROM HOCKY ORDER BY NGAY_BAT_DAU ASC');
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 $items = [];
                 foreach ($rows as $r) {
+                    $sDate = date('Y-m-d', strtotime((string)$r['start_date']));
+                    $eDate = date('Y-m-d', strtotime((string)$r['end_date']));
+                    $isCurrent = ($today >= $sDate && $today <= $eDate);
                     $items[] = [
                         'id' => (int)$r['id'],
                         'code' => (string)$r['code'],
                         'name' => $this->decodeHexUnicode($r['name_hex'] ?? null, $r['name']),
-                        'start_date' => date('Y-m-d', strtotime((string)$r['start_date'])),
-                        'end_date' => date('Y-m-d', strtotime((string)$r['end_date'])),
-                        'is_current' => (bool)$r['is_current'],
+                        'start_date' => $sDate,
+                        'end_date' => $eDate,
+                        'is_current' => $isCurrent,
                     ];
                 }
                 return response()->json(['items' => $items]);
@@ -732,23 +712,17 @@ class CimProxyController extends Controller
                 $name = trim((string)($data['name'] ?? ''));
                 $startDate = trim((string)($data['start_date'] ?? ''));
                 $endDate = trim((string)($data['end_date'] ?? ''));
-                $isCurrent = !empty($data['is_current']) ? 1 : 0;
 
                 if ($code === '' || $name === '' || $startDate === '' || $endDate === '') {
                     return response()->json(['error' => 'Vui lòng nhập đầy đủ mã, tên và thời gian học kỳ.'], 422);
                 }
 
-                if ($isCurrent) {
-                    $pdo->exec('UPDATE HOCKY SET HIEN_TAI = 0');
-                }
-
-                $ins = $pdo->prepare('INSERT INTO HOCKY (MA_HK, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC, HIEN_TAI) VALUES (:code, :name, :s, :e, :curr)');
+                $ins = $pdo->prepare('INSERT INTO HOCKY (MA_HK, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC) VALUES (:code, :name, :s, :e)');
                 $ins->execute([
                     'code' => $code,
                     'name' => $name,
                     's' => $startDate,
                     'e' => $endDate,
-                    'curr' => $isCurrent,
                 ]);
 
                 return response()->json(['message' => 'Đã thêm học kỳ thành công.'], 201);
@@ -763,18 +737,12 @@ class CimProxyController extends Controller
                 $name = trim((string)($data['name'] ?? ''));
                 $startDate = trim((string)($data['start_date'] ?? ''));
                 $endDate = trim((string)($data['end_date'] ?? ''));
-                $isCurrent = !empty($data['is_current']) ? 1 : 0;
 
-                if ($isCurrent) {
-                    $pdo->exec('UPDATE HOCKY SET HIEN_TAI = 0');
-                }
-
-                $upd = $pdo->prepare('UPDATE HOCKY SET TEN_HK = COALESCE(NULLIF(CAST(:name AS NVARCHAR(100)), \'\'), TEN_HK), NGAY_BAT_DAU = COALESCE(NULLIF(CAST(:s AS VARCHAR(10)), \'\'), NGAY_BAT_DAU), NGAY_KET_THUC = COALESCE(NULLIF(CAST(:e AS VARCHAR(10)), \'\'), NGAY_KET_THUC), HIEN_TAI = :curr WHERE ID = :id');
+                $upd = $pdo->prepare('UPDATE HOCKY SET TEN_HK = COALESCE(NULLIF(CAST(:name AS NVARCHAR(100)), \'\'), TEN_HK), NGAY_BAT_DAU = COALESCE(NULLIF(CAST(:s AS VARCHAR(10)), \'\'), NGAY_BAT_DAU), NGAY_KET_THUC = COALESCE(NULLIF(CAST(:e AS VARCHAR(10)), \'\'), NGAY_KET_THUC) WHERE ID = :id');
                 $upd->execute([
                     'name' => $name,
                     's' => $startDate,
                     'e' => $endDate,
-                    'curr' => $isCurrent,
                     'id' => $numericId,
                 ]);
 
@@ -785,6 +753,12 @@ class CimProxyController extends Controller
                 $numericId = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
                 if ($numericId === false) {
                     return response()->json(['error' => 'Mã bản ghi học kỳ không hợp lệ.'], 422);
+                }
+                $chk = $pdo->prepare('SELECT COUNT(*) FROM CT_VIPHAM cv INNER JOIN HOCKY hk ON cv.MA_HK = hk.MA_HK WHERE hk.ID = :id');
+                $chk->execute(['id' => $numericId]);
+                $count = (int)$chk->fetchColumn();
+                if ($count > 0) {
+                    return response()->json(['error' => "Không thể xóa học kỳ vì đã có {$count} chi tiết vi phạm liên kết trong hệ thống."], 409);
                 }
                 $del = $pdo->prepare('DELETE FROM HOCKY WHERE ID = :id');
                 $del->execute(['id' => $numericId]);
@@ -839,7 +813,7 @@ class CimProxyController extends Controller
                         c.MA_CAMERA,
                         c.TEN_CAMERA,
                         CONVERT(VARCHAR(MAX), CAST(c.TEN_CAMERA AS VARBINARY(MAX)), 2) as camera_name_hex,
-                        b.ANH_TRANG_THAI,
+                        COALESCE(a.TRANG_THAI, 'NONE') as ANH_TRANG_THAI,
                         b.TRANG_THAI_XU_LY,
                         b.GHI_CHU_XU_LY,
                         b.XU_LY_LUC,
@@ -850,8 +824,11 @@ class CimProxyController extends Controller
                         CAST(NULL AS NVARCHAR(100)) as HOTEN,
                         CAST(NULL AS VARCHAR(MAX)) as HOTEN_HEX,
                         CAST(NULL AS VARCHAR(30)) as MA_LOP,
-                        CAST(NULL AS NVARCHAR(100)) as PHONG_HOC
+                        CAST(NULL AS VARCHAR(20)) as MA_HK,
+                        CAST(NULL AS NVARCHAR(100)) as TEN_HK,
+                        CAST(NULL AS VARCHAR(MAX)) as TEN_HK_HEX
                     FROM BAN_GHI_VIPHAM b
+                    LEFT JOIN ANH_VIPHAM a ON a.BAN_GHI_ID = b.ID
                     LEFT JOIN LOI_VIPHAM lv ON b.LOI_ID = lv.ID
                     LEFT JOIN KHU_VUC k ON b.KHU_VUC_ID = k.ID
                     LEFT JOIN CAMERA c ON b.CAMERA_ID = c.ID
@@ -887,12 +864,15 @@ class CimProxyController extends Controller
                         sv.HOTEN,
                         CONVERT(VARCHAR(MAX), CAST(sv.HOTEN AS VARBINARY(MAX)), 2) as HOTEN_HEX,
                         l.MA_LOP,
-                        cv.PHONG_HOC
+                        cv.MA_HK,
+                        hk.TEN_HK,
+                        CONVERT(VARCHAR(MAX), CAST(hk.TEN_HK AS VARBINARY(MAX)), 2) as TEN_HK_HEX
                     FROM CT_VIPHAM cv
                     LEFT JOIN LOI_VIPHAM lv ON cv.ID_LOI = lv.ID
                     LEFT JOIN KHU_VUC k ON cv.KHU_VUC_ID = k.ID
                     LEFT JOIN SINHVIEN sv ON cv.ID_SV = sv.ID
                     LEFT JOIN LOP l ON sv.LOP_ID = l.ID
+                    LEFT JOIN HOCKY hk ON cv.MA_HK = hk.MA_HK
                 ";
             }
 
@@ -957,9 +937,7 @@ class CimProxyController extends Controller
                 $isCamera = ($r['NGUON'] ?? '') === 'CAMERA';
                 $statusVal = (string)($r['TRANG_THAI_XU_LY'] ?? 'MOI');
 
-                $areaName = !empty($r['PHONG_HOC'])
-                    ? $r['PHONG_HOC']
-                    : $this->decodeHexUnicode($r['area_name_hex'] ?? null, $r['TEN_KHU_VUC'] ?? 'Khu vực / Phòng học');
+                $areaName = $this->decodeHexUnicode($r['area_name_hex'] ?? null, $r['TEN_KHU_VUC'] ?? 'Khu vực chung');
 
                 $studentObj = null;
                 if (!empty($r['SV_ID']) || !empty($r['MA_SV'])) {
@@ -992,6 +970,10 @@ class CimProxyController extends Controller
                         'id' => (int)($r['CAMERA_ID'] ?? 1),
                         'code' => (string)($r['MA_CAMERA'] ?? ($isCamera ? 'CAM-01' : 'CO_DO')),
                         'name' => $cameraName,
+                    ],
+                    'semester' => [
+                        'code' => (string)($r['MA_HK'] ?? ''),
+                        'name' => $this->decodeHexUnicode($r['TEN_HK_HEX'] ?? null, $r['TEN_HK'] ?? ''),
                     ],
                     'evidence' => [
                         'status' => $isCamera ? strtolower((string)($r['ANH_TRANG_THAI'] ?? 'available')) : 'none',
@@ -1043,11 +1025,11 @@ class CimProxyController extends Controller
                 $sql = "SELECT b.ID, b.THOI_DIEM, b.LOI_ID, lv.TEN_LOI, CONVERT(VARCHAR(MAX), CAST(lv.TEN_LOI AS VARBINARY(MAX)), 2) as type_name_hex,
                                b.KHU_VUC_ID, k.TEN_KHU_VUC, CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
                                b.CAMERA_ID, c.MA_CAMERA, c.TEN_CAMERA, CONVERT(VARCHAR(MAX), CAST(c.TEN_CAMERA AS VARBINARY(MAX)), 2) as camera_name_hex,
-                               b.DO_TIN_CAY_DONG_PHUC, b.DO_TIN_CAY_THE,
-                               b.ANH_TRANG_THAI, b.ANH_KHOA, b.ANH_HET_HAN_LUC,
+                               a.TRANG_THAI as ANH_TRANG_THAI, a.ANH_KHOA, a.HET_HAN_LUC as ANH_HET_HAN_LUC,
                                b.TRANG_THAI_XU_LY, b.GHI_CHU_XU_LY, b.XU_LY_LUC,
                                t.FULL_NAME as nguoi_xu_ly, CONVERT(VARCHAR(MAX), CAST(t.FULL_NAME AS VARBINARY(MAX)), 2) as nguoi_xu_ly_hex
                         FROM BAN_GHI_VIPHAM b
+                        LEFT JOIN ANH_VIPHAM a ON a.BAN_GHI_ID = b.ID
                         LEFT JOIN LOI_VIPHAM lv ON b.LOI_ID = lv.ID
                         LEFT JOIN KHU_VUC k ON b.KHU_VUC_ID = k.ID
                         LEFT JOIN CAMERA c ON b.CAMERA_ID = c.ID
@@ -1074,15 +1056,13 @@ class CimProxyController extends Controller
                         'student' => null,
                         'area' => [
                             'id' => (int)($row['KHU_VUC_ID'] ?? 1),
-                            'name' => $this->decodeHexUnicode($row['area_name_hex'] ?? null, $row['TEN_KHU_VUC'] ?? 'Khu vực / Phòng học'),
+                            'name' => $this->decodeHexUnicode($row['area_name_hex'] ?? null, $row['TEN_KHU_VUC'] ?? 'Khu vực chung'),
                         ],
                         'camera' => [
                             'id' => (int)($row['CAMERA_ID'] ?? 1),
                             'code' => (string)($row['MA_CAMERA'] ?? 'CAM-01'),
                             'name' => $this->decodeHexUnicode($row['camera_name_hex'] ?? null, $row['TEN_CAMERA'] ?? 'Camera'),
                         ],
-                        'uniform_confidence' => $row['DO_TIN_CAY_DONG_PHUC'] !== null ? (float)$row['DO_TIN_CAY_DONG_PHUC'] : null,
-                        'card_confidence' => $row['DO_TIN_CAY_THE'] !== null ? (float)$row['DO_TIN_CAY_THE'] : null,
                         'evidence' => [
                             'available' => $isAvailable,
                             'status' => strtolower((string)($row['ANH_TRANG_THAI'] ?? 'none')),
@@ -1102,7 +1082,7 @@ class CimProxyController extends Controller
 
             // 2. Thử tìm trong CT_VIPHAM (Biên bản Đội Cờ Đỏ)
             try {
-                $ctSql = "SELECT cv.ID, cv.NGAY_VIPHAM, cv.THOI_DIEM, cv.PHONG_HOC, cv.KHU_VUC_ID,
+                $ctSql = "SELECT cv.ID, cv.NGAY_VIPHAM, cv.THOI_DIEM, cv.KHU_VUC_ID,
                                  k.TEN_KHU_VUC, CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
                                  lv.ID as type_id, lv.TEN_LOI, CONVERT(VARCHAR(MAX), CAST(lv.TEN_LOI AS VARBINARY(MAX)), 2) as type_name_hex,
                                  sv.ID as sv_id, sv.MA_SV, sv.HOTEN, CONVERT(VARCHAR(MAX), CAST(sv.HOTEN AS VARBINARY(MAX)), 2) as sv_name_hex,
@@ -1120,7 +1100,7 @@ class CimProxyController extends Controller
 
                 if ($ctRow) {
                     $timeStr = !empty($ctRow['THOI_DIEM']) ? date('Y-m-d H:i:s', strtotime((string)$ctRow['THOI_DIEM'])) : (!empty($ctRow['NGAY_VIPHAM']) ? date('Y-m-d 07:30:00', strtotime((string)$ctRow['NGAY_VIPHAM'])) : date('Y-m-d H:i:s'));
-                    $place = !empty($ctRow['PHONG_HOC']) ? $ctRow['PHONG_HOC'] : $this->decodeHexUnicode($ctRow['area_name_hex'] ?? null, $ctRow['TEN_KHU_VUC'] ?? 'Khu vực chung');
+                    $place = $this->decodeHexUnicode($ctRow['area_name_hex'] ?? null, $ctRow['TEN_KHU_VUC'] ?? 'Khu vực chung');
 
                     $data = [
                         'id' => (int)$ctRow['ID'],
@@ -1168,10 +1148,8 @@ class CimProxyController extends Controller
             'occurred_at' => date('Y-m-d H:i:s'),
             'type' => ['id' => 1, 'name' => 'Thiếu thẻ sinh viên'],
             'student' => null,
-            'area' => ['id' => 1, 'name' => 'Phòng học / Khu vực'],
+            'area' => ['id' => 1, 'name' => 'Khu vực chung'],
             'camera' => ['id' => 1, 'code' => 'CAM-01', 'name' => 'Camera Giảng đường'],
-            'uniform_confidence' => 0.95,
-            'card_confidence' => 0.90,
             'evidence' => [
                 'available' => false,
                 'status' => 'none',
@@ -1230,7 +1208,10 @@ class CimProxyController extends Controller
                         $stmt->execute(['id' => $semesterId]);
                         $hk = $stmt->fetch(\PDO::FETCH_ASSOC);
                     } else {
-                        $hk = $pdo->query('SELECT TOP 1 MA_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE HIEN_TAI = 1')->fetch(\PDO::FETCH_ASSOC);
+                        $today = date('Y-m-d');
+                        $stmt = $pdo->prepare('SELECT TOP 1 MA_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE :today BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
+                        $stmt->execute(['today' => $today]);
+                        $hk = $stmt->fetch(\PDO::FETCH_ASSOC);
                         if (!$hk) {
                             $hk = $pdo->query('SELECT TOP 1 MA_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetch(\PDO::FETCH_ASSOC);
                         }
@@ -1243,6 +1224,7 @@ class CimProxyController extends Controller
                             'date_from' => date('Y-m-d', strtotime((string)$hk['NGAY_BAT_DAU'])),
                             'date_to' => date('Y-m-d', strtotime((string)$hk['NGAY_KET_THUC'])),
                             'label' => $label,
+                            'ma_hk' => (string)$hk['MA_HK'],
                         ];
                     }
                 } catch (\Throwable) {
@@ -1253,6 +1235,7 @@ class CimProxyController extends Controller
                     'date_from' => '2026-08-15',
                     'date_to' => '2027-01-15',
                     'label' => 'Học kỳ 1 (2026-2027)',
+                    'ma_hk' => 'HK1-2026',
                 ];
 
             case 'custom':
@@ -1457,14 +1440,14 @@ class CimProxyController extends Controller
         $hotspots = [];
         try {
             $hotSql = "SELECT TOP 5 
-                          COALESCE(NULLIF(cv.PHONG_HOC, ''), k.TEN_KHU_VUC, 'DEFAULT_CAMPUS_AREA') as place,
-                          CONVERT(VARCHAR(MAX), CAST(COALESCE(NULLIF(cv.PHONG_HOC, ''), k.TEN_KHU_VUC, 'DEFAULT_CAMPUS_AREA') AS VARBINARY(MAX)), 2) as place_hex,
+                          COALESCE(k.TEN_KHU_VUC, 'DEFAULT_CAMPUS_AREA') as place,
+                          CONVERT(VARCHAR(MAX), CAST(COALESCE(k.TEN_KHU_VUC, 'DEFAULT_CAMPUS_AREA') AS VARBINARY(MAX)), 2) as place_hex,
                           DATEPART(HOUR, COALESCE(cv.THOI_DIEM, DATEADD(HOUR, 7, CAST(cv.NGAY_VIPHAM AS DATETIME2)))) as gio,
                           COUNT(*) as count
                        FROM CT_VIPHAM cv
                        LEFT JOIN KHU_VUC k ON cv.KHU_VUC_ID = k.ID
                        " . $filterSql . "
-                       GROUP BY COALESCE(NULLIF(cv.PHONG_HOC, ''), k.TEN_KHU_VUC, 'DEFAULT_CAMPUS_AREA'),
+                       GROUP BY COALESCE(k.TEN_KHU_VUC, 'DEFAULT_CAMPUS_AREA'),
                                 DATEPART(HOUR, COALESCE(cv.THOI_DIEM, DATEADD(HOUR, 7, CAST(cv.NGAY_VIPHAM AS DATETIME2))))
                        ORDER BY count DESC";
             $hotStmt = $pdo->prepare($hotSql);
@@ -1534,12 +1517,20 @@ class CimProxyController extends Controller
             $cToday = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM = '{$todayStr}'")->fetchColumn();
             $cWeek = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= '{$weekStart}'")->fetchColumn();
             $cMonth = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= '{$monthStart}'")->fetchColumn();
-            $currentSemRow = $pdo->query('SELECT CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU FROM HOCKY WHERE HIEN_TAI = 1')->fetch(\PDO::FETCH_ASSOC);
+            $semStmt = $pdo->prepare('SELECT TOP 1 MA_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE :today BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
+            $semStmt->execute(['today' => $todayStr]);
+            $currentSemRow = $semStmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$currentSemRow) {
+                $currentSemRow = $pdo->query('SELECT TOP 1 MA_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetch(\PDO::FETCH_ASSOC);
+            }
             $currentSemName = $currentSemRow ? $this->decodeHexUnicode($currentSemRow['name_hex'] ?? null, $currentSemRow['TEN_HK']) : 'Học kỳ 1 (2026-2027)';
-            $currentSemStart = $currentSemRow && !empty($currentSemRow['NGAY_BAT_DAU']) ? date('Y-m-d', strtotime((string)$currentSemRow['NGAY_BAT_DAU'])) : '2026-08-15';
+            $currentSemCode = $currentSemRow ? (string)$currentSemRow['MA_HK'] : null;
 
-            $cSemester = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= '{$currentSemStart}'")->fetchColumn();
-            if ($cSemester === 0) {
+            if ($currentSemCode) {
+                $cSemesterStmt = $pdo->prepare('SELECT COUNT(*) FROM CT_VIPHAM WHERE MA_HK = :ma_hk');
+                $cSemesterStmt->execute(['ma_hk' => $currentSemCode]);
+                $cSemester = (int)$cSemesterStmt->fetchColumn();
+            } else {
                 $cSemester = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM")->fetchColumn();
             }
 
@@ -1637,7 +1628,6 @@ class CimProxyController extends Controller
                         cv.ID,
                         cv.NGAY_VIPHAM,
                         cv.THOI_DIEM,
-                        cv.PHONG_HOC,
                         cv.KHU_VUC_ID,
                         k.TEN_KHU_VUC,
                         CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
@@ -1660,7 +1650,7 @@ class CimProxyController extends Controller
             $details = [];
             while ($r = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $timeStr = !empty($r['THOI_DIEM']) ? date('Y-m-d H:i:s', strtotime((string)$r['THOI_DIEM'])) : (!empty($r['NGAY_VIPHAM']) ? date('Y-m-d 07:30:00', strtotime((string)$r['NGAY_VIPHAM'])) : date('Y-m-d H:i:s'));
-                $areaStr = !empty($r['PHONG_HOC']) ? $r['PHONG_HOC'] : $this->decodeHexUnicode($r['area_name_hex'] ?? null, $r['TEN_KHU_VUC'] ?? 'Khu vực chung');
+                $areaStr = $this->decodeHexUnicode($r['area_name_hex'] ?? null, $r['TEN_KHU_VUC'] ?? 'Khu vực chung');
                 $details[] = [
                     'id' => (int)$r['ID'],
                     'occurred_at' => $timeStr,

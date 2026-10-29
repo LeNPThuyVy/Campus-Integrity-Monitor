@@ -378,12 +378,24 @@ class StudentService
             if ($checkArea === null || $checkArea === false) {
                 $pdo->exec("ALTER TABLE dbo.CT_VIPHAM ADD KHU_VUC_ID INT NULL;");
             }
-            $checkRoom = $pdo->query("SELECT COL_LENGTH('dbo.CT_VIPHAM', 'PHONG_HOC')")->fetchColumn();
-            if ($checkRoom === null || $checkRoom === false) {
-                $pdo->exec("ALTER TABLE dbo.CT_VIPHAM ADD PHONG_HOC NVARCHAR(100) NULL;");
+            $checkHk = $pdo->query("SELECT COL_LENGTH('dbo.CT_VIPHAM', 'MA_HK')")->fetchColumn();
+            if ($checkHk === null || $checkHk === false) {
+                $pdo->exec("ALTER TABLE dbo.CT_VIPHAM ADD MA_HK VARCHAR(20) NULL;");
             }
         } catch (Throwable) {
             // Ignore if already altered or no DDL permissions
+        }
+    }
+
+    public function resolveSemesterCodeByDate(PDO $pdo, string $date): ?string
+    {
+        try {
+            $stmt = $pdo->prepare('SELECT TOP 1 MA_HK FROM HOCKY WHERE :d BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
+            $stmt->execute(['d' => $date]);
+            $code = $stmt->fetchColumn();
+            return $code ?: null;
+        } catch (Throwable) {
+            return null;
         }
     }
 
@@ -395,11 +407,12 @@ class StudentService
             'SELECT v.ID, v.ID_LOI, l.TEN_LOI, CONVERT(VARCHAR(MAX), CAST(l.TEN_LOI AS VARBINARY(MAX)), 2) AS TEN_LOI_HEX, 
                     l.DIEM_TRU, v.NGAY_VIPHAM, v.THOI_DIEM, v.KHU_VUC_ID, k.TEN_KHU_VUC, 
                     CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) AS TEN_KHU_VUC_HEX,
-                    v.PHONG_HOC, CONVERT(VARCHAR(MAX), CAST(v.PHONG_HOC AS VARBINARY(MAX)), 2) AS PHONG_HOC_HEX,
-                    v.GHI_CHU, CONVERT(VARCHAR(MAX), CAST(v.GHI_CHU AS VARBINARY(MAX)), 2) AS GHI_CHU_HEX, v.NGAY_TAO
+                    v.GHI_CHU, CONVERT(VARCHAR(MAX), CAST(v.GHI_CHU AS VARBINARY(MAX)), 2) AS GHI_CHU_HEX,
+                    v.MA_HK, hk.TEN_HK, CONVERT(VARCHAR(MAX), CAST(hk.TEN_HK AS VARBINARY(MAX)), 2) AS TEN_HK_HEX
              FROM CT_VIPHAM v 
              INNER JOIN LOI_VIPHAM l ON l.ID = v.ID_LOI
              LEFT JOIN KHU_VUC k ON k.ID = v.KHU_VUC_ID
+             LEFT JOIN HOCKY hk ON hk.MA_HK = v.MA_HK
              WHERE v.ID_SV = :student
              ORDER BY COALESCE(v.THOI_DIEM, CAST(v.NGAY_VIPHAM AS DATETIME2)) DESC, v.ID DESC'
         );
@@ -408,9 +421,9 @@ class StudentService
         foreach ($vRows as &$vr) {
             $vr['TEN_LOI'] = $this->decodeHexUnicode($vr['TEN_LOI_HEX'] ?? null, $vr['TEN_LOI']);
             $vr['TEN_KHU_VUC'] = $this->decodeHexUnicode($vr['TEN_KHU_VUC_HEX'] ?? null, $vr['TEN_KHU_VUC'] ?? '');
-            $vr['PHONG_HOC'] = $this->decodeHexUnicode($vr['PHONG_HOC_HEX'] ?? null, $vr['PHONG_HOC'] ?? '');
             $vr['GHI_CHU'] = $this->decodeHexUnicode($vr['GHI_CHU_HEX'] ?? null, $vr['GHI_CHU']);
-            unset($vr['TEN_LOI_HEX'], $vr['TEN_KHU_VUC_HEX'], $vr['PHONG_HOC_HEX'], $vr['GHI_CHU_HEX']);
+            $vr['TEN_HK'] = $this->decodeHexUnicode($vr['TEN_HK_HEX'] ?? null, $vr['TEN_HK'] ?? '');
+            unset($vr['TEN_LOI_HEX'], $vr['TEN_KHU_VUC_HEX'], $vr['GHI_CHU_HEX'], $vr['TEN_HK_HEX']);
         }
         return $vRows;
     }
@@ -605,18 +618,20 @@ class StudentService
             ];
         }
 
+        $maHk = !empty($data['ma_hk']) ? trim((string)$data['ma_hk']) : $this->resolveSemesterCodeByDate($pdo, $date);
+
         $insert = $pdo->prepare(
-            'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, THOI_DIEM, KHU_VUC_ID, PHONG_HOC, GHI_CHU) 
+            'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, THOI_DIEM, KHU_VUC_ID, GHI_CHU, MA_HK) 
              OUTPUT INSERTED.ID
-             VALUES (:type, :student, :day, :thoidiem, :area, :room, :note)'
+             VALUES (:type, :student, :day, :thoidiem, :area, :note, :ma_hk)'
         );
         $insert->bindValue(':type', $typeId, PDO::PARAM_INT);
         $insert->bindValue(':student', $studentId, PDO::PARAM_INT);
         $insert->bindValue(':day', $date);
         $insert->bindValue(':thoidiem', $datetimeStr);
         $insert->bindValue(':area', $areaId, $areaId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-        $insert->bindValue(':room', $room, $room === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $insert->bindValue(':note', $note, $note === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $insert->bindValue(':ma_hk', $maHk, $maHk === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $insert->execute();
 
         return ['id' => (int)$insert->fetchColumn(), 'student_id' => $studentId];
@@ -1445,10 +1460,11 @@ class StudentService
                     $tName = $this->decodeHexUnicode($t['TEN_LOI_HEX'] ?? null, $t['TEN_LOI']);
                     $typeMap[mb_strtolower($tName, 'UTF-8')] = (int)$t['ID'];
                 }
+                $semesters = $pdo->query('SELECT MA_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetchAll(PDO::FETCH_ASSOC);
 
                 $insert = $pdo->prepare(
-                    'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, THOI_DIEM, KHU_VUC_ID, PHONG_HOC, GHI_CHU)
-                     VALUES (:type, :student, :day, :thoidiem, :area, :room, :note)'
+                    'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, THOI_DIEM, KHU_VUC_ID, GHI_CHU, MA_HK)
+                     VALUES (:type, :student, :day, :thoidiem, :area, :note, :ma_hk)'
                 );
 
                 foreach ($rows as $item) {
@@ -1469,7 +1485,18 @@ class StudentService
                     $ngay = $val['_ngay'] ?? substr($thoiDiem, 0, 10);
                     $areaId = $val['_area_id'] ?? null;
                     $room = !empty($val['VI_TRI']) ? (string)$val['VI_TRI'] : null;
+                    if ($areaId === null && $room !== null && $room !== '') {
+                        $areaId = $this->matchAreaIdByName($room);
+                    }
                     $note = 'Nhập biên bản từ file Excel';
+
+                    $maHk = null;
+                    foreach ($semesters as $sem) {
+                        if ($ngay >= $sem['NGAY_BAT_DAU'] && $ngay <= $sem['NGAY_KET_THUC']) {
+                            $maHk = $sem['MA_HK'];
+                            break;
+                        }
+                    }
 
                     $insert->execute([
                         'type' => $typeId,
@@ -1477,8 +1504,8 @@ class StudentService
                         'day' => $ngay,
                         'thoidiem' => $thoiDiem,
                         'area' => $areaId,
-                        'room' => $room,
                         'note' => $note,
+                        'ma_hk' => $maHk,
                     ]);
                     $inserted++;
                 }

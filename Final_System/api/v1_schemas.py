@@ -51,7 +51,6 @@ class CameraRequest(StrictModel):
     name: str = Field(min_length=1, max_length=100)
     area_id: int = Field(ge=1)
     location: str | None = Field(default=None, max_length=255)
-    stream_source: str | None = Field(default=None, max_length=500)
     active: bool = True
 
 

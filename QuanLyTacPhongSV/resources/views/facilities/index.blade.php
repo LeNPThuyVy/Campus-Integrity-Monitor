@@ -9,9 +9,9 @@
     <h1 class="font-headline-xl text-headline-xl">Camera, khu vực & học kỳ</h1>
     <p class="text-on-surface-variant">
       @if ($isAdmin)
-        Thêm, sửa hoặc ngừng sử dụng khu vực/camera. Khóa thiết bị chỉ hiển thị một lần khi tạo hoặc cấp lại.
+        Thêm, sửa hoặc ngừng sử dụng khu vực/camera trong khuôn viên trường học.
       @else
-        Bạn đang xem ở chế độ chỉ đọc. Thông tin nhạy cảm của camera chỉ hiển thị cho Quản trị viên.
+        Bạn đang xem ở chế độ chỉ đọc.
       @endif
     </p>
   </div>
@@ -66,8 +66,6 @@
         <select class="{{ $input }}" name="area_id" required></select></label>
       <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Vị trí lắp đặt</span>
         <input class="{{ $input }}" name="location" maxlength="255"></label>
-      <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Nguồn video (RTSP/URL – thông tin nhạy cảm)</span>
-        <input class="{{ $input }}" name="stream_source" maxlength="500" autocomplete="off"></label>
       <label class="flex items-center gap-2"><input type="checkbox" name="active" checked> Đang sử dụng</label>
       <div class="flex gap-space-sm">
         <button class="rounded-lg bg-primary-container px-space-md py-2 font-label-md text-on-primary" type="submit">Lưu camera</button>
@@ -79,7 +77,7 @@
       <div class="overflow-x-auto"><table class="w-full min-w-[720px] text-left">
         <thead class="bg-surface-container-low font-label-sm text-label-sm uppercase text-outline"><tr>
           <th class="px-space-md py-3">Mã</th><th class="px-space-md py-3">Tên / vị trí</th><th class="px-space-md py-3">Khu vực</th>
-          <th class="px-space-md py-3">Kết nối gần nhất</th><th class="px-space-md py-3">Trạng thái</th><th class="px-space-md py-3 text-right">Thao tác</th>
+          <th class="px-space-md py-3">Trạng thái</th><th class="px-space-md py-3 text-right">Thao tác</th>
         </tr></thead>
         <tbody id="camera-body"></tbody>
       </table></div>
@@ -117,21 +115,6 @@
     </div>
   </section>
 </div>
-
-<dialog class="w-[min(94vw,560px)] rounded-xl p-0 shadow-xl backdrop:bg-inverse-surface/50" id="key-dialog">
-  <form method="dialog" class="flex flex-col gap-space-md p-space-lg">
-    <h2 class="font-headline-md text-headline-md">Khóa thiết bị cho Desktop</h2>
-    <p class="text-on-surface-variant">Nhập mã camera và khóa này vào phần "Kết nối API" của ứng dụng Desktop. Khóa <strong>không được hiển thị lại</strong>; nếu mất hãy cấp lại khóa mới.</p>
-    <dl class="grid grid-cols-[110px_1fr] gap-2">
-      <dt class="text-on-surface-variant">Mã camera</dt><dd class="font-data-mono font-semibold" id="key-camera"></dd>
-      <dt class="text-on-surface-variant">Khóa thiết bị</dt><dd class="font-data-mono break-all rounded bg-surface-container-low p-2" id="key-value"></dd>
-    </dl>
-    <div class="flex justify-end gap-space-sm">
-      <button class="rounded-lg bg-surface-container px-space-md py-2 font-label-md" type="button" id="key-copy">Sao chép khóa</button>
-      <button class="rounded-lg bg-primary-container px-space-md py-2 font-label-md text-on-primary" value="close">Tôi đã lưu khóa</button>
-    </div>
-  </form>
-</dialog>
 @endsection
 
 @push('scripts')

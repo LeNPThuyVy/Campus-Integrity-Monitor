@@ -43,8 +43,7 @@ class PurgeReport:
 
 
 def _log(cursor, record_id: int, result: str, detail: str | None, now: datetime) -> None:
-    cursor.execute("INSERT INTO dbo.NHAT_KY_XOA_ANH (BAN_GHI_ID, KET_QUA, CHI_TIET, THOI_DIEM) VALUES (?, ?, ?, ?)",
-                   record_id, result, (detail or "")[:500] or None, now)
+    logger.info("Xóa ảnh bản ghi %s: %s (%s)", record_id, result, detail or "")
 
 
 def purge_expired_evidence(db: Database, storage: EvidenceStorage, now: datetime, batch_size: int = 500) -> PurgeReport:
@@ -66,8 +65,8 @@ def purge_expired_evidence(db: Database, storage: EvidenceStorage, now: datetime
             try:
                 while True:
                     cursor.execute(
-                        "SELECT TOP (?) ID, ANH_KHOA FROM dbo.BAN_GHI_VIPHAM "
-                        "WHERE ANH_TRANG_THAI = 'AVAILABLE' AND ANH_HET_HAN_LUC <= ? ORDER BY ANH_HET_HAN_LUC, ID",
+                        "SELECT TOP (?) ID, ANH_KHOA FROM dbo.ANH_VIPHAM "
+                        "WHERE TRANG_THAI = 'AVAILABLE' AND HET_HAN_LUC <= ? ORDER BY HET_HAN_LUC, ID",
                         batch_size, now,
                     )
                     rows = cursor.fetchall()
@@ -105,13 +104,11 @@ def _purge_one(connection, storage: EvidenceStorage, record_id: int, key: str | 
         except OSError as exc:
             report.errors += 1
             logger.error("Không xóa được ảnh của bản ghi %s: %s", record_id, type(exc).__name__)
-            connection.autocommit = False
             _log(cursor, record_id, "ERROR", f"Lỗi hệ thống tệp: {type(exc).__name__}", now)
-            connection.commit()
             return
         connection.autocommit = False
-        cursor.execute("UPDATE dbo.BAN_GHI_VIPHAM SET ANH_TRANG_THAI = 'DELETED', ANH_DA_XOA_LUC = ? "
-                       "WHERE ID = ? AND ANH_TRANG_THAI = 'AVAILABLE'", now, record_id)
+        cursor.execute("UPDATE dbo.ANH_VIPHAM SET TRANG_THAI = 'DELETED', DA_XOA_LUC = ? "
+                       "WHERE ID = ? AND TRANG_THAI = 'AVAILABLE'", now, record_id)
         _log(cursor, record_id, result, detail, now)
         connection.commit()
         report.processed_ids.append(record_id)

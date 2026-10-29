@@ -29,6 +29,9 @@ DETECT_IMAGE_SIZE=640
 CLASSIFY_IMAGE_SIZE=224
 DETECT_CONF=0.3
 CLASSIFY_CONF=0.4
+NON_UNIFORM_CONF=0.7         #Min confidence to keep "Non_Uniform"; below this -> becomes "Uniform"
+MIN_PERSON_HEIGHT_RATIO=0.25 #Ignore detected person if bbox_height / frame_height < this ratio
+UPPER_BODY_CROP_RATIO=0.68   #Consistent upper-body crop ratio across distances
 DETECT_CARD_CONF=0.3
 DETECT_CARD_IOU=0.3
 DETECT_CARD_IMAGE_SIZE=224
@@ -61,6 +64,9 @@ LEN_HISTORY=20               #Sliding window of classification results kept per 
 VOTING_THREDSHOLD=7          #Minimum confident results before a track gets a final label
 VIOLATION_RATIO=0.6          #Share of "violation" votes needed to conclude a violation
 MISSING_COUNTER_THRESHOLD=5  #Frames a track may be missing before its history is dropped
+LABEL_HOLD_SECONDS=2         #Seconds to hold a decided label before allowing a class flip
+HYSTERESIS_MARGIN=0.20       #Margin below VIOLATION_RATIO required to flip Non_Uniform -> Uniform
+CROP_CLAHE_ENABLED=1         #1 = apply local CLAHE on each cropped person when lighting is poor
 
 
 

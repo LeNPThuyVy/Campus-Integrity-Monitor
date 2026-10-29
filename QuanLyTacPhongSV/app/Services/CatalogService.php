@@ -144,7 +144,6 @@ class CatalogService
                 'TEN_HK' => $this->requiredText($data['TEN_HK'] ?? null, 'TEN_HK', 100),
                 'NGAY_BAT_DAU' => $this->requiredText($data['NGAY_BAT_DAU'] ?? null, 'NGAY_BAT_DAU', 10),
                 'NGAY_KET_THUC' => $this->requiredText($data['NGAY_KET_THUC'] ?? null, 'NGAY_KET_THUC', 10),
-                'HIEN_TAI' => $this->flag($data['HIEN_TAI'] ?? 0, 'HIEN_TAI'),
             ],
             default => throw new InvalidArgumentException('Loại danh mục không hợp lệ.'),
         };
@@ -198,7 +197,7 @@ class CatalogService
                       FROM LOP l INNER JOIN NGANH n ON n.ID = l.NGANH_ID
                       INNER JOIN KHOA k ON k.ID = n.KHOA_ID ORDER BY l.MA_LOP',
             'LOI_VIPHAM' => 'SELECT ID, ID as MA_LOI, TEN_LOI, CONVERT(VARCHAR(MAX), CAST(TEN_LOI AS VARBINARY(MAX)), 2) AS TEN_LOI_HEX, DIEM_TRU, 1 as DANG_SU_DUNG FROM LOI_VIPHAM ORDER BY ID',
-            'HOCKY' => 'SELECT ID, MA_HK, TEN_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) AS TEN_HK_HEX, NGAY_BAT_DAU, NGAY_KET_THUC, HIEN_TAI FROM HOCKY ORDER BY NGAY_BAT_DAU ASC',
+            'HOCKY' => 'SELECT ID, MA_HK, TEN_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) AS TEN_HK_HEX, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU ASC',
         ];
         if (!isset($queries[$entity])) {
             throw new InvalidArgumentException('Loại danh mục không hợp lệ.');
@@ -227,6 +226,10 @@ class CatalogService
             }
             if (isset($r['NGAY_KET_THUC'])) {
                 $r['NGAY_KET_THUC'] = date('Y-m-d', strtotime((string)$r['NGAY_KET_THUC']));
+            }
+            if ($entity === 'HOCKY') {
+                $today = date('Y-m-d');
+                $r['HIEN_TAI'] = (!empty($r['NGAY_BAT_DAU']) && !empty($r['NGAY_KET_THUC']) && $today >= $r['NGAY_BAT_DAU'] && $today <= $r['NGAY_KET_THUC']) ? 1 : 0;
             }
         }
         return $this->cleanUtf8($rows);
@@ -308,16 +311,13 @@ class CatalogService
         }
 
         if ($entity === 'HOCKY') {
-            if (!empty($record['HIEN_TAI'])) {
-                $pdo->exec('UPDATE HOCKY SET HIEN_TAI = 0');
-            }
             if ($id === null) {
-                $stmt = $pdo->prepare('INSERT INTO HOCKY (MA_HK, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC, HIEN_TAI) OUTPUT INSERTED.ID VALUES (?, ?, ?, ?, ?)');
-                $stmt->execute([$record['MA_HK'], $record['TEN_HK'], $record['NGAY_BAT_DAU'], $record['NGAY_KET_THUC'], $record['HIEN_TAI']]);
+                $stmt = $pdo->prepare('INSERT INTO HOCKY (MA_HK, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC) OUTPUT INSERTED.ID VALUES (?, ?, ?, ?)');
+                $stmt->execute([$record['MA_HK'], $record['TEN_HK'], $record['NGAY_BAT_DAU'], $record['NGAY_KET_THUC']]);
                 return (int)$stmt->fetchColumn();
             }
-            $stmt = $pdo->prepare('UPDATE HOCKY SET MA_HK = ?, TEN_HK = ?, NGAY_BAT_DAU = ?, NGAY_KET_THUC = ?, HIEN_TAI = ? WHERE ID = ?');
-            $stmt->execute([$record['MA_HK'], $record['TEN_HK'], $record['NGAY_BAT_DAU'], $record['NGAY_KET_THUC'], $record['HIEN_TAI'], $id]);
+            $stmt = $pdo->prepare('UPDATE HOCKY SET MA_HK = ?, TEN_HK = ?, NGAY_BAT_DAU = ?, NGAY_KET_THUC = ? WHERE ID = ?');
+            $stmt->execute([$record['MA_HK'], $record['TEN_HK'], $record['NGAY_BAT_DAU'], $record['NGAY_KET_THUC'], $id]);
             return (int)$id;
         }
 
@@ -377,6 +377,12 @@ class CatalogService
         }
 
         if ($entity === 'HOCKY') {
+            $stmt = $pdo->prepare('SELECT COUNT(*) FROM CT_VIPHAM cv INNER JOIN HOCKY hk ON cv.MA_HK = hk.MA_HK WHERE hk.ID = ?');
+            $stmt->execute([$id]);
+            $count = (int)$stmt->fetchColumn();
+            if ($count > 0) {
+                throw new InvalidArgumentException("Học kỳ này đã có {$count} chi tiết vi phạm liên kết trong hệ thống, không thể xóa.");
+            }
             $del = $pdo->prepare('DELETE FROM HOCKY WHERE ID = ?');
             $del->execute([$id]);
             return;

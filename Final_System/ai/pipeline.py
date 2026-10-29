@@ -34,8 +34,9 @@ class Pipeline:
         The process would be:
         1. Detect people in frame
             The detector returns list bbox
-        2. Crop each person
-        3. Classify uniform (MobileNetV3) and detect card (YOLO CardDetector) for each person
+        2. Filter out people who are too far away (bbox_height / frame_height < MIN_PERSON_HEIGHT_RATIO)
+        3. Crop each person
+        4. Classify uniform (MobileNetV3) and detect card (YOLO CardDetector) for each person
 
         This function returns list[PipelineResult]
         """
@@ -47,6 +48,9 @@ class Pipeline:
         crop_offsets = []
         
         for result in results_detected:
+            if not Utils.is_person_large_enough(frame.shape, result.bbox):
+                continue
+
             x1 = max(0, int(result.bbox[0]))
             y1 = max(0, int(result.bbox[1]))
             image_cropped = Utils.crop_person(frame=frame, bbox=result.bbox)

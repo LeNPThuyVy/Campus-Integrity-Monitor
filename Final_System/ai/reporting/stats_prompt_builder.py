@@ -75,7 +75,7 @@ class StatsPromptBuilder:
             for d in details[:20]:
                 time_str = d.get("THOI_DIEM") or d.get("occurred_at") or d.get("created_at") or d.get("time") or ""
                 loi = d.get("TEN_LOI") or d.get("type_name") or (d.get("type", {}).get("name") if isinstance(d.get("type"), dict) else "")
-                place = d.get("PHONG_HOC") or d.get("location") or d.get("TEN_KHU_VUC") or (d.get("area", {}).get("name") if isinstance(d.get("area"), dict) else "")
+                place = d.get("TEN_KHU_VUC") or d.get("location") or (d.get("area", {}).get("name") if isinstance(d.get("area"), dict) else "")
                 sv = d.get("HOTEN") or d.get("student_name") or d.get("MA_SV") or d.get("student_code") or (d.get("student", {}).get("name") if isinstance(d.get("student"), dict) else "")
                 lines.append(f"  * Thời điểm: {time_str} | Vị trí: {place} | Loại lỗi: {loi} | Đối tượng: {sv or 'Chưa định danh'}")
 

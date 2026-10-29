@@ -1,7 +1,9 @@
-import ai.config as my_config
+import time
 from collections import deque
-from ai.pipeline import PipelineResult
 from dataclasses import dataclass
+
+import ai.config as my_config
+from ai.pipeline import PipelineResult
 
 WAITING = "Waiting"
 UNIFORM, NON_UNIFORM = "Uniform", "Non_Uniform"
@@ -18,34 +20,86 @@ class VotingResult:
     card_confidence: float | None = None
 
 
-def _decide(history, positive: str, negative: str) -> tuple[str, float | None]:
+def _decide_stable(
+    history,
+    positive: str,
+    negative: str,
+    locked_info: tuple[str, float] | None,
+    now: float
+) -> tuple[str, float | None, tuple[str, float] | None]:
     """
-    Combine several frames into one label to reduce false alarms:
-    - fewer than VOTING_THREDSHOLD confident results -> Waiting
-    - "negative" (violation) only when its share >= VIOLATION_RATIO, otherwise "positive"
-    Returns (label, mean confidence of the frames that agree with the label).
+    Decide label with temporal stability:
+    1. Fewer than VOTING_THREDSHOLD -> Waiting
+    2. Hysteresis threshold to prevent flickering around the boundary
+    3. LABEL_HOLD_SECONDS: once decided, hold label for minimum seconds before flipping
     """
     if len(history) < my_config.VOTING_THREDSHOLD:
-        return WAITING, None
+        return WAITING, None, None
+
     negatives = [confidence for label, confidence in history if label == negative]
     positives = [confidence for label, confidence in history if label == positive]
-    if len(negatives) / len(history) >= my_config.VIOLATION_RATIO:
-        return negative, sum(negatives) / len(negatives)
-    return positive, (sum(positives) / len(positives)) if positives else None
+    neg_ratio = len(negatives) / len(history)
+    neg_conf = (sum(negatives) / len(negatives)) if negatives else None
+    pos_conf = (sum(positives) / len(positives)) if positives else None
+
+    base_violation_ratio = getattr(my_config, "VIOLATION_RATIO", 0.6)
+    hysteresis = getattr(my_config, "HYSTERESIS_MARGIN", 0.20)
+    hold_seconds = getattr(my_config, "LABEL_HOLD_SECONDS", 2.0)
+
+    # First decision for this track
+    if locked_info is None:
+        if neg_ratio >= base_violation_ratio:
+            chosen = negative
+            conf = neg_conf
+        else:
+            chosen = positive
+            conf = pos_conf
+        return chosen, conf, (chosen, now)
+
+    prev_label, locked_time = locked_info
+
+    # Determine candidate label using hysteresis threshold
+    if prev_label == negative:
+        # Require violation ratio to drop below (base_ratio - hysteresis) to flip back to positive
+        flip_threshold = max(0.0, base_violation_ratio - hysteresis)
+        candidate = positive if neg_ratio <= flip_threshold else negative
+    else:
+        # Require violation ratio to meet base_ratio to flip to negative
+        candidate = negative if neg_ratio >= base_violation_ratio else positive
+
+    # If candidate agrees with current locked label, keep it
+    if candidate == prev_label:
+        chosen = prev_label
+        conf = neg_conf if chosen == negative else pos_conf
+        return chosen, conf, locked_info
+
+    # Candidate differs: check if hold duration has elapsed
+    if (now - locked_time) < hold_seconds:
+        chosen = prev_label
+        conf = neg_conf if chosen == negative else pos_conf
+        return chosen, conf, locked_info
+
+    # Hold duration has passed: flip to new label and restart hold timer
+    chosen = candidate
+    conf = neg_conf if chosen == negative else pos_conf
+    return chosen, conf, (chosen, now)
 
 
 class TemporalVoting:
     def __init__(self):
         """
-        histories contain track_id history for uniform and card classification.
-        For uniform: Uniform with confidence >= CLASSIFY_CONF stays Uniform;
-        Uniform with confidence < CLASSIFY_CONF becomes Non_Uniform; Non_Uniform stays Non_Uniform.
+        Histories contain track_id history for uniform and card classification.
+        Independent thresholds:
+        - Uniform with confidence >= CLASSIFY_CONF stays Uniform; < CLASSIFY_CONF becomes Non_Uniform
+        - Non_Uniform with confidence >= NON_UNIFORM_CONF stays Non_Uniform; < NON_UNIFORM_CONF becomes Uniform
         """
-        self.len_history=my_config.LEN_HISTORY
+        self.len_history = my_config.LEN_HISTORY
         self.uniform_histories = {}
         self.card_histories = {}
         self.histories = self.uniform_histories
-        self.missing_counter={}
+        self.missing_counter = {}
+        self.uniform_locked_state: dict[int, tuple[str, float]] = {}
+        self.card_locked_state: dict[int, tuple[str, float]] = {}
 
     def reset(self, len_history: int | None = None):
         """Forget every track (new video source, user reset or changed window length)."""
@@ -54,6 +108,8 @@ class TemporalVoting:
         self.uniform_histories.clear()
         self.card_histories.clear()
         self.missing_counter.clear()
+        self.uniform_locked_state.clear()
+        self.card_locked_state.clear()
 
     def _append(self, histories: dict, track_id: int, prediction, min_conf: float = None):
         if prediction is None:
@@ -62,53 +118,82 @@ class TemporalVoting:
         if prediction.confidence < threshold:
             return
         histories.setdefault(track_id, deque(maxlen=self.len_history)).append(
-            (prediction.label, float(prediction.confidence)))
+            (prediction.label, float(prediction.confidence))
+        )
 
-    def _append_uniform(self, track_id: int, prediction, min_conf: float = None):
+    def _append_uniform(
+        self,
+        track_id: int,
+        prediction,
+        min_conf: float = None,
+        non_uniform_min_conf: float = None
+    ):
         if prediction is None:
             return
-        threshold = my_config.CLASSIFY_CONF if min_conf is None else min_conf
-        if prediction.label == UNIFORM:
-            label = UNIFORM if prediction.confidence >= threshold else NON_UNIFORM
-        else:
-            label = NON_UNIFORM
-        self.uniform_histories.setdefault(track_id, deque(maxlen=self.len_history)).append(
-            (label, float(prediction.confidence)))
+        uniform_thresh = my_config.CLASSIFY_CONF if min_conf is None else min_conf
+        non_uniform_thresh = (
+            getattr(my_config, "NON_UNIFORM_CONF", 0.0)
+            if non_uniform_min_conf is None
+            else non_uniform_min_conf
+        )
 
-    def update(self,new_pipeline_result: list[PipelineResult]):
+        if prediction.label == UNIFORM:
+            label = UNIFORM if prediction.confidence >= uniform_thresh else NON_UNIFORM
+        else:
+            label = NON_UNIFORM if prediction.confidence >= non_uniform_thresh else UNIFORM
+
+        self.uniform_histories.setdefault(track_id, deque(maxlen=self.len_history)).append(
+            (label, float(prediction.confidence))
+        )
+
+    def update(self, new_pipeline_result: list[PipelineResult]):
         """
-        this function will update history by appending new class results
+        Update history by appending new classification results
         and update missing counter if the id doesn't appear after k frames
         """
         card_min_conf = getattr(my_config, "DETECT_CARD_CONF", my_config.CLASSIFY_CONF)
         for result in new_pipeline_result:
-            self._append_uniform(result.track_id, result.uniform_prediction, min_conf=my_config.CLASSIFY_CONF)
+            self._append_uniform(
+                result.track_id,
+                result.uniform_prediction,
+                min_conf=my_config.CLASSIFY_CONF,
+                non_uniform_min_conf=getattr(my_config, "NON_UNIFORM_CONF", 0.0)
+            )
             self._append(self.card_histories, result.track_id, result.card_prediction, min_conf=card_min_conf)
-            self.missing_counter[result.track_id]=0
+            self.missing_counter[result.track_id] = 0
 
-        #Get the id doesn't appear in new_pipeline_result to update the missing counter
-        ids_in_new_frame={
-            result.track_id
-            for result in new_pipeline_result}
+        # Get the id that doesn't appear in new_pipeline_result to update the missing counter
+        ids_in_new_frame = {result.track_id for result in new_pipeline_result}
         all_tracked_ids = set(self.missing_counter.keys())
-        disappear_id=list(all_tracked_ids - ids_in_new_frame)
+        disappear_id = list(all_tracked_ids - ids_in_new_frame)
         for track_id in disappear_id:
             self.missing_counter[track_id] = self.missing_counter.get(track_id, 0) + 1
-        #Remove the id disappear after update
+            
+        # Remove tracks that disappeared for too long
         self.remove_track_id()
 
-
-    def vote(self):
+    def vote(self, now: float | None = None) -> dict[int, VotingResult]:
         """
-        Voting depend on VOTING_THREDSHOLD (minimum frames) and VIOLATION_RATIO.
-        This function returns VotingResult with uniform_label and card_label
+        Voting depends on VOTING_THREDSHOLD, VIOLATION_RATIO, HYSTERESIS_MARGIN and LABEL_HOLD_SECONDS.
+        Returns VotingResult with uniform_label and card_label.
         """
-        results_voting={}
+        current_time = time.monotonic() if now is None else now
+        results_voting = {}
         for track_id in self.missing_counter:
             u_history = self.uniform_histories.get(track_id, ())
             c_history = self.card_histories.get(track_id, ())
-            u_label, u_conf = _decide(u_history, UNIFORM, NON_UNIFORM)
-            c_label, c_conf = _decide(c_history, CARD, NO_CARD)
+            
+            u_locked = self.uniform_locked_state.get(track_id)
+            c_locked = self.card_locked_state.get(track_id)
+
+            u_label, u_conf, new_u_locked = _decide_stable(u_history, UNIFORM, NON_UNIFORM, u_locked, current_time)
+            c_label, c_conf, new_c_locked = _decide_stable(c_history, CARD, NO_CARD, c_locked, current_time)
+
+            if new_u_locked is not None:
+                self.uniform_locked_state[track_id] = new_u_locked
+            if new_c_locked is not None:
+                self.card_locked_state[track_id] = new_c_locked
+
             results_voting[track_id] = VotingResult(
                 label=u_label,
                 matched_count=max(len(u_history), len(c_history)),
@@ -124,11 +209,13 @@ class TemporalVoting:
         """
         Remove track_id if counter >= MISSING_COUNTER_THRESHOLD
         """
-        missing_id=[]
-        for track_id,counter in self.missing_counter.items():
-            if counter>=my_config.MISSING_COUNTER_THRESHOLD:
+        missing_id = []
+        for track_id, counter in self.missing_counter.items():
+            if counter >= my_config.MISSING_COUNTER_THRESHOLD:
                 missing_id.append(track_id)
         for track_id in missing_id:
-            self.uniform_histories.pop(track_id,None)
-            self.card_histories.pop(track_id,None)
-            self.missing_counter.pop(track_id,None)
+            self.uniform_histories.pop(track_id, None)
+            self.card_histories.pop(track_id, None)
+            self.missing_counter.pop(track_id, None)
+            self.uniform_locked_state.pop(track_id, None)
+            self.card_locked_state.pop(track_id, None)

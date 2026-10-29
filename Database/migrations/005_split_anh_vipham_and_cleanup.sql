@@ -1,0 +1,146 @@
+/*
+  Migration 005 - Tách bảng quản lý ảnh (dbo.ANH_VIPHAM), loại bỏ các trường độ tin cậy
+  (DO_TIN_CAY_DONG_PHUC, DO_TIN_CAY_THE), loại bỏ PHONG_HOC và xóa bảng dư thừa NHAT_KY_XOA_ANH.
+*/
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
+IF OBJECT_ID(N'dbo.BAN_GHI_VIPHAM', N'U') IS NULL
+    THROW 50005, N'Chưa có bảng BAN_GHI_VIPHAM. Hãy kiểm tra các migration trước.', 1;
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    -- 1. Tạo bảng riêng quản lý ảnh: dbo.ANH_VIPHAM
+    IF OBJECT_ID(N'dbo.ANH_VIPHAM', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.ANH_VIPHAM
+        (
+            ID             BIGINT IDENTITY(1, 1) NOT NULL CONSTRAINT PK_ANH_VIPHAM PRIMARY KEY,
+            BAN_GHI_ID     BIGINT NOT NULL CONSTRAINT UQ_ANH_VIPHAM_BAN_GHI UNIQUE,
+            ANH_KHOA       NVARCHAR(260) NOT NULL,
+            ANH_SHA256     CHAR(64) NULL,
+            ANH_KICH_THUOC INT NULL,
+            TRANG_THAI     VARCHAR(12) NOT NULL CONSTRAINT DF_ANH_VIPHAM_TRANG_THAI DEFAULT ('AVAILABLE')
+                CONSTRAINT CK_ANH_VIPHAM_TRANG_THAI CHECK (TRANG_THAI IN ('AVAILABLE', 'DELETED', 'MISSING')),
+            HET_HAN_LUC    DATETIME2(0) NULL,
+            DA_XOA_LUC     DATETIME2(0) NULL,
+            NGAY_TAO       DATETIME2(0) NOT NULL CONSTRAINT DF_ANH_VIPHAM_NGAY_TAO DEFAULT SYSDATETIME(),
+            CONSTRAINT FK_ANH_VIPHAM_BAN_GHI FOREIGN KEY (BAN_GHI_ID)
+                REFERENCES dbo.BAN_GHI_VIPHAM (ID) ON DELETE CASCADE
+        );
+
+        IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_ANH_VIPHAM_HET_HAN' AND object_id = OBJECT_ID(N'dbo.ANH_VIPHAM'))
+        BEGIN
+            CREATE INDEX IX_ANH_VIPHAM_HET_HAN ON dbo.ANH_VIPHAM (HET_HAN_LUC)
+                WHERE TRANG_THAI = 'AVAILABLE';
+        END
+    END;
+
+    -- 2. Di trú dữ liệu ảnh hiện có từ BAN_GHI_VIPHAM sang ANH_VIPHAM (nếu cột còn tồn tại)
+    IF COL_LENGTH(N'dbo.BAN_GHI_VIPHAM', N'ANH_KHOA') IS NOT NULL
+    BEGIN
+        EXEC(N'
+            INSERT INTO dbo.ANH_VIPHAM (BAN_GHI_ID, ANH_KHOA, ANH_SHA256, ANH_KICH_THUOC, TRANG_THAI, HET_HAN_LUC, DA_XOA_LUC, NGAY_TAO)
+            SELECT 
+                b.ID,
+                b.ANH_KHOA,
+                b.ANH_SHA256,
+                b.ANH_KICH_THUOC,
+                CASE 
+                    WHEN b.ANH_TRANG_THAI IN (''AVAILABLE'', ''DELETED'', ''MISSING'') THEN b.ANH_TRANG_THAI 
+                    ELSE ''AVAILABLE'' 
+                END,
+                b.ANH_HET_HAN_LUC,
+                b.ANH_DA_XOA_LUC,
+                b.NGAY_TAO
+            FROM dbo.BAN_GHI_VIPHAM b
+            WHERE b.ANH_KHOA IS NOT NULL
+              AND NOT EXISTS (SELECT 1 FROM dbo.ANH_VIPHAM a WHERE a.BAN_GHI_ID = b.ID);
+        ');
+    END;
+
+    -- 3. Xóa các ràng buộc và cột độ tin cậy trong BAN_GHI_VIPHAM
+    IF OBJECT_ID(N'dbo.CK_BAN_GHI_VIPHAM_DO_TIN_CAY', N'C') IS NOT NULL
+    BEGIN
+        ALTER TABLE dbo.BAN_GHI_VIPHAM DROP CONSTRAINT CK_BAN_GHI_VIPHAM_DO_TIN_CAY;
+    END;
+
+    IF COL_LENGTH(N'dbo.BAN_GHI_VIPHAM', N'DO_TIN_CAY_DONG_PHUC') IS NOT NULL
+    BEGIN
+        ALTER TABLE dbo.BAN_GHI_VIPHAM DROP COLUMN DO_TIN_CAY_DONG_PHUC;
+    END;
+
+    IF COL_LENGTH(N'dbo.BAN_GHI_VIPHAM', N'DO_TIN_CAY_THE') IS NOT NULL
+    BEGIN
+        ALTER TABLE dbo.BAN_GHI_VIPHAM DROP COLUMN DO_TIN_CAY_THE;
+    END;
+
+    -- 4. Xóa các ràng buộc, index và cột ảnh cũ trong BAN_GHI_VIPHAM
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_BAN_GHI_VIPHAM_ANH_HET_HAN' AND object_id = OBJECT_ID(N'dbo.BAN_GHI_VIPHAM'))
+    BEGIN
+        DROP INDEX IX_BAN_GHI_VIPHAM_ANH_HET_HAN ON dbo.BAN_GHI_VIPHAM;
+    END;
+
+    DECLARE @dfTrangThai SYSNAME;
+    SELECT @dfTrangThai = d.name
+    FROM sys.default_constraints d
+    INNER JOIN sys.columns c ON d.parent_object_id = c.object_id AND d.parent_column_id = c.column_id
+    WHERE d.parent_object_id = OBJECT_ID(N'dbo.BAN_GHI_VIPHAM') AND c.name = N'ANH_TRANG_THAI';
+
+    IF @dfTrangThai IS NOT NULL
+    BEGIN
+        DECLARE @sqlDropDf NVARCHAR(400) = N'ALTER TABLE dbo.BAN_GHI_VIPHAM DROP CONSTRAINT ' + QUOTENAME(@dfTrangThai) + N';';
+        EXEC sys.sp_executesql @sqlDropDf;
+    END;
+
+    IF OBJECT_ID(N'dbo.CK_BAN_GHI_VIPHAM_ANH_TRANG_THAI', N'C') IS NOT NULL
+    BEGIN
+        ALTER TABLE dbo.BAN_GHI_VIPHAM DROP CONSTRAINT CK_BAN_GHI_VIPHAM_ANH_TRANG_THAI;
+    END;
+
+    IF COL_LENGTH(N'dbo.BAN_GHI_VIPHAM', N'ANH_KHOA') IS NOT NULL
+        ALTER TABLE dbo.BAN_GHI_VIPHAM DROP COLUMN ANH_KHOA;
+    IF COL_LENGTH(N'dbo.BAN_GHI_VIPHAM', N'ANH_SHA256') IS NOT NULL
+        ALTER TABLE dbo.BAN_GHI_VIPHAM DROP COLUMN ANH_SHA256;
+    IF COL_LENGTH(N'dbo.BAN_GHI_VIPHAM', N'ANH_KICH_THUOC') IS NOT NULL
+        ALTER TABLE dbo.BAN_GHI_VIPHAM DROP COLUMN ANH_KICH_THUOC;
+    IF COL_LENGTH(N'dbo.BAN_GHI_VIPHAM', N'ANH_TRANG_THAI') IS NOT NULL
+        ALTER TABLE dbo.BAN_GHI_VIPHAM DROP COLUMN ANH_TRANG_THAI;
+    IF COL_LENGTH(N'dbo.BAN_GHI_VIPHAM', N'ANH_HET_HAN_LUC') IS NOT NULL
+        ALTER TABLE dbo.BAN_GHI_VIPHAM DROP COLUMN ANH_HET_HAN_LUC;
+    IF COL_LENGTH(N'dbo.BAN_GHI_VIPHAM', N'ANH_DA_XOA_LUC') IS NOT NULL
+        ALTER TABLE dbo.BAN_GHI_VIPHAM DROP COLUMN ANH_DA_XOA_LUC;
+
+    -- 5. Xóa bảng dư thừa NHAT_KY_XOA_ANH
+    IF OBJECT_ID(N'dbo.NHAT_KY_XOA_ANH', N'U') IS NOT NULL
+    BEGIN
+        DROP TABLE dbo.NHAT_KY_XOA_ANH;
+    END;
+
+    -- 6. Xóa cột PHONG_HOC / LOP_HOC trong CT_VIPHAM (đã có KHU_VUC_ID)
+    IF COL_LENGTH(N'dbo.CT_VIPHAM', N'PHONG_HOC') IS NOT NULL
+    BEGIN
+        ALTER TABLE dbo.CT_VIPHAM DROP COLUMN PHONG_HOC;
+    END;
+
+    IF COL_LENGTH(N'dbo.CT_VIPHAM', N'LOP_HOC') IS NOT NULL
+    BEGIN
+        ALTER TABLE dbo.CT_VIPHAM DROP COLUMN LOP_HOC;
+    END;
+
+    -- 7. Ghi nhận phiên bản migration 005
+    IF OBJECT_ID(N'dbo.SCHEMA_MIGRATIONS', N'U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.SCHEMA_MIGRATIONS WHERE PHIEN_BAN = '005')
+        INSERT INTO dbo.SCHEMA_MIGRATIONS (PHIEN_BAN, MO_TA)
+        VALUES ('005', N'Tách bảng ANH_VIPHAM, bỏ độ tin cậy, bỏ PHONG_HOC, xóa NHAT_KY_XOA_ANH');
+
+    COMMIT TRANSACTION;
+    PRINT N'Migration 005 áp dụng thành công: Đã tách bảng ANH_VIPHAM và chuẩn hóa dữ liệu.';
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;

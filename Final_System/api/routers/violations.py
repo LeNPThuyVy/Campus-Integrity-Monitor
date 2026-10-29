@@ -92,12 +92,9 @@ def broadcast_violation(record: dict) -> None:
     _violation_subscribers.difference_update(dead)
 
 
-@router.get("/device/me", tags=["Thiết bị Desktop"], summary="Desktop kiểm tra camera/khóa thiết bị")
-def device_me(camera: AuthenticatedCamera = Depends(get_device_camera), db: Database = Depends(get_db),
+@router.get("/device/me", tags=["Thiết bị Desktop"], summary="Desktop kiểm tra kết nối camera")
+def device_me(camera: AuthenticatedCamera = Depends(get_device_camera),
               settings: Settings = Depends(get_settings_dep)):
-    from api.repositories.facilities import touch_camera
-
-    touch_camera(db, camera.id, settings.now_local())
     return {"data": {"camera": {"id": camera.id, "code": camera.code, "name": camera.name},
                      "area": {"id": camera.area_id, "code": camera.area_code, "name": camera.area_name},
                      "violation_codes": list(repo.VIOLATION_CODES),
@@ -145,9 +142,6 @@ async def ingest_violation(request: Request, camera: AuthenticatedCamera = Depen
                 raise validation_error("track_id phải là số nguyên không âm.")
             track_id = int(track_raw)
 
-        uniform_confidence = _parse_confidence(form.get("uniform_confidence"), "uniform_confidence")
-        card_confidence = _parse_confidence(form.get("card_confidence"), "card_confidence")
-
         image = form.get("image")
         data = None
         if isinstance(image, UploadFile):
@@ -156,8 +150,7 @@ async def ingest_violation(request: Request, camera: AuthenticatedCamera = Depen
         await form.close()
 
     incoming = repo.IncomingViolation(event_id=event_id, violation_code=violation_code, occurred_at=occurred_at,
-                                      track_id=track_id, uniform_confidence=uniform_confidence,
-                                      card_confidence=card_confidence)
+                                      track_id=track_id)
     # Database and image work are blocking: run them off the event loop.
     body, status_code = await run_in_threadpool(_store_violation, db, storage, settings, camera, incoming, data)
     if status_code == 201 and isinstance(body, dict) and "data" in body:

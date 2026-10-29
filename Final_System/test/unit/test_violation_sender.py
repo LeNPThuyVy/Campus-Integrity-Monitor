@@ -40,7 +40,7 @@ def make_event(event_id="11111111-1111-4111-8111-111111111111"):
 
 @pytest.fixture
 def sender(tmp_path):
-    return ViolationSender(tmp_path, ApiConfig("http://api.local", "CAM01", "secret-key"))
+    return ViolationSender(tmp_path, ApiConfig("http://api.local", "CAM01"))
 
 
 def test_enqueue_persists_event_without_identity(sender):
@@ -63,7 +63,7 @@ def test_network_error_keeps_event_then_resend_succeeds(sender):
     assert not meta.exists() and sender.status.sent == 1
     # Same event_id on both attempts -> the API can deduplicate.
     assert session.calls[0]["data"]["event_id"] == session.calls[1]["data"]["event_id"]
-    assert session.calls[0]["headers"] == {"X-Camera-Code": "CAM01", "X-Device-Key": "secret-key"}
+    assert session.calls[0]["headers"] == {"X-Camera-Code": "CAM01"}
 
 
 def test_duplicate_answer_counts_as_delivered(sender):
@@ -73,27 +73,26 @@ def test_duplicate_answer_counts_as_delivered(sender):
     assert list(sender.pending_dir.iterdir()) == []
 
 
-def test_server_error_is_retried_auth_error_pauses(sender):
+def test_400_marks_poison_pill_and_moves_to_failed(sender):
     sender.enqueue(make_event(), "CAM01")
     meta = next(sender.pending_dir.glob("*.json"))
-    assert sender.send_one(meta, FakeSession([FakeResponse(503, {"error": {"message": "db down"}})])) == "retry"
-    assert sender.send_one(meta, FakeSession([FakeResponse(403, {"error": {"message": "Camera đã ngừng"}})])) == "auth"
-    assert meta.exists() and "Camera đã ngừng" in sender.status.paused_reason
+    assert sender.send_one(meta, FakeSession([FakeResponse(400, {"detail": "invalid"})])) == "failed"
+    assert list(sender.pending_dir.iterdir()) == []
+    assert len(list(sender.failed_dir.glob("*.json"))) == 1
+    assert len(list(sender.failed_dir.glob("*.jpg"))) == 1
 
 
-def test_rejected_event_moves_to_failed_with_reason(sender):
+def test_404_moves_to_failed(sender):
     sender.enqueue(make_event(), "CAM01")
     meta = next(sender.pending_dir.glob("*.json"))
-    response = FakeResponse(422, {"error": {"message": "occurred_at cũ hơn 7 ngày"}})
-    assert sender.send_one(meta, FakeSession([response])) == "failed"
-    failed = json.loads((sender.failed_dir / meta.name).read_text(encoding="utf-8"))
-    assert "422" in failed["failure_reason"]
-    assert (sender.failed_dir / meta.with_suffix(".jpg").name).exists()
+    assert sender.send_one(meta, FakeSession([FakeResponse(404, {"detail": "camera_inactive"})])) == "failed"
+    assert "Bản ghi bị từ chối" in sender.status.last_error
+    assert list(sender.pending_dir.iterdir()) == []
+    assert len(list(sender.failed_dir.glob("*.json"))) == 1
 
 
-def test_event_for_other_camera_is_not_sent(sender):
-    sender.enqueue(make_event(), "CAM_OLD")
-    meta = next(sender.pending_dir.glob("*.json"))
-    session = FakeSession([])
-    assert sender.send_one(meta, session) == "failed"
-    assert session.calls == []
+def test_stop_flushes_pending_state(sender):
+    sender.start()
+    assert sender._thread and sender._thread.is_alive()
+    sender.stop()
+    assert sender._thread is None or not sender._thread.is_alive()

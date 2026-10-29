@@ -28,34 +28,24 @@ def update_area(body: AreaRequest, area_id: int = Path(ge=1), _: CurrentUser = D
     return {"data": facilities.save_area(db, area_id, body.code, body.name, body.description, body.active)}
 
 
-@router.get("/cameras", summary="Danh sách camera (nguồn video chỉ hiển thị cho Quản trị viên)")
-def list_cameras(area_id: int | None = Query(default=None, ge=1), user: CurrentUser = Depends(require_roles()),
+@router.get("/cameras", summary="Danh sách camera")
+def list_cameras(area_id: int | None = Query(default=None, ge=1), _: CurrentUser = Depends(require_roles()),
                  db: Database = Depends(get_db)):
-    return {"items": facilities.list_cameras(db, include_sensitive=user.is_admin, area_id=area_id)}
+    return {"items": facilities.list_cameras(db, area_id=area_id)}
 
 
-@router.post("/cameras", status_code=201, summary="Thêm camera, trả về khóa thiết bị MỘT LẦN (Quản trị viên)")
+@router.post("/cameras", status_code=201, summary="Thêm camera (Quản trị viên)")
 def create_camera(body: CameraRequest, _: CurrentUser = Depends(require_roles(ROLE_ADMIN)),
                   db: Database = Depends(get_db)):
-    camera, device_key = facilities.save_camera(db, None, body.code, body.name, body.area_id, body.location,
-                                                body.stream_source, body.active)
-    return {"data": camera, "device_key": device_key,
-            "message": "Lưu khóa thiết bị này vào cấu hình Desktop. Khóa sẽ không được hiển thị lại."}
+    camera = facilities.save_camera(db, None, body.code, body.name, body.area_id, body.location, body.active)
+    return {"data": camera, "message": "Đã thêm camera thành công."}
 
 
 @router.put("/cameras/{camera_id}", summary="Sửa / ngừng sử dụng camera (Quản trị viên)")
 def update_camera(body: CameraRequest, camera_id: int = Path(ge=1), _: CurrentUser = Depends(require_roles(ROLE_ADMIN)),
                   db: Database = Depends(get_db)):
-    camera, _key = facilities.save_camera(db, camera_id, body.code, body.name, body.area_id, body.location,
-                                          body.stream_source, body.active)
+    camera = facilities.save_camera(db, camera_id, body.code, body.name, body.area_id, body.location, body.active)
     return {"data": camera}
-
-
-@router.post("/cameras/{camera_id}/rotate-key", summary="Cấp lại khóa thiết bị (khóa cũ mất hiệu lực)")
-def rotate_camera_key(camera_id: int = Path(ge=1), _: CurrentUser = Depends(require_roles(ROLE_ADMIN)),
-                      db: Database = Depends(get_db)):
-    return {"device_key": facilities.rotate_device_key(db, camera_id),
-            "message": "Khóa cũ đã mất hiệu lực. Cập nhật khóa mới vào cấu hình Desktop."}
 
 
 @router.get("/semesters", summary="Danh sách học kỳ")

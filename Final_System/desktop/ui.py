@@ -548,12 +548,14 @@ class CampusMonitorUI:
             return slider
 
         # Detection & Classification Sliders (including YOLO Card Detector)
-        self.slider_detect_conf       = add_slider("Độ nhạy phát hiện người (Detect Conf)",         "DETECT_CONF",       0.1,  1.0, 0.05)
-        self.slider_classify_conf     = add_slider("Ngưỡng tin cậy đồng phục (Uniform Conf)",       "CLASSIFY_CONF",     0.0,  1.0, 0.05)
-        self.slider_detect_card_conf  = add_slider("Độ nhạy phát hiện thẻ YOLO (Card Conf)",       "DETECT_CARD_CONF",  0.05, 1.0, 0.05)
-        self.slider_detect_card_iou   = add_slider("Ngưỡng IOU phát hiện thẻ (Card IOU)",          "DETECT_CARD_IOU",   0.05, 1.0, 0.05)
-        self.slider_iou               = add_slider("Ngưỡng IOU phát hiện / theo dõi",              "IOU_THRESHOLD",     0.1,  1.0, 0.05)
-        self.slider_violation_ratio   = add_slider("Tỷ lệ khung hình vi phạm kết luận",            "VIOLATION_RATIO",   0.5,  1.0, 0.05)
+        self.slider_detect_conf          = add_slider("Độ nhạy phát hiện người (Detect Conf)",         "DETECT_CONF",              0.1,  1.0, 0.05)
+        self.slider_classify_conf        = add_slider("Ngưỡng tin cậy đồng phục (Uniform Conf)",       "CLASSIFY_CONF",            0.0,  1.0, 0.05)
+        self.slider_non_uniform_conf     = add_slider("Ngưỡng tin cậy không đồng phục (Non-Uniform)", "NON_UNIFORM_CONF",         0.0,  1.0, 0.05)
+        self.slider_min_person_ratio     = add_slider("Tỷ lệ người tối thiểu (Bỏ qua ở xa)",           "MIN_PERSON_HEIGHT_RATIO",  0.05, 0.70, 0.05)
+        self.slider_detect_card_conf     = add_slider("Độ nhạy phát hiện thẻ YOLO (Card Conf)",       "DETECT_CARD_CONF",         0.05, 1.0, 0.05)
+        self.slider_detect_card_iou      = add_slider("Ngưỡng IOU phát hiện thẻ (Card IOU)",          "DETECT_CARD_IOU",          0.05, 1.0, 0.05)
+        self.slider_iou                  = add_slider("Ngưỡng IOU phát hiện / theo dõi",              "IOU_THRESHOLD",            0.1,  1.0, 0.05)
+        self.slider_violation_ratio      = add_slider("Tỷ lệ khung hình vi phạm kết luận",            "VIOLATION_RATIO",          0.5,  1.0, 0.05)
 
         # Spinboxes Grid Panel (Using ModernSteppers)
         tk.Label(scroll_frame, text="Tham số suy luận chuỗi thời gian", font=("Segoe UI", 9, "bold"),
@@ -582,6 +584,7 @@ class CampusMonitorUI:
         self.spin_missing_thresh = add_spinbox(spin_panel, 1, 1, "Ngưỡng biến mất:",  "MISSING_COUNTER_THRESHOLD",1, 60)
         self.spin_dedup          = add_spinbox(spin_panel, 2, 0, "Chống lặp (giây):",  "EVENT_DEDUP_SECONDS",     10, 3600)
         self.spin_brightness     = add_spinbox(spin_panel, 2, 1, "Chuẩn hoá sáng (0/1):", "BRIGHTNESS_ENABLED",     0, 1)
+        self.spin_label_hold     = add_spinbox(spin_panel, 3, 0, "Giữ nhãn (giây):",   "LABEL_HOLD_SECONDS",       0, 30)
 
         # API Connection Section (Using ModernEntry)
         api_panel = tk.Frame(scroll_frame, bg="#F8FAFC",
@@ -603,7 +606,6 @@ class CampusMonitorUI:
 
         self.entry_api_url     = add_entry(api_panel, "Địa chỉ API Central Server",   "API_URL")
         self.entry_camera_code = add_entry(api_panel, "Mã Camera xác thực",          "CAMERA_CODE")
-        self.entry_device_key  = add_entry(api_panel, "Khóa thiết bị (Device Key)",  "DEVICE_KEY", show="•")
 
         api_btn = self.make_modern_button(api_panel, "KIỂM TRA KẾT NỐI API", self.check_api_connection,
                                           "#0284C7", "#0369A1", height=32)
@@ -849,6 +851,8 @@ class CampusMonitorUI:
         p = self.app.params
         self.slider_detect_conf.set(p["DETECT_CONF"])
         self.slider_classify_conf.set(p["CLASSIFY_CONF"])
+        self.slider_non_uniform_conf.set(p.get("NON_UNIFORM_CONF", 0.7))
+        self.slider_min_person_ratio.set(p.get("MIN_PERSON_HEIGHT_RATIO", 0.25))
         self.slider_detect_card_conf.set(p.get("DETECT_CARD_CONF", 0.3))
         self.slider_detect_card_iou.set(p.get("DETECT_CARD_IOU", 0.3))
         self.slider_iou.set(p["IOU_THRESHOLD"])
@@ -859,11 +863,14 @@ class CampusMonitorUI:
         self.slider_violation_ratio.set(p["VIOLATION_RATIO"])
         self.spin_dedup.set(p["EVENT_DEDUP_SECONDS"])
         self.spin_brightness.set(p.get("BRIGHTNESS_ENABLED", 1))
+        self.spin_label_hold.set(p.get("LABEL_HOLD_SECONDS", 2))
 
     def _form_parameters(self) -> dict:
         return {
             "DETECT_CONF":               float(self.slider_detect_conf.get()),
             "CLASSIFY_CONF":             float(self.slider_classify_conf.get()),
+            "NON_UNIFORM_CONF":          float(self.slider_non_uniform_conf.get()),
+            "MIN_PERSON_HEIGHT_RATIO":   float(self.slider_min_person_ratio.get()),
             "DETECT_CARD_CONF":          float(self.slider_detect_card_conf.get()),
             "DETECT_CARD_IOU":           float(self.slider_detect_card_iou.get()),
             "DETECT_CARD_IMAGE_SIZE":    int(self.app.params.get("DETECT_CARD_IMAGE_SIZE", 224)),
@@ -875,9 +882,9 @@ class CampusMonitorUI:
             "MISSING_COUNTER_THRESHOLD": int(self.spin_missing_thresh.get()),
             "EVENT_DEDUP_SECONDS":       int(self.spin_dedup.get()),
             "BRIGHTNESS_ENABLED":        int(self.spin_brightness.get()),
+            "LABEL_HOLD_SECONDS":        int(self.spin_label_hold.get()),
             "API_URL":                   self.entry_api_url.get(),
             "CAMERA_CODE":               self.entry_camera_code.get(),
-            "DEVICE_KEY":                self.entry_device_key.get(),
         }
 
     def save_parameters(self):
