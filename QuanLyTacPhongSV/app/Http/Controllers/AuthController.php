@@ -28,11 +28,11 @@ class AuthController extends Controller
             }
         }
 
-        $host = (string)env('DB_SERVER', env('DB_HOST', 'localhost\\SQLEXPRESS'));
-        $database = (string)env('DB_NAME', env('DB_DATABASE', 'CampusIntegrityMonitor'));
-        $trusted = filter_var(env('DB_TRUSTED_CONNECTION', true), FILTER_VALIDATE_BOOLEAN);
-        $username = (string)env('DB_USER', env('DB_USERNAME', 'sa'));
-        $password = (string)env('DB_PASSWORD', '12345');
+        $host = (string)config('cim.db.server');
+        $database = (string)config('cim.db.name');
+        $trusted = filter_var(config('cim.db.trusted'), FILTER_VALIDATE_BOOLEAN);
+        $username = (string)config('cim.db.user');
+        $password = (string)config('cim.db.password');
 
         if (extension_loaded('pdo_odbc')) {
             $odbcDrivers = ['ODBC Driver 17 for SQL Server', 'ODBC Driver 18 for SQL Server', 'SQL Server'];
@@ -60,8 +60,8 @@ class AuthController extends Controller
         }
 
         if (extension_loaded('pdo_sqlsrv')) {
-            $encrypt = env('DB_ENCRYPT', 'yes');
-            $trustCert = env('DB_TRUST_SERVER_CERTIFICATE', 'yes');
+            $encrypt = config('cim.db.encrypt');
+            $trustCert = config('cim.db.trust_server_certificate');
             $dsn = sprintf('sqlsrv:Server=%s;Database=%s;Encrypt=%s;TrustServerCertificate=%s', $host, $database, $encrypt, $trustCert);
             return new PDO($dsn, $trusted ? null : $username, $trusted ? null : $password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -111,7 +111,7 @@ class AuthController extends Controller
 
         try {
             $pdo = $this->getPdo();
-            $stmt = $pdo->prepare('SELECT ID, USERNAME, PASSWORD_HASH, FULL_NAME, CONVERT(VARCHAR(MAX), CAST(FULL_NAME AS VARBINARY(MAX)), 2) AS FULL_NAME_HEX, ROLE, ACTIVE, LOCKED_UNTIL FROM TAIKHOAN WHERE USERNAME = :username');
+            $stmt = $pdo->prepare('SELECT ID, USERNAME, PASSWORD_HASH, FULL_NAME, CONVERT(VARCHAR(MAX), CAST(FULL_NAME AS VARBINARY(MAX)), 2) AS FULL_NAME_HEX, ROLE, ACTIVE, TOKEN_VERSION, CASE WHEN LOCKED_UNTIL > GETDATE() THEN 1 ELSE 0 END AS IS_LOCKED FROM TAIKHOAN WHERE USERNAME = :username');
             $stmt->execute(['username' => $username]);
             $user = $stmt->fetch();
 
@@ -133,7 +133,7 @@ class AuthController extends Controller
                 ]);
             }
 
-            if (!empty($user['LOCKED_UNTIL']) && strtotime((string)$user['LOCKED_UNTIL']) > time()) {
+            if ((int)$user['IS_LOCKED'] === 1) {
                 return view('auth.login', [
                     'next' => $next,
                     'notice' => null,
@@ -143,8 +143,12 @@ class AuthController extends Controller
             }
 
             $pwdHash = (string)$user['PASSWORD_HASH'];
-            $valid = password_verify($password, $pwdHash) || $password === $pwdHash;
+            // Chuỗi không phải hash (mật khẩu nhập tay vào DB) được chấp nhận một lần rồi băm lại;
+            // một hash thật thì không bao giờ so sánh trực tiếp, kẻo lộ DB là đăng nhập được bằng chính hash.
+            $isPlainLegacy = $pwdHash !== '' && !str_starts_with($pwdHash, '$') && !str_starts_with($pwdHash, 'scrypt$');
+            $valid = password_verify($password, $pwdHash) || ($isPlainLegacy && hash_equals($pwdHash, $password));
             if (!$valid) {
+                $this->registerFailedLogin($pdo, (int)$user['ID']);
                 return view('auth.login', [
                     'next' => $next,
                     'notice' => null,
@@ -154,14 +158,14 @@ class AuthController extends Controller
             }
 
             // Cập nhật lại hash bcrypt nếu cần
-            if ($password === $pwdHash || password_needs_rehash($pwdHash, PASSWORD_BCRYPT)) {
+            if ($isPlainLegacy || password_needs_rehash($pwdHash, PASSWORD_BCRYPT)) {
                 $newHash = password_hash($password, PASSWORD_BCRYPT);
                 $upd = $pdo->prepare('UPDATE TAIKHOAN SET PASSWORD_HASH = :hash WHERE ID = :id');
                 $upd->execute(['hash' => $newHash, 'id' => $user['ID']]);
             }
 
             // Cập nhật lần đăng nhập gần nhất
-            $updLogin = $pdo->prepare('UPDATE TAIKHOAN SET LAST_LOGIN_AT = GETDATE() WHERE ID = :id');
+            $updLogin = $pdo->prepare('UPDATE TAIKHOAN SET LAST_LOGIN_AT = GETDATE(), FAILED_ATTEMPTS = 0, LOCKED_UNTIL = NULL WHERE ID = :id');
             $updLogin->execute(['id' => $user['ID']]);
 
             $role = (string)$user['ROLE'];
@@ -184,6 +188,8 @@ class AuthController extends Controller
                 'username' => (string)$user['USERNAME'],
                 'display_name' => $displayName,
                 'role' => $role,
+                'token_version' => (int)$user['TOKEN_VERSION'],
+                'account_checked_at' => time(),
                 'api_token' => bin2hex(random_bytes(32)),
                 'token_expires_at' => time() + (24 * 3600),
                 'last_activity' => time(),
@@ -194,13 +200,30 @@ class AuthController extends Controller
             $target = ($next && $next !== 'home' && $next !== 'dashboard') ? $this->safeNext($next) : route('dashboard');
             return redirect()->to($target);
         } catch (Throwable $e) {
+            report($e);
             return view('auth.login', [
                 'next' => $next,
                 'notice' => null,
-                'error' => 'Lỗi kết nối CSDL: ' . $e->getMessage(),
+                'error' => 'Không kết nối được cơ sở dữ liệu. Vui lòng thử lại sau hoặc liên hệ quản trị viên.',
                 'username' => $username,
             ]);
         }
+    }
+
+    /** Đếm lần sai; đủ ngưỡng thì khóa tạm (cùng quy tắc với FastAPI accounts.authenticate). */
+    protected function registerFailedLogin(PDO $pdo, int $accountId): void
+    {
+        $upd = $pdo->prepare('UPDATE TAIKHOAN SET
+                LOCKED_UNTIL = CASE WHEN FAILED_ATTEMPTS + 1 >= :max1 THEN DATEADD(MINUTE, :lock, GETDATE()) ELSE LOCKED_UNTIL END,
+                FAILED_ATTEMPTS = CASE WHEN FAILED_ATTEMPTS + 1 >= :max2 THEN 0 ELSE FAILED_ATTEMPTS + 1 END
+            WHERE ID = :id');
+        $max = max(1, (int)config('cim.login_max_failures'));
+        $upd->execute([
+            'max1' => $max,
+            'max2' => $max,
+            'lock' => max(1, (int)config('cim.login_lock_minutes')),
+            'id' => $accountId,
+        ]);
     }
 
     public function logout(Request $request): RedirectResponse
@@ -247,7 +270,7 @@ class AuthController extends Controller
             $stmt->execute(['id' => $userId]);
             $user = $stmt->fetch();
 
-            if (!$user || (!password_verify($current, (string)$user['PASSWORD_HASH']) && $current !== $user['PASSWORD_HASH'])) {
+            if (!$user || !password_verify($current, (string)$user['PASSWORD_HASH'])) {
                 return view('auth.change_password', [
                     'error' => 'Mật khẩu hiện tại không đúng.',
                     'pageTitle' => 'Đổi mật khẩu',
@@ -255,7 +278,7 @@ class AuthController extends Controller
             }
 
             $newHash = password_hash($new, PASSWORD_BCRYPT);
-            $upd = $pdo->prepare('UPDATE TAIKHOAN SET PASSWORD_HASH = :hash WHERE ID = :id');
+            $upd = $pdo->prepare('UPDATE TAIKHOAN SET PASSWORD_HASH = :hash, TOKEN_VERSION = TOKEN_VERSION + 1 WHERE ID = :id');
             $upd->execute(['hash' => $newHash, 'id' => $userId]);
 
             $request->session()->flush();
@@ -263,8 +286,9 @@ class AuthController extends Controller
             $request->session()->regenerateToken();
             return redirect()->route('login', ['password_changed' => 1]);
         } catch (Throwable $e) {
+            report($e);
             return view('auth.change_password', [
-                'error' => 'Lỗi khi đổi mật khẩu: ' . $e->getMessage(),
+                'error' => 'Không đổi được mật khẩu do lỗi hệ thống. Vui lòng thử lại sau.',
                 'pageTitle' => 'Đổi mật khẩu',
             ]);
         }

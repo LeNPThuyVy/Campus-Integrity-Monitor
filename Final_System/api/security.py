@@ -1,7 +1,7 @@
 """
-Password hashing, signed access tokens and camera device keys (standard library only).
+Password hashing, signed access tokens and camera device keys.
 
-Password hash format: scrypt$<n>$<r>$<p>$<salt_b64>$<hash_b64>
+Password hash format: bcrypt "$2y$..." (shared with Laravel); legacy scrypt$<n>$<r>$<p>$<salt>$<hash> still verifies.
 Access token format:  <payload_b64url>.<hmac_sha256_b64url>
   payload = {"sub": account_id, "ver": token_version, "iat": ..., "exp": ..., "jti": ...}
   The role is NOT trusted from the token; it is re-read from the database on every request,
@@ -18,6 +18,9 @@ import secrets
 import time
 from dataclasses import dataclass
 
+import bcrypt
+
+BCRYPT_ROUNDS = 10
 SCRYPT_N = 2 ** 14
 SCRYPT_R = 8
 SCRYPT_P = 1
@@ -60,13 +63,20 @@ def validate_password_strength(password: str) -> list[str]:
 
 
 def hash_password(password: str) -> str:
-    salt = secrets.token_bytes(16)
-    digest = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P,
-                            dklen=SCRYPT_DKLEN)
-    return f"scrypt${SCRYPT_N}${SCRYPT_R}${SCRYPT_P}${_b64encode(salt)}${_b64encode(digest)}"
+    """bcrypt with the PHP "$2y$" prefix so Laravel's password_verify() accepts the same hash."""
+    digest = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=BCRYPT_ROUNDS)).decode("ascii")
+    return "$2y$" + digest[4:]
 
 
 def verify_password(password: str, stored_hash: str) -> bool:
+    if not isinstance(stored_hash, str) or not isinstance(password, str):
+        return False
+    if stored_hash[:4] in ("$2y$", "$2b$", "$2a$"):
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), ("$2b$" + stored_hash[4:]).encode("ascii"))
+        except ValueError:
+            return False
+    # Legacy scrypt hashes created by earlier FastAPI versions.
     try:
         scheme, n, r, p, salt_b64, hash_b64 = stored_hash.split("$")
         if scheme != "scrypt":

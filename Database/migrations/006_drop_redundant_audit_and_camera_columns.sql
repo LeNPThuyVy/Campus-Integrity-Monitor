@@ -9,6 +9,10 @@
 -- 7. Bảng TAIKHOAN: Loại bỏ CREATED_AT.
 -- =====================================================================
 
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+SET QUOTED_IDENTIFIER ON;
+
 BEGIN TRANSACTION;
 
 -- Helper procedure để xóa default constraint của 1 cột nếu có

@@ -38,7 +38,7 @@
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="user-role" content="{{ $userRole }}">
-  <meta name="cim-api-base-url" content="{{ rtrim(env('CIM_API_BASE_URL', 'http://127.0.0.1:8001'), '/') }}">
+  <meta name="cim-api-base-url" content="{{ rtrim((string)config('cim.api_public_url'), '/') }}">
   <title>{{ $pageTitle }} · CTSV</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">

@@ -108,7 +108,6 @@ class App:
         self.params = {
             "DETECT_CONF":               my_config.DETECT_CONF,
             "CLASSIFY_CONF":             my_config.CLASSIFY_CONF,
-            "NON_UNIFORM_CONF":          getattr(my_config, "NON_UNIFORM_CONF", 0.7),
             "MIN_PERSON_HEIGHT_RATIO":   getattr(my_config, "MIN_PERSON_HEIGHT_RATIO", 0.25),
             "LABEL_HOLD_SECONDS":        getattr(my_config, "LABEL_HOLD_SECONDS", 2),
             "DETECT_CARD_CONF":          getattr(my_config, "DETECT_CARD_CONF", 0.3),
@@ -148,7 +147,6 @@ class App:
         p = dict(params)
         p["DETECT_CONF"] = min(max(float(p["DETECT_CONF"]), 0.05), 1.0)
         p["CLASSIFY_CONF"] = min(max(float(p["CLASSIFY_CONF"]), 0.0), 1.0)
-        p["NON_UNIFORM_CONF"] = min(max(float(p.get("NON_UNIFORM_CONF", 0.7)), 0.0), 1.0)
         p["MIN_PERSON_HEIGHT_RATIO"] = min(max(float(p.get("MIN_PERSON_HEIGHT_RATIO", 0.25)), 0.05), 0.80)
         p["LABEL_HOLD_SECONDS"] = min(max(int(p.get("LABEL_HOLD_SECONDS", 2)), 0), 60)
         p["DETECT_CARD_CONF"] = min(max(float(p.get("DETECT_CARD_CONF", 0.3)), 0.05), 1.0)
@@ -189,7 +187,6 @@ class App:
         """Pushes current params into ai.config and live model components."""
         my_config.DETECT_CONF               = self.params["DETECT_CONF"]
         my_config.CLASSIFY_CONF             = self.params["CLASSIFY_CONF"]
-        my_config.NON_UNIFORM_CONF          = self.params["NON_UNIFORM_CONF"]
         my_config.MIN_PERSON_HEIGHT_RATIO   = self.params["MIN_PERSON_HEIGHT_RATIO"]
         my_config.LABEL_HOLD_SECONDS        = self.params["LABEL_HOLD_SECONDS"]
         my_config.DETECT_CARD_CONF          = self.params["DETECT_CARD_CONF"]

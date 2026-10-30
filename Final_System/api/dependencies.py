@@ -65,14 +65,14 @@ def get_current_user(
         raise unauthorized(str(exc) if "hết hạn" in str(exc) else "Phiên đăng nhập không hợp lệ.") from exc
 
     account = db.fetch_one(
-        "SELECT ID, TEN_DANG_NHAP, HO_TEN, VAI_TRO, DANG_HOAT_DONG, PHIEN_BAN_TOKEN "
+        "SELECT ID, USERNAME, FULL_NAME, ROLE, ACTIVE, TOKEN_VERSION "
         "FROM dbo.TAIKHOAN WHERE ID = ?",
         (payload.account_id,),
     )
-    if account is None or not account["DANG_HOAT_DONG"] or account["PHIEN_BAN_TOKEN"] != payload.version:
+    if account is None or not account["ACTIVE"] or account["TOKEN_VERSION"] != payload.version:
         raise unauthorized("Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.")
-    return CurrentUser(id=account["ID"], username=account["TEN_DANG_NHAP"], full_name=account["HO_TEN"],
-                       role=account["VAI_TRO"])
+    return CurrentUser(id=account["ID"], username=account["USERNAME"], full_name=account["FULL_NAME"],
+                       role=account["ROLE"])
 
 
 def require_roles(*roles: str) -> Callable[..., CurrentUser]:

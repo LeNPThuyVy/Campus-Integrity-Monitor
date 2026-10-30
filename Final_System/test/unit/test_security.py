@@ -10,10 +10,24 @@ def test_password_hash_roundtrip_and_salt():
     first = hash_password("Abcdef12")
     second = hash_password("Abcdef12")
     assert first != second  # random salt
-    assert first.startswith("scrypt$")
+    assert first.startswith("$2y$")  # PHP/Laravel bcrypt prefix, shared TAIKHOAN.PASSWORD_HASH
     assert verify_password("Abcdef12", first)
     assert not verify_password("abcdef12", first)
     assert not verify_password("Abcdef12", "garbage")
+    assert not verify_password("Abcdef12", first[:-5])
+
+
+def test_verify_password_accepts_legacy_scrypt_and_bcrypt_variants():
+    import base64
+    import hashlib
+
+    import bcrypt
+
+    salt = b"0123456789abcdef"
+    digest = hashlib.scrypt(b"Abcdef12", salt=salt, n=2 ** 14, r=8, p=1, dklen=32)
+    enc = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()  # noqa: E731
+    assert verify_password("Abcdef12", f"scrypt${2 ** 14}$8$1${enc(salt)}${enc(digest)}")
+    assert verify_password("Abcdef12", bcrypt.hashpw(b"Abcdef12", bcrypt.gensalt(4)).decode())  # $2b$
 
 
 def test_password_strength_rules():

@@ -22,10 +22,12 @@
         <span class="material-symbols-outlined text-[18px]">post_add</span>
         <span>Lập biên bản Cờ Đỏ</span>
       </button>
+      @if (session('role') === 'ADMIN')
       <button class="flex items-center gap-space-xs px-3.5 py-2 rounded-xl bg-error-container text-on-error-container hover:bg-error hover:text-white transition-all font-label-md text-label-md shadow-sm" id="open-reset-btn" type="button" title="Đặt lại vi phạm toàn trường sau học kỳ">
         <span class="material-symbols-outlined text-[18px]">restart_alt</span>
         <span>Reset vi phạm</span>
       </button>
+      @endif
     </div>
   </div>
 

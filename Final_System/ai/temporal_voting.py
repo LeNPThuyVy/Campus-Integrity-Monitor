@@ -89,9 +89,8 @@ class TemporalVoting:
     def __init__(self):
         """
         Histories contain track_id history for uniform and card classification.
-        Independent thresholds:
-        - Uniform votes need confidence >= CLASSIFY_CONF, otherwise the frame is skipped
-        - Non_Uniform votes need confidence >= NON_UNIFORM_CONF, otherwise the frame is skipped
+        For uniform: Uniform with confidence >= CLASSIFY_CONF stays Uniform;
+        Uniform with confidence < CLASSIFY_CONF becomes Non_Uniform; Non_Uniform stays Non_Uniform.
         """
         self.len_history = my_config.LEN_HISTORY
         self.uniform_histories = {}
@@ -121,29 +120,16 @@ class TemporalVoting:
             (prediction.label, float(prediction.confidence))
         )
 
-    def _append_uniform(
-        self,
-        track_id: int,
-        prediction,
-        min_conf: float = None,
-        non_uniform_min_conf: float = None
-    ):
+    def _append_uniform(self, track_id: int, prediction, min_conf: float = None):
         if prediction is None:
             return
-        uniform_thresh = my_config.CLASSIFY_CONF if min_conf is None else min_conf
-        non_uniform_thresh = (
-            getattr(my_config, "NON_UNIFORM_CONF", my_config.CLASSIFY_CONF)
-            if non_uniform_min_conf is None
-            else non_uniform_min_conf
-        )
+        threshold = my_config.CLASSIFY_CONF if min_conf is None else min_conf
 
-        # Uncertain predictions are skipped, never converted into a vote for the opposite class
-        threshold = uniform_thresh if prediction.label == UNIFORM else non_uniform_thresh
-        if prediction.confidence < threshold:
-            return
+        # Low-confidence Uniform is treated as a violation; Non_Uniform always stays Non_Uniform
+        label = UNIFORM if prediction.label == UNIFORM and prediction.confidence >= threshold else NON_UNIFORM
 
         self.uniform_histories.setdefault(track_id, deque(maxlen=self.len_history)).append(
-            (prediction.label, float(prediction.confidence))
+            (label, float(prediction.confidence))
         )
 
     def update(self, new_pipeline_result: list[PipelineResult]):
@@ -153,12 +139,7 @@ class TemporalVoting:
         """
         card_min_conf = getattr(my_config, "DETECT_CARD_CONF", my_config.CLASSIFY_CONF)
         for result in new_pipeline_result:
-            self._append_uniform(
-                result.track_id,
-                result.uniform_prediction,
-                min_conf=my_config.CLASSIFY_CONF,
-                non_uniform_min_conf=getattr(my_config, "NON_UNIFORM_CONF", my_config.CLASSIFY_CONF)
-            )
+            self._append_uniform(result.track_id, result.uniform_prediction)
             self._append(self.card_histories, result.track_id, result.card_prediction, min_conf=card_min_conf)
             self.missing_counter[result.track_id] = 0
 

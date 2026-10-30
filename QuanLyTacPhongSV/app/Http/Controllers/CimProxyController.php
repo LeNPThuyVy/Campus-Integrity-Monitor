@@ -182,11 +182,11 @@ class CimProxyController extends Controller
             }
         }
 
-        $host = (string)env('DB_SERVER', env('DB_HOST', 'localhost\\SQLEXPRESS'));
-        $database = (string)env('DB_NAME', env('DB_DATABASE', 'CampusIntegrityMonitor'));
-        $trusted = filter_var(env('DB_TRUSTED_CONNECTION', true), FILTER_VALIDATE_BOOLEAN);
-        $username = (string)env('DB_USER', env('DB_USERNAME', 'sa'));
-        $password = (string)env('DB_PASSWORD', '12345');
+        $host = (string)config('cim.db.server');
+        $database = (string)config('cim.db.name');
+        $trusted = filter_var(config('cim.db.trusted'), FILTER_VALIDATE_BOOLEAN);
+        $username = (string)config('cim.db.user');
+        $password = (string)config('cim.db.password');
 
         if (extension_loaded('pdo_odbc')) {
             $odbcDrivers = ['ODBC Driver 17 for SQL Server', 'ODBC Driver 18 for SQL Server', 'SQL Server'];
@@ -214,8 +214,8 @@ class CimProxyController extends Controller
         }
 
         if (extension_loaded('pdo_sqlsrv')) {
-            $encrypt = env('DB_ENCRYPT', 'yes');
-            $trustCert = env('DB_TRUST_SERVER_CERTIFICATE', 'yes');
+            $encrypt = config('cim.db.encrypt');
+            $trustCert = config('cim.db.trust_server_certificate');
             $dsn = sprintf('sqlsrv:Server=%s;Database=%s;Encrypt=%s;TrustServerCertificate=%s', $host, $database, $encrypt, $trustCert);
             return new \PDO($dsn, $trusted ? null : $username, $trusted ? null : $password, [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
@@ -286,15 +286,46 @@ class CimProxyController extends Controller
                 $data = $request->isJson() ? $request->json()->all() : $request->all();
                 $fullName = trim((string)($data['full_name'] ?? ''));
                 $role = (string)($data['role'] ?? 'CTSV');
+                $role = in_array($role, ['ADMIN', 'CTSV'], true) ? $role : 'CTSV';
                 $active = !empty($data['active']) ? 1 : 0;
+                if ($fullName === '') {
+                    return response()->json(['error' => 'Họ tên không được để trống.'], 422);
+                }
 
-                $upd = $pdo->prepare('UPDATE TAIKHOAN SET FULL_NAME = :n, ROLE = :r, ACTIVE = :a WHERE ID = :id');
-                $upd->execute([
-                    'n' => $fullName,
-                    'r' => in_array($role, ['ADMIN', 'CTSV'], true) ? $role : 'CTSV',
-                    'a' => $active,
-                    'id' => $numericId,
-                ]);
+                $pdo->beginTransaction();
+                try {
+                    $cur = $pdo->prepare('SELECT ROLE, ACTIVE FROM TAIKHOAN WITH (UPDLOCK) WHERE ID = :id');
+                    $cur->execute(['id' => $numericId]);
+                    $current = $cur->fetch(\PDO::FETCH_ASSOC);
+                    if (!$current) {
+                        $pdo->rollBack();
+                        return response()->json(['error' => 'Không tìm thấy tài khoản.'], 404);
+                    }
+
+                    // Giống FastAPI: luôn phải còn ít nhất một quản trị viên đang hoạt động.
+                    $wasActiveAdmin = $current['ROLE'] === 'ADMIN' && (bool)$current['ACTIVE'];
+                    if ($wasActiveAdmin && ($role !== 'ADMIN' || !$active)) {
+                        $others = $pdo->prepare("SELECT COUNT(*) FROM TAIKHOAN WITH (UPDLOCK, HOLDLOCK)
+                                                 WHERE ROLE = 'ADMIN' AND ACTIVE = 1 AND ID <> :id");
+                        $others->execute(['id' => $numericId]);
+                        if ((int)$others->fetchColumn() === 0) {
+                            $pdo->rollBack();
+                            return response()->json(['error' => 'Phải còn ít nhất một quản trị viên đang hoạt động.'], 409);
+                        }
+                    }
+
+                    // Đổi quyền hoặc vô hiệu hóa thì thu hồi phiên đang mở của tài khoản đó.
+                    $bump = ($current['ROLE'] !== $role || (bool)$current['ACTIVE'] !== (bool)$active) ? 1 : 0;
+                    $upd = $pdo->prepare('UPDATE TAIKHOAN SET FULL_NAME = :n, ROLE = :r, ACTIVE = :a,
+                                          TOKEN_VERSION = TOKEN_VERSION + :b WHERE ID = :id');
+                    $upd->execute(['n' => $fullName, 'r' => $role, 'a' => $active, 'b' => $bump, 'id' => $numericId]);
+                    $pdo->commit();
+                } catch (\Throwable $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $e;
+                }
 
                 return response()->json(['message' => 'Đã cập nhật tài khoản.']);
             }
@@ -311,18 +342,23 @@ class CimProxyController extends Controller
                 }
 
                 $hash = password_hash($newPassword, PASSWORD_BCRYPT);
-                $upd = $pdo->prepare('UPDATE TAIKHOAN SET PASSWORD_HASH = :p, LOCKED_UNTIL = NULL WHERE ID = :id');
+                $upd = $pdo->prepare('UPDATE TAIKHOAN SET PASSWORD_HASH = :p, LOCKED_UNTIL = NULL, FAILED_ATTEMPTS = 0,
+                                      TOKEN_VERSION = TOKEN_VERSION + 1 WHERE ID = :id');
                 $upd->execute([
                     'p' => $hash,
                     'id' => $numericId,
                 ]);
+                if ($upd->rowCount() === 0) {
+                    return response()->json(['error' => 'Không tìm thấy tài khoản.'], 404);
+                }
 
                 return response()->json(['message' => 'Đã đặt lại mật khẩu thành công.']);
             }
 
             return response()->json(['error' => 'Hành động không hợp lệ.'], 400);
         } catch (\Throwable $e) {
-            return response()->json(['error' => 'Lỗi xử lý tài khoản: ' . $e->getMessage()], 500);
+            report($e);
+            return response()->json(['error' => 'Không xử lý được yêu cầu tài khoản do lỗi hệ thống.'], 500);
         }
     }
 
@@ -379,12 +415,13 @@ class CimProxyController extends Controller
         }
     }
 
-    protected function getR2PresignedUrl(string $key, int $expiresIn = 3600): ?string
+    protected function getR2PresignedUrl(string $key, int $expiresIn = 0): ?string
     {
-        $accessKey = (string)env('CLOUDFLARE_ACCESS_KEY', '');
-        $secretKey = (string)env('CLOUDFLARE_SECRECT_ACCESS_KEY', '');
-        $endpoint = rtrim((string)env('CLOUDFLARE_S3_API_ENDPOINT', ''), '/');
-        $bucket = (string)env('CLOUDFLARE_R2_BUCKET', 'my-budget-graduate-project');
+        $expiresIn = $expiresIn > 0 ? $expiresIn : max(60, min(604800, (int)config('cim.r2.presign_ttl')));
+        $accessKey = (string)config('cim.r2.access_key');
+        $secretKey = (string)config('cim.r2.secret_key');
+        $endpoint = rtrim((string)config('cim.r2.endpoint'), '/');
+        $bucket = (string)config('cim.r2.bucket');
 
         if ($accessKey === '' || $secretKey === '' || $endpoint === '') {
             return null;
@@ -437,15 +474,17 @@ class CimProxyController extends Controller
         // 1. Kiểm tra trực tiếp trong SQL Server xem bản ghi có ANH_KHOA trên Cloudflare R2 không (bảng ANH_VIPHAM)
         try {
             $pdo = $this->getPdo();
-            $stmt = $pdo->prepare('SELECT ANH_KHOA, TRANG_THAI AS ANH_TRANG_THAI FROM ANH_VIPHAM WHERE BAN_GHI_ID = CAST(:id AS BIGINT)');
+            $stmt = $pdo->prepare("SELECT ANH_KHOA FROM ANH_VIPHAM
+                                   WHERE PHAT_HIEN_ID = CAST(:id AS BIGINT)
+                                     AND (THOI_GIAN_HET_HAN IS NULL OR THOI_GIAN_HET_HAN > SYSDATETIME())");
             $stmt->bindValue(':id', $numericId, \PDO::PARAM_INT);
             $stmt->execute();
             $rec = $stmt->fetch(\PDO::FETCH_ASSOC);
-            if ($rec && ($rec['ANH_TRANG_THAI'] ?? '') === 'AVAILABLE' && !empty($rec['ANH_KHOA'])) {
+            if ($rec && !empty($rec['ANH_KHOA'])) {
                 $presignedUrl = $this->getR2PresignedUrl((string)$rec['ANH_KHOA']);
                 if ($presignedUrl !== null) {
                     return redirect()->away($presignedUrl, 302, [
-                        'Cache-Control' => 'private, max-age=3600',
+                        'Cache-Control' => 'private, max-age=300',
                     ]);
                 }
             }
@@ -555,8 +594,8 @@ class CimProxyController extends Controller
                 }
 
                 // 2. Kiểm tra bản ghi vi phạm
-                $vCheck = $pdo->prepare('SELECT (SELECT COUNT(*) FROM BAN_GHI_VIPHAM WHERE KHU_VUC_ID = :id1) + (SELECT COUNT(*) FROM CT_VIPHAM WHERE KHU_VUC_ID = :id2)');
-                $vCheck->execute(['id1' => $numericId, 'id2' => $numericId]);
+                $vCheck = $pdo->prepare('SELECT COUNT(*) FROM CT_VIPHAM WHERE KHU_VUC_ID = :id');
+                $vCheck->execute(['id' => $numericId]);
                 $vCount = (int)$vCheck->fetchColumn();
                 if ($vCount > 0) {
                     return response()->json(['error' => "Khu vực này đã có {$vCount} bản ghi vi phạm trong hệ thống. Để bảo toàn lịch sử vi phạm, vui lòng chuyển sang trạng thái 'Ngừng sử dụng' thay vì xóa vĩnh viễn."], 409);
@@ -662,7 +701,7 @@ class CimProxyController extends Controller
                 }
 
                 // Kiểm tra bản ghi vi phạm liên kết
-                $vCheck = $pdo->prepare('SELECT COUNT(*) FROM BAN_GHI_VIPHAM WHERE CAMERA_ID = :id');
+                $vCheck = $pdo->prepare('SELECT COUNT(*) FROM ANH_VIPHAM WHERE CAMERA_ID = :id');
                 $vCheck->execute(['id' => $numericId]);
                 $vCount = (int)$vCheck->fetchColumn();
                 if ($vCount > 0) {
@@ -779,25 +818,20 @@ class CimProxyController extends Controller
             $pageSize = min(100, max(1, (int)$request->query('page_size', 20)));
             $offset = ($page - 1) * $pageSize;
 
-            // Kiểm tra bảng BAN_GHI_VIPHAM có tồn tại không
-            $hasBanGhiTable = false;
-            try {
-                $hasBanGhiTable = (int)$pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BAN_GHI_VIPHAM'")->fetchColumn() > 0;
-            } catch (\Throwable) {}
-
             $dateFrom = trim((string)$request->query('date_from', ''));
             $dateTo = trim((string)$request->query('date_to', ''));
             $areaId = filter_var($request->query('area_id'), FILTER_VALIDATE_INT);
             $typeId = filter_var($request->query('type_id'), FILTER_VALIDATE_INT);
+            $cameraId = filter_var($request->query('camera_id'), FILTER_VALIDATE_INT);
             $status = trim((string)$request->query('status', ''));
             $source = strtoupper(trim((string)$request->query('source', '')));
             $sort = trim((string)$request->query('sort', 'newest'));
             $orderDir = ($sort === 'oldest') ? 'ASC' : 'DESC';
 
-            // Xây dựng truy vấn hợp nhất giữa Camera AI (BAN_GHI_VIPHAM) và Biên bản Cờ Đỏ (CT_VIPHAM)
+            // Xây dựng truy vấn hợp nhất giữa Camera AI và Biên bản Cờ Đỏ (CT_VIPHAM)
             $unions = [];
 
-            if ($hasBanGhiTable && ($source === '' || $source === 'ALL' || $source === 'CAMERA')) {
+            if ($source === '' || $source === 'ALL' || $source === 'CAMERA') {
                 $unions[] = "
                     SELECT 
                         b.ID,
@@ -806,19 +840,22 @@ class CimProxyController extends Controller
                         b.LOI_ID,
                         lv.TEN_LOI,
                         CONVERT(VARCHAR(MAX), CAST(lv.TEN_LOI AS VARBINARY(MAX)), 2) as type_name_hex,
-                        b.KHU_VUC_ID,
+                        c.KHU_VUC_ID,
                         k.TEN_KHU_VUC,
                         CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
-                        b.CAMERA_ID,
+                        a.CAMERA_ID,
                         c.MA_CAMERA,
                         c.TEN_CAMERA,
                         CONVERT(VARCHAR(MAX), CAST(c.TEN_CAMERA AS VARBINARY(MAX)), 2) as camera_name_hex,
-                        COALESCE(a.TRANG_THAI, 'NONE') as ANH_TRANG_THAI,
-                        b.TRANG_THAI_XU_LY,
-                        b.GHI_CHU_XU_LY,
+                        CASE WHEN a.ID IS NULL THEN 'NONE'
+                             WHEN a.ANH_KHOA IS NULL THEN 'DELETED'
+                             WHEN a.THOI_GIAN_HET_HAN <= SYSDATETIME() THEN 'EXPIRED'
+                             ELSE 'AVAILABLE' END as ANH_TRANG_THAI,
+                        b.TINH_TRANG_XU_LY as TRANG_THAI_XU_LY,
+                        CAST(NULL AS NVARCHAR(500)) as GHI_CHU_XU_LY,
                         b.XU_LY_LUC,
-                        t.FULL_NAME as nguoi_xu_ly,
-                        CONVERT(VARCHAR(MAX), CAST(t.FULL_NAME AS VARBINARY(MAX)), 2) as nguoi_xu_ly_hex,
+                        CAST(NULL AS NVARCHAR(100)) as nguoi_xu_ly,
+                        CAST(NULL AS VARCHAR(MAX)) as nguoi_xu_ly_hex,
                         CAST(NULL AS INT) as SV_ID,
                         CAST(NULL AS VARCHAR(30)) as MA_SV,
                         CAST(NULL AS NVARCHAR(100)) as HOTEN,
@@ -827,12 +864,11 @@ class CimProxyController extends Controller
                         CAST(NULL AS VARCHAR(20)) as MA_HK,
                         CAST(NULL AS NVARCHAR(100)) as TEN_HK,
                         CAST(NULL AS VARCHAR(MAX)) as TEN_HK_HEX
-                    FROM BAN_GHI_VIPHAM b
-                    LEFT JOIN ANH_VIPHAM a ON a.BAN_GHI_ID = b.ID
+                    FROM PHAT_HIEN_VIPHAM b
+                    LEFT JOIN ANH_VIPHAM a ON a.PHAT_HIEN_ID = b.ID
                     LEFT JOIN LOI_VIPHAM lv ON b.LOI_ID = lv.ID
-                    LEFT JOIN KHU_VUC k ON b.KHU_VUC_ID = k.ID
-                    LEFT JOIN CAMERA c ON b.CAMERA_ID = c.ID
-                    LEFT JOIN TAIKHOAN t ON b.NGUOI_XU_LY_ID = t.ID
+                    LEFT JOIN CAMERA c ON a.CAMERA_ID = c.ID
+                    LEFT JOIN KHU_VUC k ON c.KHU_VUC_ID = k.ID
                 ";
             }
 
@@ -849,7 +885,7 @@ class CimProxyController extends Controller
                         cv.KHU_VUC_ID,
                         k.TEN_KHU_VUC,
                         CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
-                        1 as CAMERA_ID,
+                        CAST(NULL AS INT) as CAMERA_ID,
                         'CO_DO' as MA_CAMERA,
                         N'Biên bản Đội Cờ Đỏ' as TEN_CAMERA,
                         CAST(NULL AS VARCHAR(MAX)) as camera_name_hex,
@@ -900,6 +936,10 @@ class CimProxyController extends Controller
             if ($areaId) {
                 $where[] = 'u.KHU_VUC_ID = :area_id';
                 $params['area_id'] = $areaId;
+            }
+            if ($cameraId) {
+                $where[] = 'u.CAMERA_ID = :camera_id';
+                $params['camera_id'] = $cameraId;
             }
             if ($typeId) {
                 $where[] = 'u.LOI_ID = :type_id';
@@ -963,11 +1003,11 @@ class CimProxyController extends Controller
                     ],
                     'student' => $studentObj,
                     'area' => [
-                        'id' => (int)($r['KHU_VUC_ID'] ?? 1),
+                        'id' => $r['KHU_VUC_ID'] !== null ? (int)$r['KHU_VUC_ID'] : null,
                         'name' => $areaName,
                     ],
                     'camera' => [
-                        'id' => (int)($r['CAMERA_ID'] ?? 1),
+                        'id' => $r['CAMERA_ID'] !== null ? (int)$r['CAMERA_ID'] : null,
                         'code' => (string)($r['MA_CAMERA'] ?? ($isCamera ? 'CAM-01' : 'CO_DO')),
                         'name' => $cameraName,
                     ],
@@ -996,175 +1036,188 @@ class CimProxyController extends Controller
                 'pages' => max(1, (int)ceil($total / $pageSize)),
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['error' => 'Lỗi tải danh sách vi phạm: ' . $e->getMessage()], 500);
+            report($e);
+            return response()->json(['error' => 'Không thể tải danh sách vi phạm.'], 500);
         }
     }
 
     protected function handleViolationDetail(Request $request, string $method, mixed $id): Response
     {
-        $numericId = (int)$id;
+        $numericId = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($numericId === false) {
+            return response()->json(['error' => 'Mã vi phạm không hợp lệ.'], 422);
+        }
+        $body = $method === 'PATCH' ? ($request->isJson() ? $request->json()->all() : $request->all()) : [];
+        $source = strtoupper((string)($body['source'] ?? $request->query('source', 'CAMERA')));
+        if (!in_array($source, ['CAMERA', 'CO_DO'], true)) {
+            return response()->json(['error' => 'Nguồn vi phạm không hợp lệ.'], 422);
+        }
+
         try {
             $pdo = $this->getPdo();
             if ($method === 'PATCH') {
-                $body = $request->isJson() ? $request->json()->all() : $request->all();
-                $status = (string)($body['status'] ?? 'DA_XU_LY');
-                $note = (string)($body['note'] ?? '');
-                try {
-                    $upd = $pdo->prepare("UPDATE BAN_GHI_VIPHAM SET TRANG_THAI_XU_LY = :st, GHI_CHU_XU_LY = :nt, XU_LY_LUC = SYSDATETIME() WHERE ID = :id");
-                    $upd->execute(['st' => $status, 'nt' => $note, 'id' => $numericId]);
-                } catch (\Throwable) {}
-                try {
-                    $upd2 = $pdo->prepare("UPDATE CT_VIPHAM SET GHI_CHU = :nt WHERE ID = :id");
-                    $upd2->execute(['nt' => $note, 'id' => $numericId]);
-                } catch (\Throwable) {}
-                return response()->json(['message' => 'Đã cập nhật trạng thái điều phối Đội Cờ Đỏ.']);
+                if ($source === 'CAMERA') {
+                    $status = (string)($body['status'] ?? 'DA_XU_LY');
+                    if (!in_array($status, ['MOI', 'DA_XEM', 'DA_XU_LY', 'BO_QUA'], true)) {
+                        return response()->json(['error' => 'Trạng thái xử lý không hợp lệ.'], 422);
+                    }
+                    $upd = $pdo->prepare("UPDATE PHAT_HIEN_VIPHAM SET TINH_TRANG_XU_LY = :st,
+                                          XU_LY_LUC = CASE WHEN :st2 = 'MOI' THEN NULL ELSE SYSDATETIME() END
+                                          WHERE ID = :id");
+                    $upd->execute(['st' => $status, 'st2' => $status, 'id' => $numericId]);
+                } else {
+                    $note = mb_substr(trim((string)($body['note'] ?? '')), 0, 500);
+                    $upd = $pdo->prepare('UPDATE CT_VIPHAM SET GHI_CHU = :nt WHERE ID = :id');
+                    $upd->execute(['nt' => $note, 'id' => $numericId]);
+                }
+                if ($upd->rowCount() === 0) {
+                    return response()->json(['error' => 'Không tìm thấy bản ghi vi phạm.'], 404);
+                }
             }
 
-            // 1. Thử tìm trong BAN_GHI_VIPHAM (Camera AI)
-            try {
-                $sql = "SELECT b.ID, b.THOI_DIEM, b.LOI_ID, lv.TEN_LOI, CONVERT(VARCHAR(MAX), CAST(lv.TEN_LOI AS VARBINARY(MAX)), 2) as type_name_hex,
-                               b.KHU_VUC_ID, k.TEN_KHU_VUC, CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
-                               b.CAMERA_ID, c.MA_CAMERA, c.TEN_CAMERA, CONVERT(VARCHAR(MAX), CAST(c.TEN_CAMERA AS VARBINARY(MAX)), 2) as camera_name_hex,
-                               a.TRANG_THAI as ANH_TRANG_THAI, a.ANH_KHOA, a.HET_HAN_LUC as ANH_HET_HAN_LUC,
-                               b.TRANG_THAI_XU_LY, b.GHI_CHU_XU_LY, b.XU_LY_LUC,
-                               t.FULL_NAME as nguoi_xu_ly, CONVERT(VARCHAR(MAX), CAST(t.FULL_NAME AS VARBINARY(MAX)), 2) as nguoi_xu_ly_hex
-                        FROM BAN_GHI_VIPHAM b
-                        LEFT JOIN ANH_VIPHAM a ON a.BAN_GHI_ID = b.ID
-                        LEFT JOIN LOI_VIPHAM lv ON b.LOI_ID = lv.ID
-                        LEFT JOIN KHU_VUC k ON b.KHU_VUC_ID = k.ID
-                        LEFT JOIN CAMERA c ON b.CAMERA_ID = c.ID
-                        LEFT JOIN TAIKHOAN t ON b.NGUOI_XU_LY_ID = t.ID
-                        WHERE b.ID = CAST(:id AS BIGINT)";
-                $stmt = $pdo->prepare($sql);
-                $stmt->bindValue(':id', $numericId, \PDO::PARAM_INT);
-                $stmt->execute();
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $data = $source === 'CAMERA'
+                ? $this->findCameraViolation($pdo, $numericId)
+                : $this->findRedFlagViolation($pdo, $numericId);
+            if ($data === null) {
+                return response()->json(['error' => 'Không tìm thấy bản ghi vi phạm.'], 404);
+            }
+            $payload = ['data' => $data];
+            if ($method === 'PATCH') {
+                $payload['message'] = 'Đã cập nhật trạng thái xử lý.';
+            }
+            return response()->json($payload);
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json(['error' => 'Không thể tải hoặc cập nhật bản ghi vi phạm.'], 500);
+        }
+    }
 
-                if ($row) {
-                    $timeStr = !empty($row['THOI_DIEM']) ? date('Y-m-d H:i:s', strtotime((string)$row['THOI_DIEM'])) : date('Y-m-d H:i:s');
-                    $isAvailable = ($row['ANH_TRANG_THAI'] ?? '') === 'AVAILABLE';
-                    $statusVal = (string)($row['TRANG_THAI_XU_LY'] ?? 'MOI');
+    protected function findCameraViolation(\PDO $pdo, int $id): ?array
+    {
+        $sql = "SELECT p.ID, p.THOI_DIEM, p.LOI_ID, lv.TEN_LOI, CONVERT(VARCHAR(MAX), CAST(lv.TEN_LOI AS VARBINARY(MAX)), 2) as type_name_hex,
+                       k.ID AS KHU_VUC_ID, k.TEN_KHU_VUC, CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
+                       c.ID AS CAMERA_ID, c.MA_CAMERA, c.TEN_CAMERA, CONVERT(VARCHAR(MAX), CAST(c.TEN_CAMERA AS VARBINARY(MAX)), 2) as camera_name_hex,
+                       a.ID AS ANH_ID, a.ANH_KHOA, a.THOI_GIAN_HET_HAN, p.TINH_TRANG_XU_LY, p.XU_LY_LUC
+                FROM PHAT_HIEN_VIPHAM p
+                LEFT JOIN ANH_VIPHAM a ON a.PHAT_HIEN_ID = p.ID
+                LEFT JOIN LOI_VIPHAM lv ON p.LOI_ID = lv.ID
+                LEFT JOIN CAMERA c ON a.CAMERA_ID = c.ID
+                LEFT JOIN KHU_VUC k ON c.KHU_VUC_ID = k.ID
+                WHERE p.ID = :id";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':id', $id, \PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$row) {
+            return null;
+        }
 
-                    $data = [
-                        'id' => (int)$row['ID'],
-                        'source' => 'CAMERA',
-                        'occurred_at' => $timeStr,
-                        'type' => [
-                            'id' => (int)($row['LOI_ID'] ?? 1),
-                            'name' => $this->decodeHexUnicode($row['type_name_hex'] ?? null, $row['TEN_LOI'] ?? 'Vi phạm tác phong'),
-                        ],
-                        'student' => null,
-                        'area' => [
-                            'id' => (int)($row['KHU_VUC_ID'] ?? 1),
-                            'name' => $this->decodeHexUnicode($row['area_name_hex'] ?? null, $row['TEN_KHU_VUC'] ?? 'Khu vực chung'),
-                        ],
-                        'camera' => [
-                            'id' => (int)($row['CAMERA_ID'] ?? 1),
-                            'code' => (string)($row['MA_CAMERA'] ?? 'CAM-01'),
-                            'name' => $this->decodeHexUnicode($row['camera_name_hex'] ?? null, $row['TEN_CAMERA'] ?? 'Camera'),
-                        ],
-                        'evidence' => [
-                            'available' => $isAvailable,
-                            'status' => strtolower((string)($row['ANH_TRANG_THAI'] ?? 'none')),
-                            'expires_at' => !empty($row['ANH_HET_HAN_LUC']) ? date('Y-m-d H:i:s', strtotime((string)$row['ANH_HET_HAN_LUC'])) : null,
-                            'message' => $isAvailable ? 'Ảnh bằng chứng vi phạm từ Camera AI.' : 'Không có ảnh bằng chứng.',
-                        ],
-                        'processing' => [
-                            'status' => $statusVal,
-                            'processed_by' => $this->decodeHexUnicode($row['nguoi_xu_ly_hex'] ?? null, $row['nguoi_xu_ly'] ?? 'CTSV'),
-                            'processed_at' => !empty($row['XU_LY_LUC']) ? date('Y-m-d H:i:s', strtotime((string)$row['XU_LY_LUC'])) : null,
-                            'note' => (string)($row['GHI_CHU_XU_LY'] ?? ''),
-                        ],
-                    ];
-                    return response()->json(['data' => $data]);
-                }
-            } catch (\Throwable) {}
+        $expiresAt = !empty($row['THOI_GIAN_HET_HAN']) ? strtotime((string)$row['THOI_GIAN_HET_HAN']) : null;
+        if (empty($row['ANH_ID'])) {
+            $evidenceStatus = 'none';
+        } elseif (empty($row['ANH_KHOA'])) {
+            $evidenceStatus = 'deleted';
+        } elseif ($expiresAt !== null && $expiresAt <= time()) {
+            $evidenceStatus = 'expired';
+        } else {
+            $evidenceStatus = 'available';
+        }
+        $isAvailable = $evidenceStatus === 'available';
+        $processedAt = !empty($row['XU_LY_LUC']) ? date('Y-m-d H:i:s', strtotime((string)$row['XU_LY_LUC'])) : null;
 
-            // 2. Thử tìm trong CT_VIPHAM (Biên bản Đội Cờ Đỏ)
-            try {
-                $ctSql = "SELECT cv.ID, cv.NGAY_VIPHAM, cv.THOI_DIEM, cv.KHU_VUC_ID,
-                                 k.TEN_KHU_VUC, CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
-                                 lv.ID as type_id, lv.TEN_LOI, CONVERT(VARCHAR(MAX), CAST(lv.TEN_LOI AS VARBINARY(MAX)), 2) as type_name_hex,
-                                 sv.ID as sv_id, sv.MA_SV, sv.HOTEN, CONVERT(VARCHAR(MAX), CAST(sv.HOTEN AS VARBINARY(MAX)), 2) as sv_name_hex,
-                                 l.MA_LOP, cv.GHI_CHU
-                          FROM CT_VIPHAM cv
-                          LEFT JOIN LOI_VIPHAM lv ON cv.ID_LOI = lv.ID
-                          LEFT JOIN KHU_VUC k ON cv.KHU_VUC_ID = k.ID
-                          LEFT JOIN SINHVIEN sv ON cv.ID_SV = sv.ID
-                          LEFT JOIN LOP l ON sv.LOP_ID = l.ID
-                          WHERE cv.ID = :id";
-                $ctStmt = $pdo->prepare($ctSql);
-                $ctStmt->bindValue(':id', $numericId, \PDO::PARAM_INT);
-                $ctStmt->execute();
-                $ctRow = $ctStmt->fetch(\PDO::FETCH_ASSOC);
-
-                if ($ctRow) {
-                    $timeStr = !empty($ctRow['THOI_DIEM']) ? date('Y-m-d H:i:s', strtotime((string)$ctRow['THOI_DIEM'])) : (!empty($ctRow['NGAY_VIPHAM']) ? date('Y-m-d 07:30:00', strtotime((string)$ctRow['NGAY_VIPHAM'])) : date('Y-m-d H:i:s'));
-                    $place = $this->decodeHexUnicode($ctRow['area_name_hex'] ?? null, $ctRow['TEN_KHU_VUC'] ?? 'Khu vực chung');
-
-                    $data = [
-                        'id' => (int)$ctRow['ID'],
-                        'source' => 'CO_DO',
-                        'occurred_at' => $timeStr,
-                        'type' => [
-                            'id' => (int)($ctRow['type_id'] ?? 1),
-                            'name' => $this->decodeHexUnicode($ctRow['type_name_hex'] ?? null, $ctRow['TEN_LOI'] ?? 'Vi phạm tác phong'),
-                        ],
-                        'student' => [
-                            'id' => (int)($ctRow['sv_id'] ?? 0),
-                            'code' => (string)($ctRow['MA_SV'] ?? ''),
-                            'name' => $this->decodeHexUnicode($ctRow['sv_name_hex'] ?? null, $ctRow['HOTEN'] ?? ''),
-                            'class_name' => (string)($ctRow['MA_LOP'] ?? ''),
-                        ],
-                        'area' => [
-                            'id' => (int)($ctRow['KHU_VUC_ID'] ?? 1),
-                            'name' => $place,
-                        ],
-                        'camera' => [
-                            'id' => 1,
-                            'code' => 'CO_DO',
-                            'name' => 'Biên bản Đội Cờ Đỏ',
-                        ],
-                        'evidence' => [
-                            'available' => false,
-                            'status' => 'none',
-                            'message' => 'Biên bản do Đội Cờ Đỏ kiểm tra và ghi nhận trực tiếp.',
-                        ],
-                        'processing' => [
-                            'status' => 'DA_XU_LY',
-                            'processed_by' => 'Đội Cờ Đỏ / CTSV',
-                            'processed_at' => $timeStr,
-                            'note' => (string)($ctRow['GHI_CHU'] ?? 'Đã kiểm tra và lập biên bản.'),
-                        ],
-                    ];
-                    return response()->json(['data' => $data]);
-                }
-            } catch (\Throwable) {}
-        } catch (\Throwable) {}
-
-        $data = [
-            'id' => $numericId,
+        return [
+            'id' => (int)$row['ID'],
             'source' => 'CAMERA',
-            'occurred_at' => date('Y-m-d H:i:s'),
-            'type' => ['id' => 1, 'name' => 'Thiếu thẻ sinh viên'],
+            'occurred_at' => date('Y-m-d H:i:s', strtotime((string)$row['THOI_DIEM'])),
+            'type' => [
+                'id' => (int)$row['LOI_ID'],
+                'name' => $this->decodeHexUnicode($row['type_name_hex'] ?? null, $row['TEN_LOI'] ?? 'Vi phạm tác phong'),
+            ],
             'student' => null,
-            'area' => ['id' => 1, 'name' => 'Khu vực chung'],
-            'camera' => ['id' => 1, 'code' => 'CAM-01', 'name' => 'Camera Giảng đường'],
+            'area' => [
+                'id' => $row['KHU_VUC_ID'] !== null ? (int)$row['KHU_VUC_ID'] : null,
+                'name' => $this->decodeHexUnicode($row['area_name_hex'] ?? null, $row['TEN_KHU_VUC'] ?? 'Không xác định'),
+            ],
+            'camera' => [
+                'id' => $row['CAMERA_ID'] !== null ? (int)$row['CAMERA_ID'] : null,
+                'code' => (string)($row['MA_CAMERA'] ?? '—'),
+                'name' => $this->decodeHexUnicode($row['camera_name_hex'] ?? null, $row['TEN_CAMERA'] ?? 'Không xác định'),
+            ],
+            'evidence' => [
+                'available' => $isAvailable,
+                'status' => $evidenceStatus,
+                'expires_at' => $expiresAt !== null ? date('Y-m-d H:i:s', $expiresAt) : null,
+                'message' => $isAvailable ? 'Ảnh bằng chứng vi phạm từ Camera AI.' : 'Không có ảnh bằng chứng (ảnh đã hết hạn hoặc bị xóa).',
+            ],
+            'processing' => [
+                'status' => (string)$row['TINH_TRANG_XU_LY'],
+                'processed_by' => $processedAt !== null ? 'CTSV' : null,
+                'processed_at' => $processedAt,
+                'note' => null,
+            ],
+        ];
+    }
+
+    protected function findRedFlagViolation(\PDO $pdo, int $id): ?array
+    {
+        $ctSql = "SELECT cv.ID, cv.NGAY_VIPHAM, cv.THOI_DIEM, cv.KHU_VUC_ID,
+                         k.TEN_KHU_VUC, CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex,
+                         lv.ID as type_id, lv.TEN_LOI, CONVERT(VARCHAR(MAX), CAST(lv.TEN_LOI AS VARBINARY(MAX)), 2) as type_name_hex,
+                         sv.ID as sv_id, sv.MA_SV, sv.HOTEN, CONVERT(VARCHAR(MAX), CAST(sv.HOTEN AS VARBINARY(MAX)), 2) as sv_name_hex,
+                         l.MA_LOP, cv.GHI_CHU
+                  FROM CT_VIPHAM cv
+                  LEFT JOIN LOI_VIPHAM lv ON cv.ID_LOI = lv.ID
+                  LEFT JOIN KHU_VUC k ON cv.KHU_VUC_ID = k.ID
+                  LEFT JOIN SINHVIEN sv ON cv.ID_SV = sv.ID
+                  LEFT JOIN LOP l ON sv.LOP_ID = l.ID
+                  WHERE cv.ID = :id";
+        $ctStmt = $pdo->prepare($ctSql);
+        $ctStmt->bindValue(':id', $id, \PDO::PARAM_INT);
+        $ctStmt->execute();
+        $ctRow = $ctStmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$ctRow) {
+            return null;
+        }
+
+        $timeStr = !empty($ctRow['THOI_DIEM'])
+            ? date('Y-m-d H:i:s', strtotime((string)$ctRow['THOI_DIEM']))
+            : (!empty($ctRow['NGAY_VIPHAM']) ? date('Y-m-d 07:30:00', strtotime((string)$ctRow['NGAY_VIPHAM'])) : null);
+
+        return [
+            'id' => (int)$ctRow['ID'],
+            'source' => 'CO_DO',
+            'occurred_at' => $timeStr,
+            'type' => [
+                'id' => (int)($ctRow['type_id'] ?? 0),
+                'name' => $this->decodeHexUnicode($ctRow['type_name_hex'] ?? null, $ctRow['TEN_LOI'] ?? 'Vi phạm tác phong'),
+            ],
+            'student' => [
+                'id' => (int)($ctRow['sv_id'] ?? 0),
+                'code' => (string)($ctRow['MA_SV'] ?? ''),
+                'name' => $this->decodeHexUnicode($ctRow['sv_name_hex'] ?? null, $ctRow['HOTEN'] ?? ''),
+                'class_name' => (string)($ctRow['MA_LOP'] ?? ''),
+            ],
+            'area' => [
+                'id' => $ctRow['KHU_VUC_ID'] !== null ? (int)$ctRow['KHU_VUC_ID'] : null,
+                'name' => $this->decodeHexUnicode($ctRow['area_name_hex'] ?? null, $ctRow['TEN_KHU_VUC'] ?? 'Không xác định'),
+            ],
+            'camera' => [
+                'id' => null,
+                'code' => 'CO_DO',
+                'name' => 'Biên bản Đội Cờ Đỏ',
+            ],
             'evidence' => [
                 'available' => false,
                 'status' => 'none',
-                'expires_at' => date('Y-m-d H:i:s', strtotime('+30 days')),
-                'message' => 'Cảnh báo tự động từ Camera.',
+                'message' => 'Biên bản do Đội Cờ Đỏ kiểm tra và ghi nhận trực tiếp.',
             ],
             'processing' => [
                 'status' => 'DA_XU_LY',
-                'processed_by' => 'Cán bộ CTSV',
-                'processed_at' => date('Y-m-d H:i:s'),
-                'note' => 'Đã điều Đội Cờ Đỏ tới kiểm tra.',
+                'processed_by' => 'Đội Cờ Đỏ / CTSV',
+                'processed_at' => $timeStr,
+                'note' => (string)($ctRow['GHI_CHU'] ?? ''),
             ],
         ];
-
-        return response()->json(['data' => $data]);
     }
 
     protected function resolveDateRange(Request $request, string $defaultPeriod = 'month'): array

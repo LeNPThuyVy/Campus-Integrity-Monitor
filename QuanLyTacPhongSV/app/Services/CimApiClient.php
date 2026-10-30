@@ -40,7 +40,7 @@ class CimApiClient
         }
 
         // 2. Read from env helper
-        $envVal = (string)env('CIM_API_BASE_URL', '');
+        $envVal = (string)config('cim.api_base_url');
         if ($envVal !== '') {
             $candidates[] = rtrim($envVal, '/');
         }

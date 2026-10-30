@@ -33,11 +33,11 @@ class StudentService
             }
         }
 
-        $host = (string)env('DB_SERVER', env('DB_HOST', 'localhost\\SQLEXPRESS'));
-        $database = (string)env('DB_NAME', env('DB_DATABASE', 'CampusIntegrityMonitor'));
-        $trusted = filter_var(env('DB_TRUSTED_CONNECTION', true), FILTER_VALIDATE_BOOLEAN);
-        $username = (string)env('DB_USER', env('DB_USERNAME', 'sa'));
-        $password = (string)env('DB_PASSWORD', '12345');
+        $host = (string)config('cim.db.server');
+        $database = (string)config('cim.db.name');
+        $trusted = filter_var(config('cim.db.trusted'), FILTER_VALIDATE_BOOLEAN);
+        $username = (string)config('cim.db.user');
+        $password = (string)config('cim.db.password');
 
         if (extension_loaded('pdo_odbc')) {
             $odbcDrivers = ['ODBC Driver 17 for SQL Server', 'ODBC Driver 18 for SQL Server', 'SQL Server'];
@@ -65,8 +65,8 @@ class StudentService
         }
 
         if (extension_loaded('pdo_sqlsrv')) {
-            $encrypt = env('DB_ENCRYPT', 'yes');
-            $trustCert = env('DB_TRUST_SERVER_CERTIFICATE', 'yes');
+            $encrypt = config('cim.db.encrypt');
+            $trustCert = config('cim.db.trust_server_certificate');
             $dsn = sprintf('sqlsrv:Server=%s;Database=%s;Encrypt=%s;TrustServerCertificate=%s', $host, $database, $encrypt, $trustCert);
             return new PDO($dsn, $trusted ? null : $username, $trusted ? null : $password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -80,7 +80,7 @@ class StudentService
 
     public function today(): DateTimeImmutable
     {
-        $minutes = (int)env('CIM_UTC_OFFSET_MINUTES', 420);
+        $minutes = (int)config('cim.utc_offset_minutes');
         $offset = sprintf('%s%02d:%02d', $minutes < 0 ? '-' : '+', intdiv(abs($minutes), 60), abs($minutes) % 60);
         return new DateTimeImmutable('today', new DateTimeZone($offset));
     }
@@ -480,19 +480,14 @@ class StudentService
             return null;
         }
 
-        // Numeric Excel timestamp (ví dụ 45678.3125)
+        // Số serial Excel (ví dụ 45678.3125) là giờ địa phương "trên đồng hồ", không phải UTC:
+        // dựng lại đúng ngày giờ đó, không đổi múi giờ.
         if (is_numeric($raw)) {
             $num = (float)$raw;
             if ($num > 30000 && $num < 70000) {
-                $unixTimestamp = (int)round(($num - 25569) * 86400);
-                $dt = new DateTimeImmutable('@' . $unixTimestamp);
-                $tz = new DateTimeZone('Asia/Ho_Chi_Minh');
-                $localDt = $dt->setTimezone($tz);
-                return [
-                    'date' => $localDt->format('Y-m-d'),
-                    'time' => $localDt->format('H:i'),
-                    'datetime' => $localDt->format('Y-m-d H:i:s'),
-                ];
+                $seconds = (int)round(($num - 25569) * 86400);
+                $dt = (new DateTimeImmutable('@' . $seconds))->setTimezone(new DateTimeZone('UTC'));
+                return $this->dateTimeResult($dt->format('Y-m-d'), $dt->format('H:i'));
             }
         }
 
@@ -515,45 +510,39 @@ class StudentService
         ];
 
         foreach ($formats as $fmt) {
-            $dt = DateTimeImmutable::createFromFormat($fmt, $str);
-            if ($dt !== false) {
-                $hasTime = str_contains($fmt, 'H') || str_contains($fmt, 'i');
-                return [
-                    'date' => $dt->format('Y-m-d'),
-                    'time' => $hasTime ? $dt->format('H:i') : '07:30',
-                    'datetime' => $hasTime ? $dt->format('Y-m-d H:i:s') : $dt->format('Y-m-d 07:30:00'),
-                ];
+            // '!' đặt các trường không có trong format về 0; getLastErrors() báo ngày tràn như 31/02.
+            $dt = DateTimeImmutable::createFromFormat('!' . $fmt, $str);
+            $errors = DateTimeImmutable::getLastErrors();
+            if ($dt === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+                continue;
             }
+            $hasTime = str_contains($fmt, 'H');
+            return $this->dateTimeResult($dt->format('Y-m-d'), $hasTime ? $dt->format('H:i') : '07:30');
         }
 
-        // Regex fallback: ngày/tháng/năm giờ:phút
-        if (preg_match('/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/', $str, $m)) {
-            $d = str_pad($m[1], 2, '0', STR_PAD_LEFT);
-            $mo = str_pad($m[2], 2, '0', STR_PAD_LEFT);
-            $y = $m[3];
-            $h = isset($m[4]) ? str_pad($m[4], 2, '0', STR_PAD_LEFT) : '07';
-            $i = isset($m[5]) ? str_pad($m[5], 2, '0', STR_PAD_LEFT) : '30';
-            return [
-                'date' => "{$y}-{$mo}-{$d}",
-                'time' => "{$h}:{$i}",
-                'datetime' => "{$y}-{$mo}-{$d} {$h}:{$i}:00",
-            ];
+        // Regex fallback: ngày/tháng/năm [giờ:phút] hoặc năm/tháng/ngày [giờ:phút]
+        if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/', $str, $m)) {
+            [$y, $mo, $d] = [(int)$m[3], (int)$m[2], (int)$m[1]];
+        } elseif (preg_match('/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2}))?/', $str, $m)) {
+            [$y, $mo, $d] = [(int)$m[1], (int)$m[2], (int)$m[3]];
+        } else {
+            return null;
         }
-
-        if (preg_match('/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2}))?/', $str, $m)) {
-            $y = $m[1];
-            $mo = str_pad($m[2], 2, '0', STR_PAD_LEFT);
-            $d = str_pad($m[3], 2, '0', STR_PAD_LEFT);
-            $h = isset($m[4]) ? str_pad($m[4], 2, '0', STR_PAD_LEFT) : '07';
-            $i = isset($m[5]) ? str_pad($m[5], 2, '0', STR_PAD_LEFT) : '30';
-            return [
-                'date' => "{$y}-{$mo}-{$d}",
-                'time' => "{$h}:{$i}",
-                'datetime' => "{$y}-{$mo}-{$d} {$h}:{$i}:00",
-            ];
+        $h = isset($m[4]) ? (int)$m[4] : 7;
+        $i = isset($m[5]) ? (int)$m[5] : 30;
+        if (!checkdate($mo, $d, $y) || $h > 23 || $i > 59) {
+            return null;
         }
+        return $this->dateTimeResult(sprintf('%04d-%02d-%02d', $y, $mo, $d), sprintf('%02d:%02d', $h, $i));
+    }
 
-        return null;
+    private function dateTimeResult(string $date, string $time): array
+    {
+        return [
+            'date' => $date,
+            'time' => $time,
+            'datetime' => "{$date} {$time}:00",
+        ];
     }
 
     public function addViolation(array $data): array
@@ -713,7 +702,7 @@ class StudentService
 
     public function verifyExportPassword(string $password): bool
     {
-        $expected = (string)env('CIM_EXPORT_PASSWORD', 'Admin@Export2026');
+        $expected = (string)config('cim.export_password');
         if ($expected === '') {
             return false;
         }
@@ -1683,7 +1672,7 @@ class StudentService
 
     public function verifyResetPassword(string $password): bool
     {
-        $expected = (string)env('CIM_RESET_PASSWORD', env('CIM_EXPORT_PASSWORD', 'Admin@Export2026'));
+        $expected = (string)config('cim.reset_password');
         if ($expected === '') {
             return false;
         }
@@ -1693,32 +1682,51 @@ class StudentService
         return hash_equals($expected, $password);
     }
 
+    /**
+     * Reset vi phạm của HỌC KỲ HIỆN TẠI (không đụng tới lịch sử các học kỳ trước).
+     * Bản ghi Camera AI chỉ bị xóa khi ảnh bằng chứng đã được job retention dọn (ANH_KHOA NULL)
+     * để không bỏ sót object trên Cloudflare R2.
+     */
     public function resetAllViolations(bool $includeCameraRecords = false): array
     {
         $pdo = $this->getPdo();
+        $semester = $pdo->prepare('SELECT TOP 1 MA_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY
+                                   WHERE :d BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
+        $semester->execute(['d' => date('Y-m-d')]);
+        $current = $semester->fetch(PDO::FETCH_ASSOC);
+        if (!$current) {
+            throw new InvalidArgumentException('Chưa khai báo học kỳ hiện tại nên không thể reset. Vui lòng thêm học kỳ trong mục Danh mục.');
+        }
+
         $pdo->beginTransaction();
         try {
-            $ctCount = (int)$pdo->query('SELECT COUNT(*) FROM CT_VIPHAM')->fetchColumn();
-            $pdo->exec('DELETE FROM CT_VIPHAM');
+            $del = $pdo->prepare('DELETE FROM CT_VIPHAM WHERE MA_HK = :hk');
+            $del->execute(['hk' => $current['MA_HK']]);
+            $ctCount = $del->rowCount();
 
             $bgCount = 0;
+            $keptWithEvidence = 0;
             if ($includeCameraRecords) {
-                try {
-                    if ((int)$pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'NHAT_KY_XOA_ANH'")->fetchColumn() > 0) {
-                        $pdo->exec('DELETE FROM NHAT_KY_XOA_ANH');
-                    }
-                    if ((int)$pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BAN_GHI_VIPHAM'")->fetchColumn() > 0) {
-                        $bgCount = (int)$pdo->query('SELECT COUNT(*) FROM BAN_GHI_VIPHAM')->fetchColumn();
-                        $pdo->exec('DELETE FROM BAN_GHI_VIPHAM');
-                    }
-                } catch (Throwable) {}
+                $range = ['from' => $current['NGAY_BAT_DAU'], 'to' => $current['NGAY_KET_THUC']];
+                $kept = $pdo->prepare('SELECT COUNT(*) FROM PHAT_HIEN_VIPHAM p JOIN ANH_VIPHAM a ON a.PHAT_HIEN_ID = p.ID
+                                       WHERE CAST(p.THOI_DIEM AS DATE) BETWEEN :from AND :to AND a.ANH_KHOA IS NOT NULL');
+                $kept->execute($range);
+                $keptWithEvidence = (int)$kept->fetchColumn();
+
+                $delCam = $pdo->prepare('DELETE p FROM PHAT_HIEN_VIPHAM p
+                                         WHERE CAST(p.THOI_DIEM AS DATE) BETWEEN :from AND :to
+                                           AND NOT EXISTS (SELECT 1 FROM ANH_VIPHAM a WHERE a.PHAT_HIEN_ID = p.ID AND a.ANH_KHOA IS NOT NULL)');
+                $delCam->execute($range);
+                $bgCount = $delCam->rowCount();
             }
 
             $pdo->commit();
             return [
                 'success' => true,
+                'semester' => (string)$current['MA_HK'],
                 'deleted_student_violations' => $ctCount,
                 'deleted_camera_records' => $bgCount,
+                'kept_camera_records_with_evidence' => $keptWithEvidence,
                 'camera_reset_applied' => $includeCameraRecords,
             ];
         } catch (Throwable $e) {

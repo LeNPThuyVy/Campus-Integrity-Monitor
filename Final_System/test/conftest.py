@@ -63,7 +63,10 @@ def database():
     if health["status"] != "ok":
         pytest.skip(f"Database test chưa sẵn sàng: {health}")
     with db.transaction() as cursor:
-        for table in ("NHAT_KY_XOA_ANH", "BAN_GHI_VIPHAM", "CAMERA", "KHU_VUC", "HOC_KY", "TAIKHOAN"):
+        # CT_VIPHAM (sample data) points at KHU_VUC and HOCKY; detach it instead of deleting it.
+        cursor.execute("UPDATE dbo.CT_VIPHAM SET KHU_VUC_ID = NULL, MA_HK = NULL")
+        # Deleting PHAT_HIEN_VIPHAM cascades to ANH_VIPHAM, which must go before CAMERA.
+        for table in ("PHAT_HIEN_VIPHAM", "CAMERA", "KHU_VUC", "HOCKY", "TAIKHOAN"):
             cursor.execute(f"DELETE FROM dbo.{table}")
     return db
 

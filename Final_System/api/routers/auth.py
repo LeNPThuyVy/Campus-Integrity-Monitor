@@ -20,7 +20,7 @@ def login(body: LoginRequest, db: Database = Depends(get_db), settings: Settings
     result = accounts.authenticate(db, settings, body.username, body.password)
     account = result.account
     try:
-        token, expires_at = create_token(account["ID"], account["PHIEN_BAN_TOKEN"], settings.auth_secret,
+        token, expires_at = create_token(account["ID"], account["TOKEN_VERSION"], settings.auth_secret,
                                          settings.token_ttl_minutes)
     except TokenError as exc:
         raise ApiError(503, "auth_not_configured", str(exc)) from exc
@@ -29,8 +29,8 @@ def login(body: LoginRequest, db: Database = Depends(get_db), settings: Settings
             "access_token": token,
             "token_type": "Bearer",
             "expires_at": expires_at,
-            "user": {"id": account["ID"], "username": account["TEN_DANG_NHAP"], "full_name": account["HO_TEN"],
-                     "role": account["VAI_TRO"]},
+            "user": {"id": account["ID"], "username": account["USERNAME"], "full_name": account["FULL_NAME"],
+                     "role": account["ROLE"]},
         }
     }
 

@@ -47,13 +47,13 @@
         return;
       }
 
-      // Phát hiện bản ghi mới khi người dùng đang xem trang 1
-      if (state.page === 1 && result.items.length) {
-        const itemIds = result.items.map((i) => i.id);
-        const currentMax = Math.max(...itemIds);
+      // Phát hiện cảnh báo Camera mới khi người dùng đang xem trang 1 (ID của Camera và Cờ Đỏ là 2 dãy riêng)
+      const cameraItems = result.items.filter((i) => i.source !== 'CO_DO');
+      if (state.page === 1 && cameraItems.length) {
+        const currentMax = Math.max(...cameraItems.map((i) => i.id));
         if (state.lastKnownMaxId > 0 && currentMax > state.lastKnownMaxId) {
-          const newItems = result.items.filter((i) => i.id > state.lastKnownMaxId);
-          newItems.forEach((i) => state.newIds.add(i.id));
+          const newItems = cameraItems.filter((i) => i.id > state.lastKnownMaxId);
+          newItems.forEach((i) => state.newIds.add(rowKey(i)));
           if (newItems.length === 1) {
             const first = newItems[0];
             const typeName = first.type?.name || 'Vi phạm tác phong';
@@ -72,12 +72,16 @@
         state.lastKnownMaxId = Math.max(state.lastKnownMaxId, currentMax);
       }
 
-      tbody.replaceChildren(...result.items.map((item) => renderRow(item, state.newIds.has(item.id))));
+      tbody.replaceChildren(...result.items.map((item) => renderRow(item, state.newIds.has(rowKey(item)))));
     } catch (error) {
       if (!silent) {
         CIM.stateRow(tbody, 7, error.message, 'error');
       }
     }
+  }
+
+  function rowKey(item) {
+    return `${item.source || 'CAMERA'}:${item.id}`;
   }
 
   function renderRow(item, isNew = false) {
@@ -129,7 +133,7 @@
     const actions = CIM.el('td', 'px-space-md py-3 text-right');
     const view = CIM.el('button', 'rounded-lg bg-surface-container px-3 py-1.5 font-label-md hover:bg-surface-container-high transition-colors', 'Chi tiết');
     view.type = 'button';
-    view.addEventListener('click', () => openDetail(item.id));
+    view.addEventListener('click', () => openDetail(item.id, item.source || 'CAMERA'));
     actions.append(view);
     row.append(actions);
     return row;
@@ -139,9 +143,9 @@
     return [CIM.el('dt', 'text-on-surface-variant', label), CIM.el('dd', 'font-semibold break-words', value ?? '—')];
   }
 
-  async function openDetail(id) {
+  async function openDetail(id, source) {
     try {
-      const { data } = await CIM.api('violation', { params: { id } });
+      const { data } = await CIM.api('violation', { params: { id, source } });
       state.current = data;
       const isCoDo = data.source === 'CO_DO' || data.student;
       document.getElementById('detail-title').textContent = isCoDo ? `Biên bản vi phạm Cờ Đỏ #${data.id}` : `Bản ghi vi phạm #${data.id}`;
@@ -181,6 +185,9 @@
       const processing = document.getElementById('processing-form');
       processing.elements.status.value = data.processing.status;
       processing.elements.note.value = data.processing.note || '';
+      // Camera AI chỉ lưu trạng thái xử lý; biên bản Cờ Đỏ chỉ lưu ghi chú.
+      processing.elements.status.disabled = Boolean(isCoDo);
+      processing.elements.note.disabled = !isCoDo;
       renderEvidence(data);
       dialog.showModal();
     } catch (error) {
@@ -227,7 +234,9 @@
     CIM.setBusy(button, true);
     try {
       const { data } = await CIM.api('violation', {
-        method: 'PATCH', params: { id: state.current.id }, body: { status, note: target.elements.note.value },
+        method: 'PATCH',
+        params: { id: state.current.id },
+        body: { source: state.current.source, status, note: target.elements.note.value },
       });
       state.current = data;
       CIM.toast('Đã cập nhật trạng thái điều phối Đội Cờ Đỏ.');
@@ -758,9 +767,12 @@
       }
 
       if (includeCamera) {
-        CIM.toast(`Đã xóa ${data.deleted_student_violations} biên bản và ${data.deleted_camera_records} cảnh báo Camera AI. Toàn bộ vi phạm đã được đưa về 0!`, 'success');
+        const kept = data.kept_camera_records_with_evidence
+          ? ` Giữ lại ${data.kept_camera_records_with_evidence} cảnh báo còn ảnh bằng chứng (sẽ xóa được sau khi ảnh hết hạn).`
+          : '';
+        CIM.toast(`Học kỳ ${data.semester}: đã xóa ${data.deleted_student_violations} biên bản và ${data.deleted_camera_records} cảnh báo Camera AI.${kept}`, 'success');
       } else {
-        CIM.toast(`Đã xóa ${data.deleted_student_violations} biên bản sinh viên vi phạm về 0! (Giữ nguyên nhật ký Camera AI)`, 'success');
+        CIM.toast(`Học kỳ ${data.semester}: đã xóa ${data.deleted_student_violations} biên bản sinh viên vi phạm (giữ nguyên nhật ký Camera AI).`, 'success');
       }
       closeResetModal();
       load();

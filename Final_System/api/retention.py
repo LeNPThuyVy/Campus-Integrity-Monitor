@@ -2,7 +2,7 @@
 Evidence retention: delete evidence images after their expiry date (default 30 days).
 
 Safety rules
-- Only rows with ANH_TRANG_THAI = 'AVAILABLE' and ANH_HET_HAN_LUC <= now are processed.
+- Only rows with ANH_KHOA IS NOT NULL and THOI_GIAN_HET_HAN <= now are processed.
 - The storage key must match the server-generated pattern and resolve inside the evidence root;
   otherwise nothing is deleted and the attempt is logged as UNSAFE_PATH.
 - A file that is already gone is treated as deleted (ALREADY_MISSING) so the job is re-runnable.
@@ -66,7 +66,7 @@ def purge_expired_evidence(db: Database, storage: EvidenceStorage, now: datetime
                 while True:
                     cursor.execute(
                         "SELECT TOP (?) ID, ANH_KHOA FROM dbo.ANH_VIPHAM "
-                        "WHERE TRANG_THAI = 'AVAILABLE' AND HET_HAN_LUC <= ? ORDER BY HET_HAN_LUC, ID",
+                        "WHERE ANH_KHOA IS NOT NULL AND THOI_GIAN_HET_HAN <= ? ORDER BY THOI_GIAN_HET_HAN, ID",
                         batch_size, now,
                     )
                     rows = cursor.fetchall()
@@ -75,8 +75,6 @@ def purge_expired_evidence(db: Database, storage: EvidenceStorage, now: datetime
                     processed_before = len(report.processed_ids)
                     for record_id, key in rows:
                         _purge_one(connection, storage, record_id, key, now, report)
-                    # Stop when the batch was partial, or when nothing could be processed
-                    # (rows that failed stay AVAILABLE and would otherwise be selected forever).
                     if len(rows) < batch_size or len(report.processed_ids) == processed_before:
                         break
             finally:
@@ -99,7 +97,6 @@ def _purge_one(connection, storage: EvidenceStorage, record_id: int, key: str | 
             result = "DELETED" if removed else "ALREADY_MISSING"
             detail = None if removed else "Tệp ảnh không còn trên đĩa trước khi job chạy."
         except UnsafeEvidencePath as exc:
-            # Do not touch the file system; mark as deleted so it is no longer served, and log it.
             result, detail = "UNSAFE_PATH", str(exc)
         except OSError as exc:
             report.errors += 1
@@ -107,8 +104,8 @@ def _purge_one(connection, storage: EvidenceStorage, record_id: int, key: str | 
             _log(cursor, record_id, "ERROR", f"Lỗi hệ thống tệp: {type(exc).__name__}", now)
             return
         connection.autocommit = False
-        cursor.execute("UPDATE dbo.ANH_VIPHAM SET TRANG_THAI = 'DELETED', DA_XOA_LUC = ? "
-                       "WHERE ID = ? AND TRANG_THAI = 'AVAILABLE'", now, record_id)
+        cursor.execute("UPDATE dbo.ANH_VIPHAM SET ANH_KHOA = NULL "
+                       "WHERE ID = ? AND ANH_KHOA IS NOT NULL", record_id)
         _log(cursor, record_id, result, detail, now)
         connection.commit()
         report.processed_ids.append(record_id)

@@ -21,11 +21,11 @@ class CatalogService
             }
         }
 
-        $host = (string)env('DB_SERVER', env('DB_HOST', 'localhost\\SQLEXPRESS'));
-        $database = (string)env('DB_NAME', env('DB_DATABASE', 'CampusIntegrityMonitor'));
-        $trusted = filter_var(env('DB_TRUSTED_CONNECTION', true), FILTER_VALIDATE_BOOLEAN);
-        $username = (string)env('DB_USER', env('DB_USERNAME', 'sa'));
-        $password = (string)env('DB_PASSWORD', '12345');
+        $host = (string)config('cim.db.server');
+        $database = (string)config('cim.db.name');
+        $trusted = filter_var(config('cim.db.trusted'), FILTER_VALIDATE_BOOLEAN);
+        $username = (string)config('cim.db.user');
+        $password = (string)config('cim.db.password');
 
         if (extension_loaded('pdo_odbc')) {
             $odbcDrivers = ['ODBC Driver 17 for SQL Server', 'ODBC Driver 18 for SQL Server', 'SQL Server'];
@@ -53,8 +53,8 @@ class CatalogService
         }
 
         if (extension_loaded('pdo_sqlsrv')) {
-            $encrypt = env('DB_ENCRYPT', 'yes');
-            $trustCert = env('DB_TRUST_SERVER_CERTIFICATE', 'yes');
+            $encrypt = config('cim.db.encrypt');
+            $trustCert = config('cim.db.trust_server_certificate');
             $dsn = sprintf('sqlsrv:Server=%s;Database=%s;Encrypt=%s;TrustServerCertificate=%s', $host, $database, $encrypt, $trustCert);
             return new PDO($dsn, $trusted ? null : $username, $trusted ? null : $password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

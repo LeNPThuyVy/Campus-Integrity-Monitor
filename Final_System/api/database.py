@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 REQUIRED_TABLES = (
     "KHOA", "NGANH", "LOP", "SINHVIEN", "LOI_VIPHAM", "CT_VIPHAM",
-    "TAIKHOAN", "KHU_VUC", "CAMERA", "HOCKY", "BAN_GHI_VIPHAM", "ANH_VIPHAM",
+    "TAIKHOAN", "KHU_VUC", "CAMERA", "HOCKY", "PHAT_HIEN_VIPHAM", "ANH_VIPHAM",
 )
 
 

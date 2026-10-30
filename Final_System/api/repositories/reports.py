@@ -1,4 +1,4 @@
-"""Statistics for the dashboard and reports. All numbers come from BAN_GHI_VIPHAM in SQL Server."""
+"""Statistics for the dashboard and reports. All numbers come from PHAT_HIEN_VIPHAM in SQL Server."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -66,10 +66,11 @@ def resolve_range(db: Database, today: date, period: str, anchor: date | None = 
 
 def _grouped(cursor, select: str, group: str, where: str, params: list[Any], order: str) -> list[tuple]:
     cursor.execute(
-        f"SELECT {select}, COUNT_BIG(*) AS SO_LUONG FROM dbo.BAN_GHI_VIPHAM b "
+        f"SELECT {select}, COUNT_BIG(*) AS SO_LUONG FROM dbo.PHAT_HIEN_VIPHAM b "
         "INNER JOIN dbo.LOI_VIPHAM l ON l.ID = b.LOI_ID "
-        "INNER JOIN dbo.KHU_VUC k ON k.ID = b.KHU_VUC_ID "
-        "INNER JOIN dbo.CAMERA c ON c.ID = b.CAMERA_ID "
+        "LEFT JOIN dbo.ANH_VIPHAM a ON a.PHAT_HIEN_ID = b.ID "
+        "LEFT JOIN dbo.CAMERA c ON c.ID = a.CAMERA_ID "
+        "LEFT JOIN dbo.KHU_VUC k ON k.ID = c.KHU_VUC_ID "
         f"{where} GROUP BY {group} ORDER BY {order}",
         *params,
     )
@@ -81,7 +82,12 @@ def summarize(db: Database, filters: ViolationFilters) -> dict[str, Any]:
         raise validation_error("Cần khoảng thời gian để thống kê.")
     where, params = filters.where_clause()
     with db.transaction() as cursor:
-        cursor.execute(f"SELECT COUNT_BIG(*) FROM dbo.BAN_GHI_VIPHAM b {where}", *params)
+        cursor.execute(
+            "SELECT COUNT_BIG(*) FROM dbo.PHAT_HIEN_VIPHAM b "
+            "LEFT JOIN dbo.ANH_VIPHAM a ON a.PHAT_HIEN_ID = b.ID "
+            f"LEFT JOIN dbo.CAMERA c ON c.ID = a.CAMERA_ID {where}",
+            *params,
+        )
         total = int(cursor.fetchone()[0])
         by_type_rows = _grouped(cursor, "l.ID, l.MA_LOI, l.TEN_LOI", "l.ID, l.MA_LOI, l.TEN_LOI", where, params, "l.ID")
         by_day_rows = _grouped(cursor, "CAST(b.THOI_DIEM AS DATE) AS NGAY", "CAST(b.THOI_DIEM AS DATE)", where, params,
@@ -98,8 +104,8 @@ def summarize(db: Database, filters: ViolationFilters) -> dict[str, Any]:
         hotspot_rows = _grouped(cursor, "TOP (10) k.ID, k.TEN_KHU_VUC, DATEPART(HOUR, b.THOI_DIEM) AS GIO",
                                 "k.ID, k.TEN_KHU_VUC, DATEPART(HOUR, b.THOI_DIEM)", where, params,
                                 "SO_LUONG DESC, k.TEN_KHU_VUC, GIO")
-        by_status_rows = _grouped(cursor, "b.TRANG_THAI_XU_LY", "b.TRANG_THAI_XU_LY", where, params,
-                                  "b.TRANG_THAI_XU_LY")
+        by_status_rows = _grouped(cursor, "b.TINH_TRANG_XU_LY", "b.TINH_TRANG_XU_LY", where, params,
+                                  "b.TINH_TRANG_XU_LY")
 
     type_counts = {row[0]: int(row[3]) for row in by_type_rows}
     by_type = [{"id": t["id"], "code": t["code"], "name": t["name"], "count": type_counts.get(t["id"], 0)}
@@ -126,22 +132,27 @@ def summarize(db: Database, filters: ViolationFilters) -> dict[str, Any]:
         "by_day": by_day,
         "by_hour": by_hour,
         "by_weekday": by_weekday,
-        "by_area": [{"id": r[0], "code": r[1], "name": r[2], "count": int(r[3])} for r in by_area_rows],
+        "by_area": [{"id": r[0], "code": r[1], "name": r[2], "count": int(r[3])} for r in by_area_rows if r[0] is not None],
         "by_camera": [{"id": r[0], "code": r[1], "name": r[2], "area_name": r[3], "count": int(r[4])}
-                      for r in by_camera_rows],
+                      for r in by_camera_rows if r[0] is not None],
         "hotspots": [{"area_id": r[0], "area_name": r[1], "hour": int(r[2]),
                       "label": f"{r[1]} • {int(r[2]):02d}:00-{int(r[2]):02d}:59", "count": int(r[3])}
-                     for r in hotspot_rows],
-        "by_status": {row[0]: int(row[1]) for row in by_status_rows},
+                     for r in hotspot_rows if r[0] is not None],
+        "by_status": {row[0]: int(row[1]) for row in by_status_rows if row[0] is not None},
         "peak_hour": max(by_hour, key=lambda item: item["count"]) if total else None,
         "peak_area": (lambda rows: rows[0] if rows else None)(
-            [{"id": r[0], "name": r[2], "count": int(r[3])} for r in by_area_rows]),
+            [{"id": r[0], "name": r[2], "count": int(r[3])} for r in by_area_rows if r[0] is not None]),
     }
 
 
 def count_in_range(db: Database, date_from: date, date_to: date, area_id: int | None) -> int:
     where, params = ViolationFilters(date_from=date_from, date_to=date_to, area_id=area_id).where_clause()
-    row = db.fetch_one(f"SELECT COUNT_BIG(*) AS N FROM dbo.BAN_GHI_VIPHAM b {where}", params)
+    row = db.fetch_one(
+        "SELECT COUNT_BIG(*) AS N FROM dbo.PHAT_HIEN_VIPHAM b "
+        "LEFT JOIN dbo.ANH_VIPHAM a ON a.PHAT_HIEN_ID = b.ID "
+        f"LEFT JOIN dbo.CAMERA c ON c.ID = a.CAMERA_ID {where}",
+        params,
+    )
     return int(row["N"]) if row else 0
 
 
@@ -183,6 +194,8 @@ def describe_filters(db: Database, filters: ViolationFilters) -> list[tuple[str,
     if filters.camera_id is not None:
         camera = facilities.get_camera(db, filters.camera_id, include_sensitive=False)
         description.append(("Camera", f"{camera['code']} - {camera['name']}"))
+    else:
+        description.append(("Camera", "Tất cả"))
     if filters.type_id is not None:
         names = {t["id"]: t["name"] for t in list_violation_types(db)}
         description.append(("Loại vi phạm", names.get(filters.type_id, str(filters.type_id))))
@@ -194,10 +207,14 @@ def describe_filters(db: Database, filters: ViolationFilters) -> list[tuple[str,
 def detail_rows(db: Database, filters: ViolationFilters, limit: int = 5000) -> list[dict[str, Any]]:
     where, params = filters.where_clause()
     return db.fetch_all(
-        "SELECT TOP (?) b.ID, b.THOI_DIEM, l.TEN_LOI, k.TEN_KHU_VUC, c.MA_CAMERA, c.TEN_CAMERA, b.TRANG_THAI_XU_LY, "
-        "b.ANH_TRANG_THAI FROM dbo.BAN_GHI_VIPHAM b INNER JOIN dbo.LOI_VIPHAM l ON l.ID = b.LOI_ID "
-        "INNER JOIN dbo.KHU_VUC k ON k.ID = b.KHU_VUC_ID INNER JOIN dbo.CAMERA c ON c.ID = b.CAMERA_ID "
+        "SELECT TOP (?) b.ID, b.THOI_DIEM, l.TEN_LOI, k.TEN_KHU_VUC, c.MA_CAMERA, c.TEN_CAMERA, "
+        "b.TINH_TRANG_XU_LY AS TRANG_THAI_XU_LY, "
+        "CASE WHEN a.ANH_KHOA IS NOT NULL THEN 'AVAILABLE' ELSE 'NONE' END AS ANH_TRANG_THAI "
+        "FROM dbo.PHAT_HIEN_VIPHAM b "
+        "INNER JOIN dbo.LOI_VIPHAM l ON l.ID = b.LOI_ID "
+        "LEFT JOIN dbo.ANH_VIPHAM a ON a.PHAT_HIEN_ID = b.ID "
+        "LEFT JOIN dbo.CAMERA c ON c.ID = a.CAMERA_ID "
+        "LEFT JOIN dbo.KHU_VUC k ON k.ID = c.KHU_VUC_ID "
         f"{where} ORDER BY b.THOI_DIEM DESC",
         [limit, *params],
     )
-

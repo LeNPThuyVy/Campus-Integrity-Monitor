@@ -16,7 +16,6 @@ def default_config(monkeypatch):
     monkeypatch.setattr(my_config, "VOTING_THREDSHOLD", 5)
     monkeypatch.setattr(my_config, "VIOLATION_RATIO", 0.6)
     monkeypatch.setattr(my_config, "CLASSIFY_CONF", 0.4)
-    monkeypatch.setattr(my_config, "NON_UNIFORM_CONF", 0.0)
     monkeypatch.setattr(my_config, "LABEL_HOLD_SECONDS", 0.0)
     monkeypatch.setattr(my_config, "HYSTERESIS_MARGIN", 0.0)
     monkeypatch.setattr(my_config, "MIN_PERSON_HEIGHT_RATIO", 0.25)
@@ -63,14 +62,14 @@ def uniform_only(label, conf):
     )
 
 
-def test_uniform_confidence_threshold_skips_low_conf_uniform():
+def test_uniform_confidence_threshold_demotes_low_conf_uniform_and_keeps_non_uniform():
     voting = TemporalVoting()
-    # Uniform with conf < CLASSIFY_CONF (0.4) is skipped, never turned into Non_Uniform
+    # Uniform with conf < CLASSIFY_CONF (0.4) is turned into Non_Uniform in the queue
     votes = feed(voting, [[uniform_only("Uniform", 0.2)]] * 5)
-    assert votes[1].uniform_label == "Waiting"
-    assert len(voting.uniform_histories.get(1, ())) == 0
+    assert votes[1].uniform_label == "Non_Uniform"
+    assert votes[1].matched_count == 5
 
-    # Non_Uniform with conf 0.2 is kept when NON_UNIFORM_CONF=0.0
+    # Non_Uniform stays Non_Uniform regardless of its confidence
     voting.reset()
     votes = feed(voting, [[uniform_only("Non_Uniform", 0.2)]] * 5)
     assert votes[1].uniform_label == "Non_Uniform"
@@ -83,31 +82,15 @@ def test_uniform_confidence_threshold_skips_low_conf_uniform():
     assert votes[1].matched_count == 5
 
 
-def test_non_uniform_confidence_threshold_skips_low_conf_non_uniform(monkeypatch):
-    monkeypatch.setattr(my_config, "NON_UNIFORM_CONF", 0.70)
-    monkeypatch.setattr(my_config, "CLASSIFY_CONF", 0.40)
-    voting = TemporalVoting()
-
-    # Non_Uniform with conf 0.55 (< NON_UNIFORM_CONF 0.70) is skipped, never turned into Uniform
-    votes = feed(voting, [[uniform_only("Non_Uniform", 0.55)]] * 5)
-    assert votes[1].uniform_label == "Waiting"
-    assert len(voting.uniform_histories.get(1, ())) == 0
-
-    # Non_Uniform with conf 0.85 (>= NON_UNIFORM_CONF 0.70) stays Non_Uniform
-    voting.reset()
-    votes = feed(voting, [[uniform_only("Non_Uniform", 0.85)]] * 5)
-    assert votes[1].uniform_label == "Non_Uniform"
-
-
 def test_uncertain_uniform_votes_do_not_hide_violation(monkeypatch):
-    monkeypatch.setattr(my_config, "NON_UNIFORM_CONF", 0.6)
     monkeypatch.setattr(my_config, "CLASSIFY_CONF", 0.6)
     voting = TemporalVoting()
-    # Confident Non_Uniform mixed with uncertain Uniform: only the confident votes count
+    # Uncertain Uniform (0.55 < 0.6) counts as Non_Uniform, so every frame is a violation vote
     frames = [[uniform_only("Non_Uniform", 0.65)], [uniform_only("Uniform", 0.55)]] * 5
     votes = feed(voting, frames)
     assert votes[1].uniform_label == "Non_Uniform"
-    assert len(voting.uniform_histories[1]) == 5
+    assert len(voting.uniform_histories[1]) == 10
+    assert all(label == "Non_Uniform" for label, _ in voting.uniform_histories[1])
 
 
 def test_label_hold_seconds_prevents_rapid_class_switching(monkeypatch):

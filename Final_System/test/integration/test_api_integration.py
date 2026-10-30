@@ -82,7 +82,7 @@ def test_health_reports_database_without_secrets(client):
     response = client.get("/api/v1/health")
     assert response.status_code == 200
     body = response.json()
-    assert body["database"]["status"] == "ok" and body["database"]["migrations"] == ["001"]
+    assert body["database"]["status"] == "ok" and {"001", "007", "008"} <= set(body["database"]["migrations"])
     text = response.text.lower()
     assert "pwd" not in text and "password" not in text and "driver=" not in text and "sqlexpress" not in text
     assert client.get("/health").json() == {"status": "ok"}
@@ -109,7 +109,7 @@ def test_me_and_role_based_access(client, admin, ctsv):
     assert client.get("/api/v1/accounts", headers=ctsv).status_code == 403
     assert client.post("/api/v1/areas", headers=ctsv, json={"code": "X", "name": "X"}).status_code == 403
     accounts_list = client.get("/api/v1/accounts", headers=admin).json()["items"]
-    assert all("MAT_KHAU_HASH" not in a and "password" not in a for a in accounts_list)
+    assert all("PASSWORD_HASH" not in a and "password" not in a for a in accounts_list)
 
 
 def test_password_policy_and_change_password_revokes_token(client, admin):
@@ -200,7 +200,7 @@ def test_ingest_is_idempotent_on_event_id(client, database, setup_camera):
     second = send(client, setup_camera["device"], event_id=event_id)
     assert first.status_code == 201 and second.status_code == 200
     assert second.json()["duplicate"] is True and second.json()["data"]["id"] == first.json()["data"]["id"]
-    count = database.fetch_one("SELECT COUNT(*) AS N FROM dbo.BAN_GHI_VIPHAM WHERE MA_SU_KIEN = ?", (event_id,))
+    count = database.fetch_one("SELECT COUNT(*) AS N FROM dbo.PHAT_HIEN_VIPHAM WHERE MA_SU_KIEN = ?", (event_id,))
     assert count["N"] == 1
     other_camera = send(client, setup_camera["device2"], event_id=event_id)
     assert other_camera.status_code == 409
@@ -294,7 +294,8 @@ def test_processing_update_never_assigns_identity(client, ctsv, setup_camera):
                             json={"status": "DA_XU_LY", "note": "Đã nhắc nhở tại cổng"})
     assert response.status_code == 200
     processing = response.json()["data"]["processing"]
-    assert processing["status"] == "DA_XU_LY" and processing["processed_by"] == "Nhân viên CTSV"
+    assert processing["status"] == "DA_XU_LY" and processing["processed_at"] is not None
+    assert processing["processed_by"] is None  # migration 007 dropped NGUOI_XU_LY_ID
     rejected = client.patch(f"/api/v1/violations/{record['id']}", headers=ctsv,
                             json={"status": "DA_XU_LY", "ma_sv": "SV001"})
     assert rejected.status_code == 422
@@ -352,18 +353,18 @@ def test_retention_deletes_files_but_keeps_statistics(client, admin, database, s
 
     records = [send(client, setup_camera["device"]).json()["data"] for _ in range(3)]
     ids = [r["id"] for r in records]
-    keys = {row["ID"]: row["ANH_KHOA"] for row in database.fetch_all(
-        "SELECT ID, ANH_KHOA FROM dbo.BAN_GHI_VIPHAM WHERE ID IN (?, ?, ?)", ids)}
+    keys = {row["PHAT_HIEN_ID"]: row["ANH_KHOA"] for row in database.fetch_all(
+        "SELECT PHAT_HIEN_ID, ANH_KHOA FROM dbo.ANH_VIPHAM WHERE PHAT_HIEN_ID IN (?, ?, ?)", ids)}
     storage = EvidenceStorage(evidence_dir)
     storage.delete(keys[ids[1]])  # simulate a file removed manually before the job
     with database.transaction() as cursor:
-        cursor.execute("UPDATE dbo.BAN_GHI_VIPHAM SET ANH_HET_HAN_LUC = DATEADD(DAY, -1, SYSDATETIME()) "
-                       "WHERE ID IN (?, ?)", ids[0], ids[1])
-        cursor.execute("UPDATE dbo.BAN_GHI_VIPHAM SET ANH_HET_HAN_LUC = DATEADD(DAY, -1, SYSDATETIME()), "
-                       "ANH_KHOA = '../../outside.jpg' WHERE ID = ?", ids[2])
+        cursor.execute("UPDATE dbo.ANH_VIPHAM SET THOI_GIAN_HET_HAN = DATEADD(DAY, -1, SYSDATETIME()) "
+                       "WHERE PHAT_HIEN_ID IN (?, ?)", ids[0], ids[1])
+        cursor.execute("UPDATE dbo.ANH_VIPHAM SET THOI_GIAN_HET_HAN = DATEADD(DAY, -1, SYSDATETIME()), "
+                       "ANH_KHOA = '../../outside.jpg' WHERE PHAT_HIEN_ID = ?", ids[2])
     outside = evidence_dir.parent / "outside.jpg"
     outside.write_bytes(b"must survive")
-    total_before = database.fetch_one("SELECT COUNT(*) AS N FROM dbo.BAN_GHI_VIPHAM")["N"]
+    total_before = database.fetch_one("SELECT COUNT(*) AS N FROM dbo.PHAT_HIEN_VIPHAM")["N"]
 
     report = purge_expired_evidence(database, storage, local_now(client))
     assert report.deleted >= 1 and report.already_missing >= 1 and report.unsafe >= 1 and report.errors == 0
@@ -371,15 +372,15 @@ def test_retention_deletes_files_but_keeps_statistics(client, admin, database, s
     assert outside.exists()  # unsafe key never deletes outside the evidence root
     outside.unlink()
 
-    total_after = database.fetch_one("SELECT COUNT(*) AS N FROM dbo.BAN_GHI_VIPHAM")["N"]
+    total_after = database.fetch_one("SELECT COUNT(*) AS N FROM dbo.PHAT_HIEN_VIPHAM")["N"]
     assert total_after == total_before  # statistics rows are kept
     detail = client.get(f"/api/v1/violations/{ids[0]}", headers=admin).json()["data"]
     assert detail["evidence"]["status"] == "deleted" and detail["evidence"]["url"] is None
     assert detail["type"]["code"] and detail["area"]["name"] and detail["occurred_at"]
     gone = client.get(f"/api/v1/violations/{ids[0]}/evidence", headers=admin)
     assert gone.status_code == 410 and "xóa" in gone.json()["error"]["message"]
-    logs = database.fetch_all("SELECT KET_QUA FROM dbo.NHAT_KY_XOA_ANH WHERE BAN_GHI_ID IN (?, ?, ?)", ids)
-    assert {row["KET_QUA"] for row in logs} == {"DELETED", "ALREADY_MISSING", "UNSAFE_PATH"}
+    cleared = database.fetch_all("SELECT ANH_KHOA FROM dbo.ANH_VIPHAM WHERE PHAT_HIEN_ID IN (?, ?, ?)", ids)
+    assert len(cleared) == 3 and all(row["ANH_KHOA"] is None for row in cleared)  # image rows kept, keys cleared
     second_run = purge_expired_evidence(database, storage, local_now(client))
     assert second_run.deleted == 0 and second_run.errors == 0  # re-runnable, nothing left
 
@@ -388,7 +389,7 @@ def test_missing_file_is_reported_as_missing(client, admin, database, setup_came
     from api.evidence import EvidenceStorage
 
     record = send(client, setup_camera["device"]).json()["data"]
-    key = database.fetch_one("SELECT ANH_KHOA FROM dbo.BAN_GHI_VIPHAM WHERE ID = ?", (record["id"],))["ANH_KHOA"]
+    key = database.fetch_one("SELECT ANH_KHOA FROM dbo.ANH_VIPHAM WHERE PHAT_HIEN_ID = ?", (record["id"],))["ANH_KHOA"]
     EvidenceStorage(evidence_dir).delete(key)
     response = client.get(f"/api/v1/violations/{record['id']}/evidence", headers=admin)
     assert response.status_code == 410

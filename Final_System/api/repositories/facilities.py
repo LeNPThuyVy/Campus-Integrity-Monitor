@@ -231,14 +231,17 @@ def delete_semester(db: Database, semester_id: int) -> None:
         if cursor.rowcount == 0:
             raise not_found("Không tìm thấy học kỳ.")
 
+
 def delete_area(db: Database, area_id: int) -> None:
     with db.transaction() as cursor:
         cursor.execute("SELECT COUNT(*) FROM dbo.CAMERA WHERE KHU_VUC_ID = ?", area_id)
         cam_count = cursor.fetchone()[0]
         if cam_count > 0:
             raise conflict(f"Không thể xóa khu vực vì đang có {cam_count} camera trực thuộc. Vui lòng chuyển hoặc xóa camera trước.")
-        cursor.execute("SELECT (SELECT COUNT(*) FROM dbo.BAN_GHI_VIPHAM WHERE KHU_VUC_ID = ?) + "
-                       "(SELECT COUNT(*) FROM dbo.CT_VIPHAM WHERE KHU_VUC_ID = ?)", area_id, area_id)
+        cursor.execute(
+            "SELECT (SELECT COUNT(*) FROM dbo.ANH_VIPHAM a INNER JOIN dbo.CAMERA c ON c.ID = a.CAMERA_ID WHERE c.KHU_VUC_ID = ?) + "
+            "(SELECT COUNT(*) FROM dbo.CT_VIPHAM WHERE KHU_VUC_ID = ?)", area_id, area_id
+        )
         v_count = cursor.fetchone()[0]
         if v_count > 0:
             raise conflict(f"Khu vực này đã có {v_count} bản ghi vi phạm trong hệ thống. Để bảo toàn lịch sử vi phạm, vui lòng chuyển sang trạng thái 'Ngừng sử dụng' thay vì xóa vĩnh viễn.")
@@ -249,7 +252,7 @@ def delete_area(db: Database, area_id: int) -> None:
 
 def delete_camera(db: Database, camera_id: int) -> None:
     with db.transaction() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM dbo.BAN_GHI_VIPHAM WHERE CAMERA_ID = ?", camera_id)
+        cursor.execute("SELECT COUNT(*) FROM dbo.ANH_VIPHAM WHERE CAMERA_ID = ?", camera_id)
         v_count = cursor.fetchone()[0]
         if v_count > 0:
             raise conflict(f"Không thể xóa camera vì đã có {v_count} bản ghi vi phạm liên kết. Để bảo toàn lịch sử vi phạm, vui lòng chuyển sang trạng thái 'Ngừng sử dụng' thay vì xóa vĩnh viễn.")

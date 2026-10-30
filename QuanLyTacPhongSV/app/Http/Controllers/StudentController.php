@@ -224,6 +224,9 @@ class StudentController extends Controller
                 }
 
                 if ($action === 'reset-violations' || $action === 'reset_violations') {
+                    if ((string)$request->session()->get('role', '') !== 'ADMIN') {
+                        return response()->json(['error' => 'Chỉ quản trị viên mới được reset vi phạm.'], 403);
+                    }
                     $password = (string)($body['reset_password'] ?? ($body['password'] ?? ''));
                     if (!$this->studentService->verifyResetPassword($password)) {
                         return response()->json(['error' => 'Mật mã bảo mật không chính xác.'], 403);
@@ -232,9 +235,11 @@ class StudentController extends Controller
                     $res = $this->studentService->resetAllViolations($includeCamera);
                     return response()->json([
                         'success' => true,
-                        'message' => 'Đã reset toàn bộ vi phạm về 0 thành công.',
+                        'message' => "Đã reset vi phạm học kỳ {$res['semester']} về 0 thành công.",
+                        'semester' => $res['semester'],
                         'deleted_student_violations' => $res['deleted_student_violations'],
                         'deleted_camera_records' => $res['deleted_camera_records'],
+                        'kept_camera_records_with_evidence' => $res['kept_camera_records_with_evidence'],
                         'camera_reset_applied' => $res['camera_reset_applied'] ?? false,
                     ]);
                 }

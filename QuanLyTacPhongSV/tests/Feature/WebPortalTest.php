@@ -40,6 +40,7 @@ class WebPortalTest extends TestCase
             'display_name' => 'Nguyễn Văn A',
             'token_expires_at' => time() + 3600,
             'last_activity' => time(),
+            'account_checked_at' => time(), // phiên vừa xác thực, middleware chưa cần tra lại CSDL
         ])->get('/home');
 
         $response->assertStatus(200);

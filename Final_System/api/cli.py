@@ -98,7 +98,7 @@ def create_admin(db: Database, username: str, full_name: str, additional: bool) 
         print("Database chưa sẵn sàng: " + json.dumps(health, ensure_ascii=False), file=sys.stderr)
         print("Chạy 'python -m api.migrate apply' (hoặc 'python -m api.cli check-config') trước.", file=sys.stderr)
         return 1
-    existing = db.fetch_one("SELECT COUNT(*) AS N FROM dbo.TAIKHOAN WHERE VAI_TRO = 'ADMIN' AND DANG_HOAT_DONG = 1")
+    existing = db.fetch_one("SELECT COUNT(*) AS N FROM dbo.TAIKHOAN WHERE ROLE = 'ADMIN' AND ACTIVE = 1")
     if existing["N"] > 0 and not additional:
         print(f"Đã có {existing['N']} quản trị viên đang hoạt động. Hãy tạo thêm tài khoản trên trang Web "
               "'Tài khoản & phân quyền', hoặc chạy lại với --additional nếu thật sự cần.", file=sys.stderr)

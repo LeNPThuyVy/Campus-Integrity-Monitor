@@ -95,7 +95,7 @@ window.CIMStudentViolations = (() => {
       const dateInput = byId('mv-date');
       if (!dateInput.value) {
         const now = new Date();
-        dateInput.value = now.toISOString().slice(0, 10);
+        dateInput.value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
       }
       const timeInput = byId('mv-time');
       if (timeInput && !timeInput.value) {
