@@ -64,7 +64,7 @@ def database():
         pytest.skip(f"Database test chưa sẵn sàng: {health}")
     with db.transaction() as cursor:
         # CT_VIPHAM (sample data) points at KHU_VUC and HOCKY; detach it instead of deleting it.
-        cursor.execute("UPDATE dbo.CT_VIPHAM SET KHU_VUC_ID = NULL, MA_HK = NULL")
+        cursor.execute("UPDATE dbo.CT_VIPHAM SET KHU_VUC_ID = NULL, NAM_HOC = NULL, HOC_KY = NULL")
         # Deleting PHAT_HIEN_VIPHAM cascades to ANH_VIPHAM, which must go before CAMERA.
         for table in ("PHAT_HIEN_VIPHAM", "CAMERA", "KHU_VUC", "HOCKY", "TAIKHOAN"):
             cursor.execute(f"DELETE FROM dbo.{table}")

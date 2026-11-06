@@ -24,7 +24,7 @@ class CimAuthenticate
         $lastActivity = (int)$session->get('last_activity', 0);
 
         $idleMinutes = (int)config('cim.session_idle_minutes');
-        $idleSeconds = max(5, $idleMinutes) * 60;
+        $idleSeconds = max(1, $idleMinutes) * 60;
         $now = time();
 
         $validRoles = ['ADMIN', 'CTSV'];
@@ -46,25 +46,37 @@ class CimAuthenticate
             return redirect()->guest(route('login', ['next' => $nextParam]));
         }
 
-        // Update last activity
-        $session->put('last_activity', $now);
+        // Không làm mới last_activity đối với các request polling chạy nền
+        if (!$request->headers->has('X-CIM-Background')) {
+            $session->put('last_activity', $now);
+        }
 
-        return $next($request);
+        $response = $next($request);
+
+        // Chống lưu cache trình duyệt cho các trang nội bộ (AU-11: nhấn Back sau khi Logout không xem lại được trang cũ)
+        if (!$request->is('api/*') && !$request->expectsJson()) {
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            $response->headers->set('Pragma', 'no-cache');
+            $response->headers->set('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+        }
+
+        return $response;
     }
 
     /**
-     * Mỗi ACCOUNT_RECHECK_SECONDS đọc lại tài khoản: bị vô hiệu, đổi quyền hoặc đặt lại mật khẩu
-     * (TOKEN_VERSION tăng) thì phiên hiện tại bị thu hồi thay vì sống tiếp tới 24 giờ.
+     * Kiểm tra tức thì trạng thái tài khoản trên mỗi request: bị vô hiệu hóa (AC-06), đổi quyền
+     * hoặc đặt lại mật khẩu (TOKEN_VERSION tăng) thì phiên hiện tại bị thu hồi ngay ở request kế tiếp.
      */
     protected function accountStillValid(Session $session, int $now): bool
     {
-        if ($now - (int)$session->get('account_checked_at', 0) < self::ACCOUNT_RECHECK_SECONDS) {
+        $userId = (int)$session->get('user_id', 0);
+        if ($userId <= 0) {
             return true;
         }
         try {
             $stmt = app(CatalogService::class)->getPdo()
                 ->prepare('SELECT ROLE, ACTIVE, TOKEN_VERSION FROM TAIKHOAN WHERE ID = :id');
-            $stmt->execute(['id' => (int)$session->get('user_id', 0)]);
+            $stmt->execute(['id' => $userId]);
             $account = $stmt->fetch(\PDO::FETCH_ASSOC);
         } catch (Throwable $e) {
             // CSDL tạm mất kết nối: giữ phiên, các trang cần dữ liệu sẽ tự báo lỗi.

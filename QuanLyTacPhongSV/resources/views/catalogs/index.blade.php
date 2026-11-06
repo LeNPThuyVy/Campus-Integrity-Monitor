@@ -22,7 +22,6 @@
           <option value="NGANH">Ngành</option>
           <option value="LOP">Lớp</option>
           <option value="LOI_VIPHAM">Loại vi phạm</option>
-          <option value="HOCKY">Học kỳ</option>
         </select>
       </label>
       <button class="h-10 rounded-lg bg-surface-container px-space-md font-label-md" id="catalog-refresh" type="button">

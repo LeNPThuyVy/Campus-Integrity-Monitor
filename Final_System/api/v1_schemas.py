@@ -54,11 +54,14 @@ class CameraRequest(StrictModel):
     active: bool = True
 
 
-class SemesterRequest(StrictModel):
-    code: str = Field(min_length=1, max_length=20)
-    name: str = Field(min_length=1, max_length=100)
+class SemesterDatesRequest(StrictModel):
     start_date: date
     end_date: date
+
+
+class SemesterRequest(SemesterDatesRequest):
+    academic_year: str = Field(pattern=r"^\d{4}-\d{4}$", examples=["2025-2026"])
+    term: int = Field(ge=1, le=3)
 
 
 class ProcessingUpdateRequest(StrictModel):

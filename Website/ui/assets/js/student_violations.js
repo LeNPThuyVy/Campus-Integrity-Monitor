@@ -140,6 +140,89 @@ window.CIMStudentViolations = (() => {
     addViolation(false);
   });
 
+  // Bulk delete by semester (ADMIN only: the button and dialog are only rendered for ADMIN).
+  const purgeDialog = byId('semester-purge-dialog');
+  if (purgeDialog) {
+    const semesterSelect = byId('sp-semester');
+    const confirmInput = byId('sp-confirm');
+    const submit = byId('sp-submit');
+    let pending = null; // { year, term, code, count } shown to the admin; code (HK1-2025-2026) is typed to confirm
+    let countSeq = 0;
+
+    const setPurgeStatus = (message) => { byId('sp-status').textContent = message; };
+    const refreshSubmit = () => {
+      submit.disabled = !pending || pending.count === 0 || confirmInput.value.trim() !== pending.code;
+    };
+
+    async function loadCount() {
+      const seq = ++countSeq;
+      pending = null;
+      confirmInput.value = '';
+      confirmInput.disabled = true;
+      setPurgeStatus('');
+      refreshSubmit();
+      if (!semesterSelect.value) {
+        byId('sp-count').textContent = '';
+        return;
+      }
+      const [year, term] = semesterSelect.value.split('|');
+      const code = `HK${term}-${year}`;
+      byId('sp-count').textContent = 'Đang đếm số bản ghi…';
+      try {
+        const data = await call(`${endpoint}?action=semester-violations&nam_hoc=${encodeURIComponent(year)}`
+          + `&hoc_ky=${encodeURIComponent(term)}`);
+        if (seq !== countSeq) return;
+        pending = { year, term, code, count: data.count };
+        byId('sp-count').textContent = data.count
+          ? `Sẽ xóa ${data.count.toLocaleString('vi-VN')} bản ghi vi phạm của ${data.semester.TEN_HK}.`
+          : `${data.semester.TEN_HK} không có bản ghi vi phạm nào.`;
+        confirmInput.disabled = data.count === 0;
+        confirmInput.placeholder = code;
+      } catch (error) {
+        if (seq === countSeq) {
+          byId('sp-count').textContent = '';
+          setPurgeStatus(error.message);
+        }
+      }
+      refreshSubmit();
+    }
+
+    byId('open-semester-purge-btn').addEventListener('click', async () => {
+      setPurgeStatus('');
+      purgeDialog.showModal();
+      try {
+        const data = await call(`${endpoint}?action=semesters`);
+        semesterSelect.replaceChildren(new Option('-- Chọn học kỳ --', ''), ...data.semesters.map((s) =>
+          new Option(`${s.TEN_HK} (${formatDate(s.NGAY_BAT_DAU)} - ${formatDate(s.NGAY_KET_THUC)})`, `${s.NAM_HOC}|${s.HOC_KY}`)));
+      } catch (error) {
+        setPurgeStatus(error.message);
+      }
+      loadCount();
+    });
+    semesterSelect.addEventListener('change', loadCount);
+    confirmInput.addEventListener('input', refreshSubmit);
+    byId('sp-cancel').addEventListener('click', () => purgeDialog.close());
+
+    byId('semester-purge-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (submit.disabled || !pending) return;
+      submit.disabled = true;
+      try {
+        const data = await call(endpoint, { method: 'POST', body: JSON.stringify({
+          action: 'violation-delete-semester', nam_hoc: pending.year, hoc_ky: Number(pending.term),
+          confirm_count: pending.count }) });
+        purgeDialog.close();
+        if (window.CIM) CIM.toast(`Đã xóa ${data.deleted.toLocaleString('vi-VN')} bản ghi vi phạm của học kỳ.`);
+        window.dispatchEvent(new Event('student-violations-changed'));
+        if (student) load();
+      } catch (error) {
+        if (error.code === 'count_changed') await loadCount();
+        setPurgeStatus(error.message);
+        refreshSubmit();
+      }
+    });
+  }
+
   return {
     show(selected) {
       student = selected;

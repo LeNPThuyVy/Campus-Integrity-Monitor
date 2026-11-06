@@ -10,7 +10,7 @@ $input = 'h-10 rounded-lg bg-surface-container-low px-3';
 <div class="flex flex-col gap-space-md py-space-md pb-space-xl">
   <div>
     <h1 class="font-headline-xl text-headline-xl">Tài khoản & phân quyền</h1>
-    <p class="text-on-surface-variant">Hai vai trò: <strong>Quản trị viên</strong> (toàn quyền, quản lý tài khoản, camera, loại vi phạm) và <strong>Nhân viên CTSV</strong> (sinh viên, danh mục, tra cứu/xử lý vi phạm, báo cáo).</p>
+    <p class="text-on-surface-variant">Hai vai trò: <strong>Quản trị viên</strong> (toàn bộ quyền của CTSV, cộng thêm quản lý tài khoản/phân quyền, khu vực và camera) và <strong>Nhân viên CTSV</strong> (sinh viên, danh mục, loại vi phạm, học kỳ, tra cứu/xử lý vi phạm, báo cáo).</p>
   </div>
 
   <section class="grid grid-cols-1 gap-space-md xl:grid-cols-[minmax(280px,360px)_1fr]">

@@ -3,7 +3,8 @@ Hệ thống quản lý tác phong sinh viên: **Desktop** giám sát camera và
 **Web** cho Phòng CTSV quản lý dữ liệu, tra cứu vi phạm, thống kê và xuất báo cáo, **API** làm trung gian giữa Desktop, Web và **SQL Server**.
 
 > AI **không nhận diện danh tính** và không gán MSSV/họ tên cho người trong ảnh. CTSV tự đối chiếu danh tính và xử lý điểm rèn luyện
-> bên ngoài hệ thống. Ảnh bằng chứng tự xóa sau 30 ngày; thông tin thời gian, khu vực, camera và loại vi phạm được giữ lại để thống kê.
+> bên ngoài hệ thống. Bản ghi phát hiện vi phạm (cả ảnh) đã xem/đã xử lý/bỏ qua tự xóa sau 1 ngày (`CIM_DETECTION_RETENTION_HOURS`);
+> bản ghi Mới được giữ, ảnh của chúng tự xóa sau 30 ngày. Chi tiết vi phạm CTSV ghi cho sinh viên (`CT_VIPHAM`) không bao giờ bị xóa tự động.
 
 ## Demo
 **DESKTOP APP DEMO**
@@ -23,7 +24,7 @@ Hệ thống quản lý tác phong sinh viên: **Desktop** giám sát camera và
         ▼                                                    ▼               ▼
    ┌────────────────────────── FastAPI (Final_System/api) ──────────────────────────┐
    │ tài khoản · khu vực/camera · học kỳ · bản ghi vi phạm · ảnh bằng chứng · báo cáo │
-   │ job xóa ảnh hết hạn (30 ngày)                                                    │
+   │ job xóa ảnh hết hạn (30 ngày) + bản ghi phát hiện đã xử lý (1 ngày)               │
    └───────────────────────────────┬─────────────────────────────────────────────────┘
                                    ▼ pyodbc (ODBC Driver 17/18)
                               SQL Server  ◄── PDO sqlsrv ── Website/ui/api/students.php, catalogs.php

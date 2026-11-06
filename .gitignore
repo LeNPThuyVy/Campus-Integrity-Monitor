@@ -233,5 +233,12 @@ Final_System/storage/
 Final_System/desktop/config.json
 Final_System/desktop/outbox/
 
+# Evaluation data: test videos, labels and generated results contain images of people
+Final_System/evaluation/videos/*
+Final_System/evaluation/labels/*
+Final_System/evaluation/outputs/*
+!Final_System/evaluation/*/.gitkeep
+
 # Local tools installed by scripts/setup-php-windows.ps1
 /tools/
+Final_System/docs/*

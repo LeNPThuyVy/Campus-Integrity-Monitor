@@ -307,12 +307,19 @@ def test_processing_update_never_assigns_identity(client, ctsv, setup_camera):
 def test_dashboard_and_reports(client, ctsv, admin, setup_camera):
     today = local_now(client).date()
     semester = client.post("/api/v1/semesters", headers=admin, json={
-        "code": "HK1-2026", "name": "Học kỳ 1 năm học 2026-2027",
+        "academic_year": "2026-2027", "term": 1,
         "start_date": (today - timedelta(days=40)).isoformat(), "end_date": (today + timedelta(days=60)).isoformat()})
     assert semester.status_code == 201, semester.text
     overlap = client.post("/api/v1/semesters", headers=admin, json={
-        "code": "HK-OVERLAP", "name": "Trùng", "start_date": today.isoformat(), "end_date": today.isoformat()})
+        "academic_year": "2026-2027", "term": 2, "start_date": today.isoformat(), "end_date": today.isoformat()})
     assert overlap.status_code == 409
+    duplicate = client.post("/api/v1/semesters", headers=admin, json={
+        "academic_year": "2026-2027", "term": 1, "start_date": "2030-01-01", "end_date": "2030-02-01"})
+    assert duplicate.status_code == 409
+    bad_year = client.post("/api/v1/semesters", headers=admin, json={
+        "academic_year": "2026-2028", "term": 1, "start_date": "2030-01-01", "end_date": "2030-02-01"})
+    assert bad_year.status_code == 422
+    assert semester.json()["data"]["name"] == "Học kỳ 1 (2026-2027)"
 
     dashboard = client.get("/api/v1/dashboard", headers=ctsv, params={"period": "month"}).json()["data"]
     counters = dashboard["counters"]
@@ -322,7 +329,7 @@ def test_dashboard_and_reports(client, ctsv, admin, setup_camera):
     assert len(summary["by_hour"]) == 24 and summary["hotspots"]
 
     semester_report = client.get("/api/v1/reports/summary", headers=ctsv, params={
-        "period": "semester", "semester_id": semester.json()["data"]["id"],
+        "period": "semester", "academic_year": "2026-2027", "term": 1,
         "area_id": setup_camera["area_id"]}).json()["data"]
     assert all(area["id"] == setup_camera["area_id"] for area in semester_report["summary"]["by_area"])
     custom = client.get("/api/v1/reports/summary", headers=ctsv, params={

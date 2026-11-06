@@ -101,6 +101,7 @@ BRIGHTNESS_DEAD_ZONE=0.08         #|gamma-1| below this = leave frame untouched
 #Violation events (Desktop -> API)
 #==========================
 EVENT_DEDUP_SECONDS=600      #Same track is never reported twice within this window
+EVENT_MIN_TRACK_SECONDS=0    #A track must be visible this long before its first event (0 = report as soon as voted)
 EVIDENCE_MIN_SIZE=32         #Minimum crop width/height (pixels) for a valid evidence image
 EVIDENCE_PADDING=0.08        #Extra margin around the person box in the evidence crop
 

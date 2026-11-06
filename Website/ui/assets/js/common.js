@@ -50,8 +50,9 @@
     return url;
   }
 
-  async function api(route, { method = 'GET', params = {}, body } = {}) {
+  async function api(route, { method = 'GET', params = {}, body, background = false } = {}) {
     const headers = { Accept: 'application/json' };
+    if (background) headers['X-CIM-Background'] = '1';
     if (method !== 'GET') headers['X-CSRF-Token'] = csrfToken;
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     let response;

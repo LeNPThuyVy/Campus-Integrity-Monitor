@@ -12,6 +12,7 @@ include __DIR__ . '/includes/header.php';
     <div>
       <h1 class="font-headline-xl text-headline-xl">Thống kê & báo cáo</h1>
       <p class="text-on-surface-variant">Báo cáo theo tuần, tháng, học kỳ hoặc khoảng tùy chọn; theo loại vi phạm, ngày, khung giờ và khu vực.</p>
+      <p class="font-label-sm text-label-sm text-outline">Chỉ tính các bản ghi phát hiện còn lưu: bản ghi đã xem/đã xử lý/bỏ qua tự xóa sau 1 ngày.</p>
     </div>
     <div class="flex gap-space-sm">
       <button class="flex items-center gap-1 rounded-lg bg-secondary px-space-md py-2 font-label-md text-white" id="export-xlsx" type="button">

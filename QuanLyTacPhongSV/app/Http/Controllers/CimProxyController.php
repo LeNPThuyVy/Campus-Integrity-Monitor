@@ -23,6 +23,15 @@ class CimProxyController extends Controller
         $route = (string)$request->query('r', '');
         $id = $request->query('id');
 
+        // RB-11: Bắt buộc xác thực header X-CSRF-Token cho mọi request thay đổi dữ liệu
+        if (!in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
+            $csrfHeader = (string)$request->header('X-CSRF-Token', '');
+            $sessionToken = (string)$request->session()->token();
+            if ($csrfHeader === '' || $sessionToken === '' || !hash_equals($sessionToken, $csrfHeader)) {
+                return response()->json(['error' => 'CSRF token không hợp lệ hoặc bị thiếu (HTTP 403 Forbidden).'], 403);
+            }
+        }
+
         $ADMIN = ['ADMIN'];
         $ALL = ['ADMIN', 'CTSV'];
         $listQuery = ['date_from', 'date_to', 'area_id', 'camera_id', 'type_id', 'status', 'source', 'page', 'page_size', 'sort'];
@@ -259,6 +268,10 @@ class CimProxyController extends Controller
                 if ($username === '' || $fullName === '' || $password === '') {
                     return response()->json(['error' => 'Vui lòng điền đầy đủ thông tin.'], 422);
                 }
+                $pwdErrors = AuthController::validatePasswordStrength($password);
+                if (!empty($pwdErrors)) {
+                    return response()->json(['error' => 'Mật khẩu chưa đủ độ mạnh: ' . implode(' ', $pwdErrors)], 422);
+                }
 
                 $check = $pdo->prepare('SELECT COUNT(*) FROM TAIKHOAN WHERE USERNAME = :u');
                 $check->execute(['u' => $username]);
@@ -292,14 +305,30 @@ class CimProxyController extends Controller
                     return response()->json(['error' => 'Họ tên không được để trống.'], 422);
                 }
 
+                $actorId = (int)$request->session()->get('user_id', 0);
+                $actorUsername = strtolower(trim((string)$request->session()->get('username', '')));
+
                 $pdo->beginTransaction();
                 try {
-                    $cur = $pdo->prepare('SELECT ROLE, ACTIVE FROM TAIKHOAN WITH (UPDLOCK) WHERE ID = :id');
+                    $cur = $pdo->prepare('SELECT USERNAME, ROLE, ACTIVE FROM TAIKHOAN WITH (UPDLOCK) WHERE ID = :id');
                     $cur->execute(['id' => $numericId]);
                     $current = $cur->fetch(\PDO::FETCH_ASSOC);
                     if (!$current) {
                         $pdo->rollBack();
                         return response()->json(['error' => 'Không tìm thấy tài khoản.'], 404);
+                    }
+
+                    $isSelf = ($actorId > 0 && $numericId === $actorId)
+                        || ($actorUsername !== '' && strtolower(trim((string)$current['USERNAME'])) === $actorUsername);
+                    if ($isSelf) {
+                        if (!$active) {
+                            $pdo->rollBack();
+                            return response()->json(['error' => 'Không thể tự vô hiệu hóa tài khoản đang đăng nhập.'], 409);
+                        }
+                        if ($role !== 'ADMIN') {
+                            $pdo->rollBack();
+                            return response()->json(['error' => 'Không thể tự hạ quyền tài khoản đang đăng nhập.'], 409);
+                        }
                     }
 
                     // Giống FastAPI: luôn phải còn ít nhất một quản trị viên đang hoạt động.
@@ -337,8 +366,9 @@ class CimProxyController extends Controller
                 }
                 $data = $request->isJson() ? $request->json()->all() : $request->all();
                 $newPassword = (string)($data['new_password'] ?? '');
-                if (strlen($newPassword) < 8) {
-                    return response()->json(['error' => 'Mật khẩu mới tối thiểu 8 ký tự.'], 422);
+                $pwdErrors = AuthController::validatePasswordStrength($newPassword);
+                if (!empty($pwdErrors)) {
+                    return response()->json(['error' => 'Mật khẩu mới chưa đủ độ mạnh: ' . implode(' ', $pwdErrors)], 422);
                 }
 
                 $hash = password_hash($newPassword, PASSWORD_BCRYPT);
@@ -726,17 +756,22 @@ class CimProxyController extends Controller
 
             if ($method === 'GET') {
                 $today = date('Y-m-d');
-                $stmt = $pdo->query('SELECT ID as id, MA_HK as code, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK as name, NGAY_BAT_DAU as start_date, NGAY_KET_THUC as end_date FROM HOCKY ORDER BY NGAY_BAT_DAU ASC');
+                $stmt = $pdo->query('SELECT NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU ASC');
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 $items = [];
                 foreach ($rows as $r) {
-                    $sDate = date('Y-m-d', strtotime((string)$r['start_date']));
-                    $eDate = date('Y-m-d', strtotime((string)$r['end_date']));
+                    $sDate = date('Y-m-d', strtotime((string)$r['NGAY_BAT_DAU']));
+                    $eDate = date('Y-m-d', strtotime((string)$r['NGAY_KET_THUC']));
                     $isCurrent = ($today >= $sDate && $today <= $eDate);
+                    $academicYear = trim((string)$r['NAM_HOC']);
+                    $term = (int)$r['HOC_KY'];
+                    $name = "Học kỳ {$term} ({$academicYear})";
                     $items[] = [
-                        'id' => (int)$r['id'],
-                        'code' => (string)$r['code'],
-                        'name' => $this->decodeHexUnicode($r['name_hex'] ?? null, $r['name']),
+                        'id' => "{$academicYear}|{$term}",
+                        'academic_year' => $academicYear,
+                        'term' => $term,
+                        'code' => "HK{$term}-{$academicYear}",
+                        'name' => $name,
                         'start_date' => $sDate,
                         'end_date' => $eDate,
                         'is_current' => $isCurrent,
@@ -747,19 +782,53 @@ class CimProxyController extends Controller
 
             if ($method === 'POST') {
                 $data = $request->isJson() ? $request->json()->all() : $request->all();
-                $code = trim((string)($data['code'] ?? ''));
-                $name = trim((string)($data['name'] ?? ''));
+                $academicYear = trim((string)($data['academic_year'] ?? ''));
+                $term = filter_var($data['term'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 3]]);
                 $startDate = trim((string)($data['start_date'] ?? ''));
                 $endDate = trim((string)($data['end_date'] ?? ''));
 
-                if ($code === '' || $name === '' || $startDate === '' || $endDate === '') {
-                    return response()->json(['error' => 'Vui lòng nhập đầy đủ mã, tên và thời gian học kỳ.'], 422);
+                // Hỗ trợ trường hợp client cũ gửi mã code VD: HK1-2025-2026 hoặc HK1-2026
+                if ($academicYear === '' && !empty($data['code'])) {
+                    if (preg_match('/HK([1-3])-(\d{4}-\d{4})/i', (string)$data['code'], $m)) {
+                        $term = (int)$m[1];
+                        $academicYear = $m[2];
+                    }
                 }
 
-                $ins = $pdo->prepare('INSERT INTO HOCKY (MA_HK, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC) VALUES (:code, :name, :s, :e)');
+                if ($academicYear === '' || !preg_match('/^\d{4}-\d{4}$/', $academicYear)) {
+                    return response()->json(['error' => 'Năm học phải có định dạng YYYY-YYYY (ví dụ: 2025-2026).'], 422);
+                }
+                if ($term === false || $term === null) {
+                    return response()->json(['error' => 'Học kỳ phải là 1, 2 hoặc 3.'], 422);
+                }
+                if ($startDate === '' || $endDate === '') {
+                    return response()->json(['error' => 'Vui lòng chọn ngày bắt đầu và kết thúc.'], 422);
+                }
+                if ($endDate < $startDate) {
+                    return response()->json(['error' => 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.'], 422);
+                }
+
+                // Kiểm tra trùng khóa chính
+                $dupCheck = $pdo->prepare('SELECT COUNT(*) FROM HOCKY WHERE NAM_HOC = :y AND HOC_KY = :t');
+                $dupCheck->execute(['y' => $academicYear, 't' => $term]);
+                if ((int)$dupCheck->fetchColumn() > 0) {
+                    return response()->json(['error' => "Học kỳ {$term} ({$academicYear}) đã tồn tại trong hệ thống."], 409);
+                }
+
+                // Kiểm tra trùng lặp khoảng thời gian với học kỳ khác
+                $overlapCheck = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY FROM HOCKY WHERE NOT (NAM_HOC = :y AND HOC_KY = :t) AND NGAY_BAT_DAU <= :e AND NGAY_KET_THUC >= :s');
+                $overlapCheck->execute(['y' => $academicYear, 't' => $term, 's' => $startDate, 'e' => $endDate]);
+                $overlap = $overlapCheck->fetch(\PDO::FETCH_ASSOC);
+                if ($overlap) {
+                    $ovYear = trim((string)$overlap['NAM_HOC']);
+                    $ovTerm = (int)$overlap['HOC_KY'];
+                    return response()->json(['error' => "Khoảng thời gian bị trùng với Học kỳ {$ovTerm} ({$ovYear})."], 409);
+                }
+
+                $ins = $pdo->prepare('INSERT INTO HOCKY (NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC) VALUES (:y, :t, :s, :e)');
                 $ins->execute([
-                    'code' => $code,
-                    'name' => $name,
+                    'y' => $academicYear,
+                    't' => $term,
                     's' => $startDate,
                     'e' => $endDate,
                 ]);
@@ -768,39 +837,69 @@ class CimProxyController extends Controller
             }
 
             if ($method === 'PUT') {
-                $numericId = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-                if ($numericId === false) {
-                    return response()->json(['error' => 'Mã bản ghi học kỳ không hợp lệ.'], 422);
-                }
                 $data = $request->isJson() ? $request->json()->all() : $request->all();
-                $name = trim((string)($data['name'] ?? ''));
+                $academicYear = trim((string)($request->query('academic_year') ?? $data['academic_year'] ?? ''));
+                $term = filter_var($request->query('term') ?? $data['term'] ?? null, FILTER_VALIDATE_INT);
+
+                if ((!$academicYear || !$term) && is_string($id) && str_contains($id, '|')) {
+                    [$academicYear, $term] = explode('|', $id);
+                    $term = (int)$term;
+                }
+
+                if (!$academicYear || !$term) {
+                    return response()->json(['error' => 'Thông tin định danh học kỳ không hợp lệ.'], 422);
+                }
+
                 $startDate = trim((string)($data['start_date'] ?? ''));
                 $endDate = trim((string)($data['end_date'] ?? ''));
+                if ($startDate === '' || $endDate === '') {
+                    return response()->json(['error' => 'Vui lòng chọn ngày bắt đầu và kết thúc.'], 422);
+                }
+                if ($endDate < $startDate) {
+                    return response()->json(['error' => 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.'], 422);
+                }
 
-                $upd = $pdo->prepare('UPDATE HOCKY SET TEN_HK = COALESCE(NULLIF(CAST(:name AS NVARCHAR(100)), \'\'), TEN_HK), NGAY_BAT_DAU = COALESCE(NULLIF(CAST(:s AS VARCHAR(10)), \'\'), NGAY_BAT_DAU), NGAY_KET_THUC = COALESCE(NULLIF(CAST(:e AS VARCHAR(10)), \'\'), NGAY_KET_THUC) WHERE ID = :id');
+                // Kiểm tra trùng lặp khoảng thời gian
+                $overlapCheck = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY FROM HOCKY WHERE NOT (NAM_HOC = :y AND HOC_KY = :t) AND NGAY_BAT_DAU <= :e AND NGAY_KET_THUC >= :s');
+                $overlapCheck->execute(['y' => $academicYear, 't' => $term, 's' => $startDate, 'e' => $endDate]);
+                $overlap = $overlapCheck->fetch(\PDO::FETCH_ASSOC);
+                if ($overlap) {
+                    $ovYear = trim((string)$overlap['NAM_HOC']);
+                    $ovTerm = (int)$overlap['HOC_KY'];
+                    return response()->json(['error' => "Khoảng thời gian bị trùng với Học kỳ {$ovTerm} ({$ovYear})."], 409);
+                }
+
+                $upd = $pdo->prepare('UPDATE HOCKY SET NGAY_BAT_DAU = :s, NGAY_KET_THUC = :e WHERE NAM_HOC = :y AND HOC_KY = :t');
                 $upd->execute([
-                    'name' => $name,
                     's' => $startDate,
                     'e' => $endDate,
-                    'id' => $numericId,
+                    'y' => $academicYear,
+                    't' => $term,
                 ]);
 
                 return response()->json(['message' => 'Đã cập nhật học kỳ thành công.']);
             }
 
             if ($method === 'DELETE') {
-                $numericId = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-                if ($numericId === false) {
-                    return response()->json(['error' => 'Mã bản ghi học kỳ không hợp lệ.'], 422);
+                $academicYear = trim((string)($request->query('academic_year') ?? ''));
+                $term = filter_var($request->query('term'), FILTER_VALIDATE_INT);
+                if ((!$academicYear || !$term) && is_string($id) && str_contains($id, '|')) {
+                    [$academicYear, $term] = explode('|', $id);
+                    $term = (int)$term;
                 }
-                $chk = $pdo->prepare('SELECT COUNT(*) FROM CT_VIPHAM cv INNER JOIN HOCKY hk ON cv.MA_HK = hk.MA_HK WHERE hk.ID = :id');
-                $chk->execute(['id' => $numericId]);
+
+                if (!$academicYear || !$term) {
+                    return response()->json(['error' => 'Thông tin định danh học kỳ không hợp lệ.'], 422);
+                }
+
+                $chk = $pdo->prepare('SELECT COUNT(*) FROM CT_VIPHAM WHERE NAM_HOC = :y AND HOC_KY = :t');
+                $chk->execute(['y' => $academicYear, 't' => $term]);
                 $count = (int)$chk->fetchColumn();
                 if ($count > 0) {
                     return response()->json(['error' => "Không thể xóa học kỳ vì đã có {$count} chi tiết vi phạm liên kết trong hệ thống."], 409);
                 }
-                $del = $pdo->prepare('DELETE FROM HOCKY WHERE ID = :id');
-                $del->execute(['id' => $numericId]);
+                $del = $pdo->prepare('DELETE FROM HOCKY WHERE NAM_HOC = :y AND HOC_KY = :t');
+                $del->execute(['y' => $academicYear, 't' => $term]);
                 return response()->json(['message' => 'Đã xóa học kỳ.']);
             }
 
@@ -861,7 +960,8 @@ class CimProxyController extends Controller
                         CAST(NULL AS NVARCHAR(100)) as HOTEN,
                         CAST(NULL AS VARCHAR(MAX)) as HOTEN_HEX,
                         CAST(NULL AS VARCHAR(30)) as MA_LOP,
-                        CAST(NULL AS VARCHAR(20)) as MA_HK,
+                        CAST(NULL AS CHAR(9)) as NAM_HOC,
+                        CAST(NULL AS TINYINT) as HOC_KY,
                         CAST(NULL AS NVARCHAR(100)) as TEN_HK,
                         CAST(NULL AS VARCHAR(MAX)) as TEN_HK_HEX
                     FROM PHAT_HIEN_VIPHAM b
@@ -900,15 +1000,16 @@ class CimProxyController extends Controller
                         sv.HOTEN,
                         CONVERT(VARCHAR(MAX), CAST(sv.HOTEN AS VARBINARY(MAX)), 2) as HOTEN_HEX,
                         l.MA_LOP,
-                        cv.MA_HK,
-                        hk.TEN_HK,
-                        CONVERT(VARCHAR(MAX), CAST(hk.TEN_HK AS VARBINARY(MAX)), 2) as TEN_HK_HEX
+                        cv.NAM_HOC,
+                        cv.HOC_KY,
+                        CASE WHEN cv.HOC_KY IS NOT NULL THEN N'Học kỳ ' + CAST(cv.HOC_KY AS NVARCHAR(5)) + N' (' + CAST(cv.NAM_HOC AS NVARCHAR(9)) + N')' ELSE NULL END as TEN_HK,
+                        CAST(NULL AS VARCHAR(MAX)) as TEN_HK_HEX
                     FROM CT_VIPHAM cv
                     LEFT JOIN LOI_VIPHAM lv ON cv.ID_LOI = lv.ID
                     LEFT JOIN KHU_VUC k ON cv.KHU_VUC_ID = k.ID
                     LEFT JOIN SINHVIEN sv ON cv.ID_SV = sv.ID
                     LEFT JOIN LOP l ON sv.LOP_ID = l.ID
-                    LEFT JOIN HOCKY hk ON cv.MA_HK = hk.MA_HK
+                    LEFT JOIN HOCKY hk ON cv.NAM_HOC = hk.NAM_HOC AND cv.HOC_KY = hk.HOC_KY
                 ";
             }
 
@@ -1012,8 +1113,10 @@ class CimProxyController extends Controller
                         'name' => $cameraName,
                     ],
                     'semester' => [
-                        'code' => (string)($r['MA_HK'] ?? ''),
-                        'name' => $this->decodeHexUnicode($r['TEN_HK_HEX'] ?? null, $r['TEN_HK'] ?? ''),
+                        'academic_year' => (string)($r['NAM_HOC'] ?? ''),
+                        'term' => $r['HOC_KY'] !== null ? (int)$r['HOC_KY'] : null,
+                        'code' => (!empty($r['NAM_HOC']) && !empty($r['HOC_KY'])) ? "HK{$r['HOC_KY']}-{$r['NAM_HOC']}" : '',
+                        'name' => (string)($r['TEN_HK'] ?? ''),
                     ],
                     'evidence' => [
                         'status' => $isCamera ? strtolower((string)($r['ANH_TRANG_THAI'] ?? 'available')) : 'none',
@@ -1256,28 +1359,38 @@ class CimProxyController extends Controller
             case 'semester':
                 try {
                     $pdo = $this->getPdo();
-                    if ($semesterId) {
-                        $stmt = $pdo->prepare('SELECT MA_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE ID = :id');
-                        $stmt->execute(['id' => $semesterId]);
+                    $academicYear = trim((string)$request->query('academic_year', ''));
+                    $term = filter_var($request->query('term'), FILTER_VALIDATE_INT);
+                    if ((!$academicYear || !$term) && $semesterId && is_string($semesterId) && str_contains($semesterId, '|')) {
+                        [$academicYear, $term] = explode('|', $semesterId);
+                        $term = (int)$term;
+                    }
+                    if ($academicYear && $term) {
+                        $stmt = $pdo->prepare('SELECT NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE NAM_HOC = :y AND HOC_KY = :t');
+                        $stmt->execute(['y' => $academicYear, 't' => $term]);
                         $hk = $stmt->fetch(\PDO::FETCH_ASSOC);
                     } else {
                         $today = date('Y-m-d');
-                        $stmt = $pdo->prepare('SELECT TOP 1 MA_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE :today BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
+                        $stmt = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE :today BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
                         $stmt->execute(['today' => $today]);
                         $hk = $stmt->fetch(\PDO::FETCH_ASSOC);
                         if (!$hk) {
-                            $hk = $pdo->query('SELECT TOP 1 MA_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetch(\PDO::FETCH_ASSOC);
+                            $hk = $pdo->query('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetch(\PDO::FETCH_ASSOC);
                         }
                     }
 
                     if ($hk) {
-                        $label = $this->decodeHexUnicode($hk['name_hex'] ?? null, $hk['TEN_HK']);
+                        $y = trim((string)$hk['NAM_HOC']);
+                        $t = (int)$hk['HOC_KY'];
+                        $label = "Học kỳ {$t} ({$y})";
                         return [
                             'period' => 'semester',
                             'date_from' => date('Y-m-d', strtotime((string)$hk['NGAY_BAT_DAU'])),
                             'date_to' => date('Y-m-d', strtotime((string)$hk['NGAY_KET_THUC'])),
                             'label' => $label,
-                            'ma_hk' => (string)$hk['MA_HK'],
+                            'academic_year' => $y,
+                            'term' => $t,
+                            'ma_hk' => "HK{$t}-{$y}",
                         ];
                     }
                 } catch (\Throwable) {
@@ -1288,7 +1401,9 @@ class CimProxyController extends Controller
                     'date_from' => '2026-08-15',
                     'date_to' => '2027-01-15',
                     'label' => 'Học kỳ 1 (2026-2027)',
-                    'ma_hk' => 'HK1-2026',
+                    'academic_year' => '2026-2027',
+                    'term' => 1,
+                    'ma_hk' => 'HK1-2026-2027',
                 ];
 
             case 'custom':
@@ -1570,18 +1685,26 @@ class CimProxyController extends Controller
             $cToday = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM = '{$todayStr}'")->fetchColumn();
             $cWeek = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= '{$weekStart}'")->fetchColumn();
             $cMonth = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= '{$monthStart}'")->fetchColumn();
-            $semStmt = $pdo->prepare('SELECT TOP 1 MA_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE :today BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
+            $semStmt = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE :today BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
             $semStmt->execute(['today' => $todayStr]);
             $currentSemRow = $semStmt->fetch(\PDO::FETCH_ASSOC);
             if (!$currentSemRow) {
-                $currentSemRow = $pdo->query('SELECT TOP 1 MA_HK, CONVERT(VARCHAR(MAX), CAST(TEN_HK AS VARBINARY(MAX)), 2) as name_hex, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetch(\PDO::FETCH_ASSOC);
+                $currentSemRow = $pdo->query('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetch(\PDO::FETCH_ASSOC);
             }
-            $currentSemName = $currentSemRow ? $this->decodeHexUnicode($currentSemRow['name_hex'] ?? null, $currentSemRow['TEN_HK']) : 'Học kỳ 1 (2026-2027)';
-            $currentSemCode = $currentSemRow ? (string)$currentSemRow['MA_HK'] : null;
+            $currentSemYear = $currentSemRow ? trim((string)$currentSemRow['NAM_HOC']) : '2026-2027';
+            $currentSemTerm = $currentSemRow ? (int)$currentSemRow['HOC_KY'] : 1;
+            $currentSemName = $currentSemRow ? "Học kỳ {$currentSemTerm} ({$currentSemYear})" : 'Học kỳ 1 (2026-2027)';
 
-            if ($currentSemCode) {
-                $cSemesterStmt = $pdo->prepare('SELECT COUNT(*) FROM CT_VIPHAM WHERE MA_HK = :ma_hk');
-                $cSemesterStmt->execute(['ma_hk' => $currentSemCode]);
+            if ($currentSemRow) {
+                $cSemesterStmt = $pdo->prepare('SELECT COUNT(*) FROM CT_VIPHAM
+                                                 WHERE (NAM_HOC = :y AND HOC_KY = :t)
+                                                    OR (NAM_HOC IS NULL AND NGAY_VIPHAM BETWEEN :start AND :end)');
+                $cSemesterStmt->execute([
+                    'y' => $currentSemYear,
+                    't' => $currentSemTerm,
+                    'start' => $currentSemRow['NGAY_BAT_DAU'],
+                    'end' => $currentSemRow['NGAY_KET_THUC'],
+                ]);
                 $cSemester = (int)$cSemesterStmt->fetchColumn();
             } else {
                 $cSemester = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM")->fetchColumn();

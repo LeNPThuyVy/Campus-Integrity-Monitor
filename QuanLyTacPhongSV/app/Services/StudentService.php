@@ -378,25 +378,27 @@ class StudentService
             if ($checkArea === null || $checkArea === false) {
                 $pdo->exec("ALTER TABLE dbo.CT_VIPHAM ADD KHU_VUC_ID INT NULL;");
             }
-            $checkHk = $pdo->query("SELECT COL_LENGTH('dbo.CT_VIPHAM', 'MA_HK')")->fetchColumn();
-            if ($checkHk === null || $checkHk === false) {
-                $pdo->exec("ALTER TABLE dbo.CT_VIPHAM ADD MA_HK VARCHAR(20) NULL;");
-            }
         } catch (Throwable) {
             // Ignore if already altered or no DDL permissions
         }
     }
 
-    public function resolveSemesterCodeByDate(PDO $pdo, string $date): ?string
+    public function resolveSemesterByDate(PDO $pdo, string $date): ?array
     {
         try {
-            $stmt = $pdo->prepare('SELECT TOP 1 MA_HK FROM HOCKY WHERE :d BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
+            $stmt = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY FROM HOCKY WHERE :d BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
             $stmt->execute(['d' => $date]);
-            $code = $stmt->fetchColumn();
-            return $code ?: null;
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
         } catch (Throwable) {
             return null;
         }
+    }
+
+    public function resolveSemesterCodeByDate(PDO $pdo, string $date): ?string
+    {
+        $hk = $this->resolveSemesterByDate($pdo, $date);
+        return $hk ? ("HK{$hk['HOC_KY']}-" . trim((string)$hk['NAM_HOC'])) : null;
     }
 
     public function getViolations(int $studentId): array
@@ -408,11 +410,11 @@ class StudentService
                     l.DIEM_TRU, v.NGAY_VIPHAM, v.THOI_DIEM, v.KHU_VUC_ID, k.TEN_KHU_VUC, 
                     CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) AS TEN_KHU_VUC_HEX,
                     v.GHI_CHU, CONVERT(VARCHAR(MAX), CAST(v.GHI_CHU AS VARBINARY(MAX)), 2) AS GHI_CHU_HEX,
-                    v.MA_HK, hk.TEN_HK, CONVERT(VARCHAR(MAX), CAST(hk.TEN_HK AS VARBINARY(MAX)), 2) AS TEN_HK_HEX
+                    v.NAM_HOC, v.HOC_KY,
+                    CASE WHEN v.HOC_KY IS NOT NULL THEN N\'Học kỳ \' + CAST(v.HOC_KY AS NVARCHAR(5)) + N\' (\' + CAST(v.NAM_HOC AS NVARCHAR(9)) + N\')\' ELSE NULL END AS TEN_HK
              FROM CT_VIPHAM v 
              INNER JOIN LOI_VIPHAM l ON l.ID = v.ID_LOI
              LEFT JOIN KHU_VUC k ON k.ID = v.KHU_VUC_ID
-             LEFT JOIN HOCKY hk ON hk.MA_HK = v.MA_HK
              WHERE v.ID_SV = :student
              ORDER BY COALESCE(v.THOI_DIEM, CAST(v.NGAY_VIPHAM AS DATETIME2)) DESC, v.ID DESC'
         );
@@ -422,8 +424,8 @@ class StudentService
             $vr['TEN_LOI'] = $this->decodeHexUnicode($vr['TEN_LOI_HEX'] ?? null, $vr['TEN_LOI']);
             $vr['TEN_KHU_VUC'] = $this->decodeHexUnicode($vr['TEN_KHU_VUC_HEX'] ?? null, $vr['TEN_KHU_VUC'] ?? '');
             $vr['GHI_CHU'] = $this->decodeHexUnicode($vr['GHI_CHU_HEX'] ?? null, $vr['GHI_CHU']);
-            $vr['TEN_HK'] = $this->decodeHexUnicode($vr['TEN_HK_HEX'] ?? null, $vr['TEN_HK'] ?? '');
-            unset($vr['TEN_LOI_HEX'], $vr['TEN_KHU_VUC_HEX'], $vr['GHI_CHU_HEX'], $vr['TEN_HK_HEX']);
+            $vr['MA_HK'] = (!empty($vr['NAM_HOC']) && !empty($vr['HOC_KY'])) ? ("HK{$vr['HOC_KY']}-" . trim((string)$vr['NAM_HOC'])) : '';
+            unset($vr['TEN_LOI_HEX'], $vr['TEN_KHU_VUC_HEX'], $vr['GHI_CHU_HEX']);
         }
         return $vRows;
     }
@@ -607,12 +609,14 @@ class StudentService
             ];
         }
 
-        $maHk = !empty($data['ma_hk']) ? trim((string)$data['ma_hk']) : $this->resolveSemesterCodeByDate($pdo, $date);
+        $sem = $this->resolveSemesterByDate($pdo, $date);
+        $namHoc = $sem['NAM_HOC'] ?? null;
+        $hocKy = isset($sem['HOC_KY']) ? (int)$sem['HOC_KY'] : null;
 
         $insert = $pdo->prepare(
-            'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, THOI_DIEM, KHU_VUC_ID, GHI_CHU, MA_HK) 
+            'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, THOI_DIEM, KHU_VUC_ID, GHI_CHU, NAM_HOC, HOC_KY) 
              OUTPUT INSERTED.ID
-             VALUES (:type, :student, :day, :thoidiem, :area, :note, :ma_hk)'
+             VALUES (:type, :student, :day, :thoidiem, :area, :note, :nam_hoc, :hoc_ky)'
         );
         $insert->bindValue(':type', $typeId, PDO::PARAM_INT);
         $insert->bindValue(':student', $studentId, PDO::PARAM_INT);
@@ -620,7 +624,8 @@ class StudentService
         $insert->bindValue(':thoidiem', $datetimeStr);
         $insert->bindValue(':area', $areaId, $areaId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
         $insert->bindValue(':note', $note, $note === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-        $insert->bindValue(':ma_hk', $maHk, $maHk === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $insert->bindValue(':nam_hoc', $namHoc, $namHoc === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $insert->bindValue(':hoc_ky', $hocKy, $hocKy === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
         $insert->execute();
 
         return ['id' => (int)$insert->fetchColumn(), 'student_id' => $studentId];
@@ -1449,11 +1454,11 @@ class StudentService
                     $tName = $this->decodeHexUnicode($t['TEN_LOI_HEX'] ?? null, $t['TEN_LOI']);
                     $typeMap[mb_strtolower($tName, 'UTF-8')] = (int)$t['ID'];
                 }
-                $semesters = $pdo->query('SELECT MA_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetchAll(PDO::FETCH_ASSOC);
+                $semesters = $pdo->query('SELECT NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetchAll(PDO::FETCH_ASSOC);
 
                 $insert = $pdo->prepare(
-                    'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, THOI_DIEM, KHU_VUC_ID, GHI_CHU, MA_HK)
-                     VALUES (:type, :student, :day, :thoidiem, :area, :note, :ma_hk)'
+                    'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, THOI_DIEM, KHU_VUC_ID, GHI_CHU, NAM_HOC, HOC_KY)
+                     VALUES (:type, :student, :day, :thoidiem, :area, :note, :nam_hoc, :hoc_ky)'
                 );
 
                 foreach ($rows as $item) {
@@ -1479,10 +1484,12 @@ class StudentService
                     }
                     $note = 'Nhập biên bản từ file Excel';
 
-                    $maHk = null;
+                    $namHoc = null;
+                    $hocKy = null;
                     foreach ($semesters as $sem) {
                         if ($ngay >= $sem['NGAY_BAT_DAU'] && $ngay <= $sem['NGAY_KET_THUC']) {
-                            $maHk = $sem['MA_HK'];
+                            $namHoc = $sem['NAM_HOC'];
+                            $hocKy = (int)$sem['HOC_KY'];
                             break;
                         }
                     }
@@ -1494,7 +1501,8 @@ class StudentService
                         'thoidiem' => $thoiDiem,
                         'area' => $areaId,
                         'note' => $note,
-                        'ma_hk' => $maHk,
+                        'nam_hoc' => $namHoc,
+                        'hoc_ky' => $hocKy,
                     ]);
                     $inserted++;
                 }
@@ -1690,18 +1698,18 @@ class StudentService
     public function resetAllViolations(bool $includeCameraRecords = false): array
     {
         $pdo = $this->getPdo();
-        $semester = $pdo->prepare('SELECT TOP 1 MA_HK, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY
+        $semester = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY
                                    WHERE :d BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
         $semester->execute(['d' => date('Y-m-d')]);
         $current = $semester->fetch(PDO::FETCH_ASSOC);
         if (!$current) {
-            throw new InvalidArgumentException('Chưa khai báo học kỳ hiện tại nên không thể reset. Vui lòng thêm học kỳ trong mục Danh mục.');
+            throw new InvalidArgumentException('Chưa khai báo học kỳ hiện tại nên không thể reset. Vui lòng thêm học kỳ trong mục Camera & Khu vực.');
         }
 
         $pdo->beginTransaction();
         try {
-            $del = $pdo->prepare('DELETE FROM CT_VIPHAM WHERE MA_HK = :hk');
-            $del->execute(['hk' => $current['MA_HK']]);
+            $del = $pdo->prepare('DELETE FROM CT_VIPHAM WHERE NAM_HOC = :y AND HOC_KY = :t');
+            $del->execute(['y' => $current['NAM_HOC'], 't' => $current['HOC_KY']]);
             $ctCount = $del->rowCount();
 
             $bgCount = 0;
@@ -1723,7 +1731,7 @@ class StudentService
             $pdo->commit();
             return [
                 'success' => true,
-                'semester' => (string)$current['MA_HK'],
+                'semester' => "Học kỳ {$current['HOC_KY']} (" . trim((string)$current['NAM_HOC']) . ")",
                 'deleted_student_violations' => $ctCount,
                 'deleted_camera_records' => $bgCount,
                 'kept_camera_records_with_evidence' => $keptWithEvidence,

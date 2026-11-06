@@ -11,7 +11,7 @@
   </div>
 
   <section class="grid grid-cols-1 gap-space-md xl:grid-cols-[minmax(280px,360px)_1fr]">
-    <form class="flex flex-col gap-space-sm rounded-xl bg-surface-container-lowest p-space-md shadow-sm" id="account-form">
+    <form class="flex flex-col gap-space-sm rounded-xl bg-surface-container-lowest p-space-md shadow-sm" id="account-form" data-current-user-id="{{ session('user_id', 0) }}" data-current-username="{{ session('username', '') }}">
       <h2 class="font-headline-md text-headline-md" id="account-form-title">Tạo tài khoản</h2>
       <input type="hidden" name="id">
       <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Tên đăng nhập</span>

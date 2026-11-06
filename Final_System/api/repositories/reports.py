@@ -25,7 +25,7 @@ class ReportRange:
 
 
 def resolve_range(db: Database, today: date, period: str, anchor: date | None = None, month: str | None = None,
-                  semester_id: int | None = None, date_from: date | None = None,
+                  academic_year: str | None = None, term: int | None = None, date_from: date | None = None,
                   date_to: date | None = None) -> ReportRange:
     if period not in PERIODS:
         raise validation_error("Kỳ báo cáo phải là day, week, month, semester hoặc custom.")
@@ -48,7 +48,9 @@ def resolve_range(db: Database, today: date, period: str, anchor: date | None = 
         end = (start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
         return ReportRange("month", start, end, f"Tháng {start:%m/%Y}")
     if period == "semester":
-        semester = (facilities.get_semester(db, semester_id) if semester_id is not None
+        if (academic_year is None) != (term is None):
+            raise validation_error("Cần chọn cả năm học và học kỳ.")
+        semester = (facilities.get_semester(db, academic_year, term) if academic_year is not None
                     else facilities.current_semester(db, anchor))
         if semester is None:
             raise validation_error("Chưa có học kỳ chứa ngày đã chọn. Hãy khai báo học kỳ trong mục Camera & khu vực.")

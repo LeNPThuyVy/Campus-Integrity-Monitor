@@ -13,5 +13,6 @@
   </form>
 </dialog>
 <script src="assets/js/common.js"></script>
+<script src="assets/js/notifications.js"></script>
 </body>
 </html>

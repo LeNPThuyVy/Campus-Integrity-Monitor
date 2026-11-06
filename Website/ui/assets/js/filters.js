@@ -30,7 +30,7 @@ window.CIMFilters = (() => {
 
     try {
       await Promise.all([
-        fillSelect(form.elements.semester_id, 'semesters', (s) => s.id,
+        fillSelect(form.elements.semester, 'semesters', (s) => `${s.academic_year}|${s.term}`,
           (s) => `${s.name} (${CIM.formatDate(s.start_date)} - ${CIM.formatDate(s.end_date)})`),
         fillSelect(form.elements.area_id, 'areas', (a) => a.id, (a) => `${a.name}${a.active ? '' : ' (ngừng)'}`),
         fillSelect(form.elements.camera_id, 'cameras', (c) => c.id, (c) => `${c.code} - ${c.name}`),
@@ -52,7 +52,7 @@ window.CIMFilters = (() => {
       const result = { period, area_id: data.area_id, camera_id: data.camera_id, type_id: data.type_id };
       if (period === 'day' || period === 'week') result.anchor = data.anchor;
       if (period === 'month') result.month = data.month;
-      if (period === 'semester') result.semester_id = data.semester_id;
+      if (period === 'semester' && data.semester) [result.academic_year, result.term] = data.semester.split('|');
       if (period === 'custom') { result.date_from = data.date_from; result.date_to = data.date_to; }
       return result;
     }

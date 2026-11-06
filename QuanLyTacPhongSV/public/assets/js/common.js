@@ -5,6 +5,13 @@
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
   const role = document.querySelector('meta[name="user-role"]')?.content || '';
 
+  // AU-11: Chống xem lại trang nội bộ từ BFCache khi nhấn nút Back sau khi đã đăng xuất
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
   // ---------------------------------------------------------------- layout: sidebar + account menu
   const sidebar = document.getElementById('sidebar');
   const backdrop = document.getElementById('sidebar-backdrop');

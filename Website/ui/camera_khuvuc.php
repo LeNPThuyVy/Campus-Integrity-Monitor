@@ -13,8 +13,8 @@ $input = 'h-10 rounded-lg bg-surface-container-low px-3';
     <h1 class="font-headline-xl text-headline-xl">Camera, khu vực & học kỳ</h1>
     <p class="text-on-surface-variant">
       <?= $isAdmin
-        ? 'Thêm, sửa hoặc ngừng sử dụng khu vực/camera. Khóa thiết bị chỉ hiển thị một lần khi tạo hoặc cấp lại.'
-        : 'Bạn đang xem ở chế độ chỉ đọc. Thông tin nhạy cảm của camera chỉ hiển thị cho Quản trị viên.' ?>
+        ? 'Thêm, sửa hoặc ngừng sử dụng khu vực/camera và quản lý học kỳ. Khóa thiết bị chỉ hiển thị một lần khi tạo hoặc cấp lại.'
+        : 'Khu vực và camera ở chế độ chỉ đọc (thông tin nhạy cảm chỉ hiển thị cho Quản trị viên). Bạn có thể quản lý học kỳ.' ?>
     </p>
   </div>
 
@@ -90,14 +90,15 @@ $input = 'h-10 rounded-lg bg-surface-container-low px-3';
 
   <!-- Semesters -->
   <section class="hidden grid-cols-1 gap-space-md xl:grid-cols-[minmax(280px,360px)_1fr]" data-panel="semesters">
-    <?php if ($isAdmin): ?>
     <form class="flex flex-col gap-space-sm rounded-xl bg-surface-container-lowest p-space-md shadow-sm" id="semester-form">
       <h2 class="font-headline-md text-headline-md" data-title>Thêm học kỳ</h2>
       <input type="hidden" name="id">
-      <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Mã học kỳ</span>
-        <input class="<?= $input ?>" name="code" maxlength="20" required pattern="[A-Za-z0-9_\-]+" placeholder="VD: HK1-2026"></label>
-      <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Tên học kỳ</span>
-        <input class="<?= $input ?>" name="name" maxlength="100" required placeholder="Học kỳ 1 năm học 2026-2027"></label>
+      <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Năm học</span>
+        <input class="<?= $input ?>" name="academic_year" maxlength="9" required pattern="\d{4}-\d{4}" placeholder="VD: 2026-2027"></label>
+      <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Học kỳ</span>
+        <select class="<?= $input ?>" name="term" required>
+          <option value="1">Học kỳ 1</option><option value="2">Học kỳ 2</option><option value="3">Học kỳ 3 (hè)</option>
+        </select></label>
       <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Ngày bắt đầu</span>
         <input class="<?= $input ?>" type="date" name="start_date" required></label>
       <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Ngày kết thúc</span>
@@ -107,11 +108,10 @@ $input = 'h-10 rounded-lg bg-surface-container-low px-3';
         <button class="hidden rounded-lg bg-surface-container px-space-md py-2 font-label-md" type="reset" data-cancel>Hủy sửa</button>
       </div>
     </form>
-    <?php endif; ?>
-    <div class="min-w-0 overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm <?= $isAdmin ? '' : 'xl:col-span-2' ?>">
+    <div class="min-w-0 overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
       <div class="overflow-x-auto"><table class="w-full text-left">
         <thead class="bg-surface-container-low font-label-sm text-label-sm uppercase text-outline"><tr>
-          <th class="px-space-md py-3">Mã</th><th class="px-space-md py-3">Tên</th><th class="px-space-md py-3">Bắt đầu</th>
+          <th class="px-space-md py-3">Năm học</th><th class="px-space-md py-3">Học kỳ</th><th class="px-space-md py-3">Bắt đầu</th>
           <th class="px-space-md py-3">Kết thúc</th><th class="px-space-md py-3 text-right">Thao tác</th>
         </tr></thead>
         <tbody id="semester-body"></tbody>

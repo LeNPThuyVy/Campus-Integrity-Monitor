@@ -240,6 +240,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     'types' => student_violation_types($pdo),
                     'today' => student_today()->format('Y-m-d'),
                 ]);
+            case 'semesters':
+                cim_require_api_user(['ADMIN']);
+                student_json_response(['semesters' => student_semesters($pdo)]);
+            case 'semester-violations':
+                cim_require_api_user(['ADMIN']);
+                student_json_response(student_semester_violation_count($pdo, $_GET['nam_hoc'] ?? null,
+                    $_GET['hoc_ky'] ?? null));
             case 'template':
                 student_download_template(strtoupper((string)($_GET['dataset'] ?? '')));
             case 'export':
@@ -292,6 +299,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             student_violation_delete($pdo, $body['id'] ?? null, $body['student_id'] ?? null);
             $pdo->commit();
             student_json_response(['success' => true]);
+        }
+        if ($action === 'violation-delete-semester') {
+            $admin = cim_require_api_user(['ADMIN']);
+            $pdo->exec('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+            $pdo->beginTransaction();
+            $deleted = student_violation_delete_semester($pdo, $body['nam_hoc'] ?? null, $body['hoc_ky'] ?? null,
+                $body['confirm_count'] ?? null);
+            $pdo->commit();
+            error_log(sprintf('Tài khoản %s xóa %d vi phạm thủ công của học kỳ %d năm học %s.',
+                $admin['username'], $deleted, (int)$body['hoc_ky'], (string)$body['nam_hoc']));
+            student_json_response(['success' => true, 'deleted' => $deleted]);
         }
         if ($action === 'import-commit') {
             $token = $body['preview_token'] ?? null;

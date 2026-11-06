@@ -251,3 +251,30 @@ def test_no_event_for_compliant_or_waiting():
     fresh = TemporalVoting()
     fresh.update([result(5, "Non_Uniform", "No_Card")])
     assert detector.process(frame, [result(5, "Non_Uniform", "No_Card")], fresh.vote(), now) == []
+
+
+def test_event_waits_until_track_was_visible_long_enough(monkeypatch):
+    monkeypatch.setattr(my_config, "EVENT_MIN_TRACK_SECONDS", 3)
+    voting = TemporalVoting()
+    detector = ViolationEventDetector(dedup_seconds=60)
+    frame = _frame()
+    now = datetime(2026, 10, 13, 8, 0, tzinfo=timezone.utc)
+    reported_at = []
+    for index in range(8):
+        frame_results = [result(1, "Non_Uniform", "No_Card")]
+        voting.update(frame_results)
+        if detector.process(frame, frame_results, voting.vote(), now + timedelta(seconds=index)):
+            reported_at.append(index)
+    # Voting decides at the 5th frame (index 4), which is already 4 s after the track appeared.
+    assert reported_at == [4]
+
+    monkeypatch.setattr(my_config, "EVENT_MIN_TRACK_SECONDS", 6)
+    detector.reset()
+    voting.reset()
+    reported_at = []
+    for index in range(8):
+        frame_results = [result(1, "Non_Uniform", "No_Card")]
+        voting.update(frame_results)
+        if detector.process(frame, frame_results, voting.vote(), now + timedelta(seconds=index)):
+            reported_at.append(index)
+    assert reported_at == [6]

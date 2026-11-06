@@ -42,7 +42,10 @@ function cim_current_user(): ?array
         $_SESSION['auth_notice'] = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
         return null;
     }
-    $_SESSION['last_activity'] = $now;
+    // Background polls (notification bell) must not keep an unattended session alive.
+    if (($_SERVER['HTTP_X_CIM_BACKGROUND'] ?? '') !== '1') {
+        $_SESSION['last_activity'] = $now;
+    }
     return [
         'id' => (int)($_SESSION['user_id'] ?? 0),
         'username' => (string)($_SESSION['username'] ?? ''),

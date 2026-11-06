@@ -25,7 +25,7 @@ $filterExtended = $filterExtended ?? false;
   </label>
   <label class="flex flex-col gap-1" data-period="semester">
     <span class="font-label-sm text-label-sm text-on-surface-variant">Học kỳ</span>
-    <select class="h-10 rounded-lg bg-surface-container-low px-3" name="semester_id">
+    <select class="h-10 rounded-lg bg-surface-container-low px-3" name="semester">
       <option value="">Học kỳ hiện tại</option>
     </select>
   </label>

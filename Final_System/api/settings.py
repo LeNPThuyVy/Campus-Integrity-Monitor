@@ -98,6 +98,7 @@ class Settings:
     r2_endpoint: str | None = None
     r2_bucket: str = "my-budget-graduate-project"
     r2_presign_ttl_seconds: int = 3600
+    detection_retention_hours: int = 24
 
     @property
     def local_tz(self) -> timezone:
@@ -154,4 +155,5 @@ def get_settings() -> Settings:
         r2_endpoint=_env("CLOUDFLARE_S3_API_ENDPOINT"),
         r2_bucket=_env("CLOUDFLARE_R2_BUCKET", "my-budget-graduate-project"),
         r2_presign_ttl_seconds=_env_int("CLOUDFLARE_R2_PRESIGN_TTL", 3600),
+        detection_retention_hours=_env_int("CIM_DETECTION_RETENTION_HOURS", 24),
     )

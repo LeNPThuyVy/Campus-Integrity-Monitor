@@ -10,6 +10,8 @@ Rules
     Uniform     + Card    -> no event  (đúng tác phong)
 - Anti-repeat: a track is reported at most once per EVENT_DEDUP_SECONDS, so one person walking
   past the camera does not create a stream of records.
+- Minimum observation: no event before a track has been visible EVENT_MIN_TRACK_SECONDS, so the
+  violation type is not locked in from the first few frames.
 - The evidence crop must be a valid, non-trivial image; otherwise no event is created for now
   (the track can still be reported on a later frame).
 - No identity: events only contain time, camera, type, confidences and the crop.
@@ -91,14 +93,21 @@ class ViolationEventDetector:
     def __init__(self, dedup_seconds: float | None = None):
         self.dedup_seconds = my_config.EVENT_DEDUP_SECONDS if dedup_seconds is None else dedup_seconds
         self._reported: dict[int, datetime] = {}
+        self._first_seen: dict[int, datetime] = {}
+        self._last_seen: dict[int, datetime] = {}
 
     def reset(self):
         self._reported.clear()
+        self._first_seen.clear()
+        self._last_seen.clear()
 
     def process(self, frame: np.ndarray, pipeline_results, voting_results: dict, now: datetime) -> list[ViolationEvent]:
         events: list[ViolationEvent] = []
         self._forget_old(now)
+        min_track_seconds = getattr(my_config, "EVENT_MIN_TRACK_SECONDS", 0)
         for result in pipeline_results:
+            self._first_seen.setdefault(result.track_id, now)
+            self._last_seen[result.track_id] = now
             vote = voting_results.get(result.track_id)
             if vote is None:
                 continue
@@ -107,6 +116,8 @@ class ViolationEventDetector:
                 continue
             if result.track_id in self._reported:
                 self._reported[result.track_id] = now  # still visible: extend the dedup window
+                continue
+            if (now - self._first_seen[result.track_id]).total_seconds() < min_track_seconds:
                 continue
             crop = crop_evidence(frame, result.bbox)
             if crop is None:
@@ -128,3 +139,8 @@ class ViolationEventDetector:
                    if (now - seen).total_seconds() > self.dedup_seconds]
         for track_id in expired:
             del self._reported[track_id]
+        gone = [track_id for track_id, seen in self._last_seen.items()
+                if (now - seen).total_seconds() > self.dedup_seconds]
+        for track_id in gone:
+            del self._last_seen[track_id]
+            self._first_seen.pop(track_id, None)

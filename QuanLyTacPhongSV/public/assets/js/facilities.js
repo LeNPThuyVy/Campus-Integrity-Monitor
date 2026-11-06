@@ -168,13 +168,27 @@
   }
 
   // ------------------------------------------------------------------ semesters
+  // A semester is keyed by (academic year, term); that key cannot change, editing only changes the dates.
   const semesterForm = setupForm('semester-form', async (form, id) => {
-    const body = { code: form.elements.code.value, name: form.elements.name.value,
-      start_date: form.elements.start_date.value, end_date: form.elements.end_date.value };
-    await CIM.api(id ? 'semester' : 'semesters', { method: id ? 'PUT' : 'POST', params: id ? { id } : {}, body });
+    const dates = { start_date: form.elements.start_date.value, end_date: form.elements.end_date.value };
+    if (id) {
+      const [academic_year, term] = id.split('|');
+      await CIM.api('semester', { method: 'PUT', params: { academic_year, term }, body: dates });
+    } else {
+      await CIM.api('semesters', { method: 'POST', body: { academic_year: form.elements.academic_year.value,
+        term: Number(form.elements.term.value), ...dates } });
+    }
     CIM.toast(id ? 'Đã cập nhật học kỳ.' : 'Đã thêm học kỳ.');
     await loadAll();
-  }, { create: 'Thêm học kỳ', edit: 'Sửa học kỳ' });
+  }, { create: 'Thêm học kỳ', edit: 'Sửa ngày của học kỳ' });
+  const semesterFormEl = document.getElementById('semester-form');
+  function lockSemesterKey(locked) {
+    if (semesterFormEl && semesterFormEl.elements.academic_year) {
+      semesterFormEl.elements.academic_year.readOnly = locked;
+      semesterFormEl.elements.term.disabled = locked;
+    }
+  }
+  semesterFormEl?.addEventListener('reset', () => lockSemesterKey(false));
 
   function renderSemesters() {
     const tbody = document.getElementById('semester-body');
@@ -186,18 +200,21 @@
         nameTd.append(CIM.el('span', 'rounded-full px-2 py-0.5 font-label-sm text-label-sm bg-primary-container text-on-primary-container font-semibold', 'Đang diễn ra'));
       }
       row.append(
-        CIM.el('td', 'px-space-md py-3 font-data-mono', semester.code),
+        CIM.el('td', 'px-space-md py-3 font-data-mono', semester.academic_year),
         nameTd,
         CIM.el('td', 'px-space-md py-3', CIM.formatDate(semester.start_date)),
         CIM.el('td', 'px-space-md py-3', CIM.formatDate(semester.end_date))
       );
       const actions = CIM.el('td', 'px-space-md py-3 text-right whitespace-nowrap');
       if (semesterForm) {
-        actions.append(actionButton('Sửa', () => semesterForm.edit(semester)));
+        actions.append(actionButton('Sửa', () => {
+          semesterForm.edit({ ...semester, id: `${semester.academic_year}|${semester.term}` });
+          lockSemesterKey(true);
+        }));
         actions.append(actionButton('Xóa', async () => {
-          if (!(await CIM.confirmAction(`Xóa học kỳ ${semester.code}? Lưu ý: Không thể xóa học kỳ nếu đang có biên bản vi phạm liên kết.`, { danger: true, okText: 'Xóa' }))) return;
+          if (!(await CIM.confirmAction(`Xóa ${semester.name}? Không xóa được nếu đã có vi phạm thuộc học kỳ này.`, { danger: true, okText: 'Xóa' }))) return;
           try {
-            await CIM.api('semester', { method: 'DELETE', params: { id: semester.id } });
+            await CIM.api('semester', { method: 'DELETE', params: { academic_year: semester.academic_year, term: semester.term } });
             CIM.toast('Đã xóa học kỳ.');
             await loadAll();
           } catch (error) { CIM.toast(error.message, 'error'); }

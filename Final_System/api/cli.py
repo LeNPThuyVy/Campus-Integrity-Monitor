@@ -18,6 +18,9 @@ import json
 import os
 import sys
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 from api.database import Database, DatabaseUnavailable
 from api.errors import ApiError
 from api.repositories import accounts

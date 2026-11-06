@@ -9,11 +9,13 @@ use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\ViolationController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // ---------------------------------------------------------------- Guest / Auth Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/logout', fn() => redirect()->route('dashboard'));
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // ---------------------------------------------------------------- Authenticated Routes (CIM Session)
@@ -45,7 +47,9 @@ Route::middleware(['auth.cim'])->group(function () {
 });
 
 // ---------------------------------------------------------------- Legacy URL Aliases (.php)
-Route::get('/login.php', fn() => redirect()->route('login'));
+Route::get('/login.php', function (Request $request) {
+    return redirect()->route('login', $request->query());
+});
 Route::get('/home.php', fn() => redirect()->route('dashboard'));
 Route::get('/list_vipham.php', fn() => redirect()->route('violations'));
 Route::get('/ql_sinhvien.php', fn() => redirect()->route('students'));
@@ -54,4 +58,5 @@ Route::get('/reporting.php', fn() => redirect()->route('reports'));
 Route::get('/danh_muc.php', fn() => redirect()->route('catalogs'));
 Route::get('/phanquyen.php', fn() => redirect()->route('accounts'));
 Route::get('/doi_mat_khau.php', fn() => redirect()->route('password.change'));
+Route::get('/logout.php', fn() => redirect()->route('dashboard'));
 Route::post('/logout.php', [AuthController::class, 'logout']);

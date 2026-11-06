@@ -50,10 +50,18 @@ async def lifespan(app: FastAPI):
     # AI models are only needed for /predictions; loading them is optional (CIM_ENABLE_INFERENCE).
     app.state.get_service = create_service() if settings.enable_inference else None
 
+    # Deletes expired evidence images after their expiry date (default 30 days).
+    scheduler = None
+    if settings.enable_retention_job:
+        scheduler = RetentionScheduler(app.state.db, app.state.evidence_storage, settings.retention_interval_minutes,
+                                       settings.now_local)
+        scheduler.start()
+
     try:
         yield # Server is running
     finally:
-        pass
+        if scheduler is not None:
+            scheduler.stop()
 
 
 #Create FastAPI

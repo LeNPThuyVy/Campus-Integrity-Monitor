@@ -37,5 +37,9 @@
     }
   }
 
-  CIMFilters.init(load, { defaultPeriod: 'month' }).then((params) => load(params()));
+  CIMFilters.init(load, { defaultPeriod: 'month' }).then((params) => {
+    load(params());
+    // New violations from the bell (notifications.js): refresh the counters without reloading the page.
+    window.addEventListener('cim:new-violations', () => load(params()));
+  });
 })();

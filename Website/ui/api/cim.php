@@ -19,14 +19,18 @@ $id = $_GET['id'] ?? null;
 $ADMIN = ['ADMIN'];
 $ALL = ['ADMIN', 'CTSV'];
 $listQuery = ['date_from', 'date_to', 'area_id', 'camera_id', 'type_id', 'status', 'page', 'page_size', 'sort'];
-$reportQuery = ['period', 'anchor', 'month', 'semester_id', 'date_from', 'date_to', 'area_id', 'camera_id', 'type_id'];
+$reportQuery = ['period', 'anchor', 'month', 'academic_year', 'term', 'date_from', 'date_to', 'area_id', 'camera_id', 'type_id'];
 
 // route => [method => [api path template, roles, allowed query keys, binary response?]]
 $routes = [
     'health' => ['GET' => ['/api/v1/health', $ALL, [], false]],
     'dashboard' => ['GET' => ['/api/v1/dashboard', $ALL, $reportQuery, false]],
     'violation-types' => ['GET' => ['/api/v1/violation-types', $ALL, [], false]],
-    'violations' => ['GET' => ['/api/v1/violations', $ALL, $listQuery, false]],
+    'violations' => [
+        'GET' => ['/api/v1/violations', $ALL, $listQuery, false],
+        // Deletes AI detection records only; student violation details (CT_VIPHAM) are untouched.
+        'DELETE' => ['/api/v1/violations', $ALL, [], false],
+    ],
     'violation' => [
         'GET' => ['/api/v1/violations/{id}', $ALL, [], false],
         'PATCH' => ['/api/v1/violations/{id}', $ALL, [], false],
@@ -47,11 +51,11 @@ $routes = [
     'camera-key' => ['POST' => ['/api/v1/cameras/{id}/rotate-key', $ADMIN, [], false]],
     'semesters' => [
         'GET' => ['/api/v1/semesters', $ALL, [], false],
-        'POST' => ['/api/v1/semesters', $ADMIN, [], false],
+        'POST' => ['/api/v1/semesters', $ALL, [], false],
     ],
     'semester' => [
-        'PUT' => ['/api/v1/semesters/{id}', $ADMIN, [], false],
-        'DELETE' => ['/api/v1/semesters/{id}', $ADMIN, [], false],
+        'PUT' => ['/api/v1/semesters/{academic_year}/{term}', $ALL, [], false],
+        'DELETE' => ['/api/v1/semesters/{academic_year}/{term}', $ALL, [], false],
     ],
     'accounts' => [
         'GET' => ['/api/v1/accounts', $ADMIN, [], false],
@@ -80,6 +84,15 @@ if (str_contains($template, '{id}')) {
         student_json_error('Mã bản ghi không hợp lệ.', 422);
     }
     $path = str_replace('{id}', (string)$numericId, $template);
+}
+// Semesters are keyed by (academic year, term), e.g. /semesters/2025-2026/1.
+if (str_contains($template, '{academic_year}')) {
+    $year = $_GET['academic_year'] ?? null;
+    $term = filter_var($_GET['term'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 3]]);
+    if (!is_string($year) || preg_match('/^\d{4}-\d{4}$/', $year) !== 1 || $term === false) {
+        student_json_error('Năm học hoặc học kỳ không hợp lệ.', 422);
+    }
+    $path = str_replace(['{academic_year}', '{term}'], [$year, (string)$term], $path);
 }
 
 $query = [];

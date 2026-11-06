@@ -118,8 +118,8 @@ curl -X POST http://127.0.0.1:8000/api/v1/violations \
 | GET/POST | `/api/v1/cameras` | `{"code", "name", "area_id", "location", "stream_source", "active"}`; POST trả `device_key` **một lần** |
 | PUT | `/api/v1/cameras/{id}` | |
 | POST | `/api/v1/cameras/{id}/rotate-key` | Khóa cũ mất hiệu lực ngay |
-| GET/POST | `/api/v1/semesters` | `{"code", "name", "start_date", "end_date"}`; không cho trùng khoảng ngày |
-| PUT/DELETE | `/api/v1/semesters/{id}` | Xóa học kỳ không ảnh hưởng bản ghi vi phạm |
+| GET/POST | `/api/v1/semesters` | `{"academic_year": "2025-2026", "term": 1..3, "start_date", "end_date"}`; khóa là (năm học, học kỳ), trùng khóa hoặc trùng khoảng ngày → `409`. Phản hồi kèm `name` ghép sẵn ("Học kỳ 1 (2025-2026)") |
+| PUT/DELETE | `/api/v1/semesters/{academic_year}/{term}` | PUT chỉ nhận `{"start_date", "end_date"}` (không đổi được khóa). DELETE bị chặn (`409`) khi đã có `CT_VIPHAM` thuộc học kỳ |
 
 ### Bản ghi vi phạm
 | Method | Path | Ghi chú |
@@ -132,12 +132,11 @@ curl -X POST http://127.0.0.1:8000/api/v1/violations \
 
 ### Thống kê & báo cáo
 Tham số kỳ chung: `period` = `day` \| `week` \| `month` \| `semester` \| `custom`, kèm `anchor` (ngày), `month` (`YYYY-MM`),
-`semester_id`, hoặc `date_from` + `date_to` (custom, tối đa 400 ngày); lọc thêm `area_id`, `camera_id`, `type_id`.
+`academic_year` + `term` (đi cùng nhau; bỏ trống = học kỳ chứa `anchor`), hoặc `date_from` + `date_to` (custom, tối đa 400 ngày); lọc thêm `area_id`, `camera_id`, `type_id`.
 
 | Method | Path | Kết quả |
 |---|---|---|
 | GET | `/api/v1/dashboard` | `counters` (hôm nay/tuần/tháng/học kỳ hiện tại) + `summary` của kỳ chọn |
-| GET | `/api/v1/reports/summary` | `total`, `by_type`, `by_day`, `by_hour`, `by_weekday`, `by_area`, `by_camera`, `hotspots` (khu vực × khung giờ), `by_status` |
 | GET | `/api/v1/reports/export?format=xlsx\|pdf` | Tệp Excel (nhiều sheet) hoặc PDF có tiêu đề, thời điểm lập, bộ lọc |
 
 ## API của Web PHP (session + `X-CSRF-Token`)
@@ -151,6 +150,8 @@ Các chức năng sinh viên/danh mục chạy trong `Website/ui/api/*.php` (ghi
 | GET | `api/students.php?action=violations&id={ID_SV}` | Lịch sử vi phạm thủ công (`CT_VIPHAM`) + loại vi phạm đang dùng |
 | POST | `api/students.php` `{"action":"violation-add","violation":{"student_id","type_id","date":"YYYY-MM-DD","note","confirm_duplicate"}}` | Ghi nhận thủ công. `409` + `code: duplicate_same_day` khi đã có cùng loại cùng ngày (gửi lại với `confirm_duplicate: true`). `422`: ngày tương lai/không hợp lệ, loại lỗi ngừng dùng, ghi chú > 500 ký tự |
 | POST | `api/students.php` `{"action":"violation-delete","id","student_id"}` | Xóa một lần ghi nhận (phải đúng sinh viên) |
+| GET | `api/students.php?action=semesters` · `?action=semester-violations&nam_hoc={NAM_HOC}&hoc_ky={HOC_KY}` | **Chỉ ADMIN.** Danh sách học kỳ · số vi phạm thủ công sẽ bị xóa của học kỳ (`{semester, count}`) |
+| POST | `api/students.php` `{"action":"violation-delete-semester","nam_hoc","hoc_ky","confirm_count"}` | **Chỉ ADMIN** (CTSV: `403`). Xóa mọi `CT_VIPHAM` của học kỳ (theo `NAM_HOC`+`HOC_KY`, hoặc theo ngày khi hai cột này trống). `confirm_count` phải bằng số đếm hiện tại, lệch → `409` + `code: count_changed`. Không ảnh hưởng bản ghi phát hiện/báo cáo |
 | GET/POST | `api/catalogs.php` | Khoa/Ngành/Lớp/Loại vi phạm (loại vi phạm: chỉ ADMIN được sửa) |
 
 ## AI trực tiếp (giữ tương thích bản cũ)

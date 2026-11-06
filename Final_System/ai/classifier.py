@@ -44,7 +44,7 @@ class Classifier:
         image=Utils.preprocess(image=image, image_size=ai.config.CLASSIFY_IMAGE_SIZE)
         #Put image to device
         image=image.to(self.device)
-        with torch.no_grad():
+        with torch.inference_mode():
             #logitss
             logits=self.model(image)
             #softmax and probability: convert raw score into percentages (0.0, 1.0) 
@@ -73,7 +73,7 @@ class Classifier:
         # Stack into a single batch tensor
         batch_tensor = torch.cat(processed_images, dim=0).to(self.device)
         
-        with torch.no_grad():
+        with torch.inference_mode():
             logits = self.model(batch_tensor)
             probabilities = torch.nn.functional.softmax(logits, dim=1)
             argmax_indices = torch.argmax(probabilities, dim=1)
@@ -86,4 +86,3 @@ class Classifier:
                 results.append(Prediction(label=label, confidence=prob))
                 
         return results
-

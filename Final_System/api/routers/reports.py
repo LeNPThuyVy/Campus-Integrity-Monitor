@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["Thống kê & báo cáo"])
 
 PERIOD_PATTERN = "^(day|week|month|semester|custom)$"
+ACADEMIC_YEAR_PATTERN = r"^\d{4}-\d{4}$"
 
 
 def _get_prompt_builder() -> StatsPromptBuilder:
@@ -73,9 +74,10 @@ def _generate_ai_analysis(range_label: str, filters_desc: list[dict[str, str]], 
 
 
 def _range(db: Database, settings: Settings, period: str, anchor: date | None, month: str | None,
-           semester_id: int | None, date_from: date | None, date_to: date | None) -> reports.ReportRange:
-    return reports.resolve_range(db, settings.now_local().date(), period, anchor, month, semester_id, date_from,
-                                 date_to)
+           academic_year: str | None, term: int | None, date_from: date | None,
+           date_to: date | None) -> reports.ReportRange:
+    return reports.resolve_range(db, settings.now_local().date(), period, anchor, month, academic_year, term,
+                                 date_from, date_to)
 
 
 @router.get("/dashboard", summary="Số liệu tổng quan: hôm nay/tuần/tháng/học kỳ + thống kê theo bộ lọc")
@@ -83,7 +85,8 @@ def dashboard(
     period: str = Query(default="month", pattern=PERIOD_PATTERN),
     anchor: date | None = None,
     month: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}$"),
-    semester_id: int | None = Query(default=None, ge=1),
+    academic_year: str | None = Query(default=None, pattern=ACADEMIC_YEAR_PATTERN),
+    term: int | None = Query(default=None, ge=1, le=3),
     date_from: date | None = None,
     date_to: date | None = None,
     area_id: int | None = Query(default=None, ge=1),
@@ -91,7 +94,7 @@ def dashboard(
     db: Database = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ):
-    report_range = _range(db, settings, period, anchor, month, semester_id, date_from, date_to)
+    report_range = _range(db, settings, period, anchor, month, academic_year, term, date_from, date_to)
     return {"data": reports.dashboard(db, settings.now_local().date(), report_range, area_id)}
 
 
@@ -100,7 +103,8 @@ def report_summary(
     period: str = Query(default="week", pattern=PERIOD_PATTERN),
     anchor: date | None = None,
     month: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}$"),
-    semester_id: int | None = Query(default=None, ge=1),
+    academic_year: str | None = Query(default=None, pattern=ACADEMIC_YEAR_PATTERN),
+    term: int | None = Query(default=None, ge=1, le=3),
     date_from: date | None = None,
     date_to: date | None = None,
     area_id: int | None = Query(default=None, ge=1),
@@ -110,7 +114,7 @@ def report_summary(
     db: Database = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ):
-    report_range = _range(db, settings, period, anchor, month, semester_id, date_from, date_to)
+    report_range = _range(db, settings, period, anchor, month, academic_year, term, date_from, date_to)
     filters = reports.report_filters(report_range, area_id, camera_id, type_id)
     return {"data": {
         "range": {"period": report_range.period, "from": report_range.date_from, "to": report_range.date_to,
@@ -126,7 +130,8 @@ def report_export(
     period: str = Query(default="week", pattern=PERIOD_PATTERN),
     anchor: date | None = None,
     month: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}$"),
-    semester_id: int | None = Query(default=None, ge=1),
+    academic_year: str | None = Query(default=None, pattern=ACADEMIC_YEAR_PATTERN),
+    term: int | None = Query(default=None, ge=1, le=3),
     date_from: date | None = None,
     date_to: date | None = None,
     area_id: int | None = Query(default=None, ge=1),
@@ -136,13 +141,16 @@ def report_export(
     db: Database = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ):
-    report_range = _range(db, settings, period, anchor, month, semester_id, date_from, date_to)
+    report_range = _range(db, settings, period, anchor, month, academic_year, term, date_from, date_to)
     filters = reports.report_filters(report_range, area_id, camera_id, type_id)
     summary = reports.summarize(db, filters)
     description = reports.describe_filters(db, filters)
     description.insert(0, ("Kỳ báo cáo", report_range.label))
     description.append(("Người lập", user.full_name))
     details = reports.detail_rows(db, filters)
+    if len(details) < summary["total"]:
+        description.append(("Ghi chú", "Số liệu tổng gồm cả bản ghi đã được dọn; danh sách chi tiết chỉ gồm "
+                                       "bản ghi còn lưu trên hệ thống."))
     title = "BÁO CÁO GIÁM SÁT TÁC PHONG"
     generated_at = settings.now_local()
     stamp_from = f"{report_range.date_from:%d_%m}"

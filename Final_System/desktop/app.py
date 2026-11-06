@@ -121,6 +121,7 @@ class App:
             "VIOLATION_RATIO":           my_config.VIOLATION_RATIO,
             "MISSING_COUNTER_THRESHOLD": my_config.MISSING_COUNTER_THRESHOLD,
             "EVENT_DEDUP_SECONDS":       my_config.EVENT_DEDUP_SECONDS,
+            "EVENT_MIN_TRACK_SECONDS":   getattr(my_config, "EVENT_MIN_TRACK_SECONDS", 0),
             "API_URL":                   "http://127.0.0.1:8001",
             "CAMERA_CODE":               "",
         }
@@ -155,11 +156,13 @@ class App:
         p["IOU_THRESHOLD"] = min(max(float(p["IOU_THRESHOLD"]), 0.1), 1.0)
         p["FRAME_SKIP"] = min(max(int(p["FRAME_SKIP"]), 1), 30)
         p["BRIGHTNESS_ENABLED"] = 1 if int(p.get("BRIGHTNESS_ENABLED", 1)) else 0
-        p["LEN_HISTORY"] = min(max(int(p["LEN_HISTORY"]), 3), 100)
+        # Long windows let one person's whole visit vote, instead of only the first few frames.
+        p["LEN_HISTORY"] = min(max(int(p["LEN_HISTORY"]), 3), 1000)
         p["VOTING_THREDSHOLD"] = min(max(int(p["VOTING_THREDSHOLD"]), 1), p["LEN_HISTORY"])
         p["VIOLATION_RATIO"] = min(max(float(p["VIOLATION_RATIO"]), 0.5), 1.0)
         p["MISSING_COUNTER_THRESHOLD"] = min(max(int(p["MISSING_COUNTER_THRESHOLD"]), 1), 300)
         p["EVENT_DEDUP_SECONDS"] = min(max(int(p["EVENT_DEDUP_SECONDS"]), 10), 86400)
+        p["EVENT_MIN_TRACK_SECONDS"] = min(max(float(p.get("EVENT_MIN_TRACK_SECONDS", 0)), 0.0), 30.0)
         p["API_URL"] = str(p.get("API_URL") or "").strip().rstrip("/")
         if p["API_URL"] and not p["API_URL"].startswith(("http://", "https://")):
             raise ValueError("Địa chỉ API phải bắt đầu bằng http:// hoặc https://")
@@ -200,6 +203,7 @@ class App:
         my_config.VIOLATION_RATIO           = self.params["VIOLATION_RATIO"]
         my_config.MISSING_COUNTER_THRESHOLD = self.params["MISSING_COUNTER_THRESHOLD"]
         my_config.EVENT_DEDUP_SECONDS       = self.params["EVENT_DEDUP_SECONDS"]
+        my_config.EVENT_MIN_TRACK_SECONDS   = self.params["EVENT_MIN_TRACK_SECONDS"]
 
         if getattr(self, "detector", None):
             self.detector.conf = self.params["DETECT_CONF"]

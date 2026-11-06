@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Path, Query
 from api.database import Database
 from api.dependencies import ROLE_ADMIN, CurrentUser, get_db, require_roles
 from api.repositories import facilities
-from api.v1_schemas import AreaRequest, CameraRequest, SemesterRequest
+from api.v1_schemas import AreaRequest, CameraRequest, SemesterDatesRequest, SemesterRequest
 
 router = APIRouter(prefix="/api/v1", tags=["Khu vực, camera & học kỳ"])
 
@@ -53,22 +53,25 @@ def list_semesters(_: CurrentUser = Depends(require_roles()), db: Database = Dep
     return {"items": facilities.list_semesters(db)}
 
 
-@router.post("/semesters", status_code=201, summary="Thêm học kỳ (Quản trị viên)")
-def create_semester(body: SemesterRequest, _: CurrentUser = Depends(require_roles(ROLE_ADMIN)),
+@router.post("/semesters", status_code=201, summary="Thêm học kỳ")
+def create_semester(body: SemesterRequest, _: CurrentUser = Depends(require_roles()),
                     db: Database = Depends(get_db)):
-    return {"data": facilities.save_semester(db, None, body.code, body.name, body.start_date, body.end_date)}
+    return {"data": facilities.save_semester(db, body.academic_year, body.term, body.start_date, body.end_date,
+                                             creating=True)}
 
 
-@router.put("/semesters/{semester_id}", summary="Sửa học kỳ (Quản trị viên)")
-def update_semester(body: SemesterRequest, semester_id: int = Path(ge=1),
-                    _: CurrentUser = Depends(require_roles(ROLE_ADMIN)), db: Database = Depends(get_db)):
-    return {"data": facilities.save_semester(db, semester_id, body.code, body.name, body.start_date, body.end_date)}
-
-
-@router.delete("/semesters/{semester_id}", summary="Xóa học kỳ (không ảnh hưởng bản ghi vi phạm)")
-def delete_semester(semester_id: int = Path(ge=1), _: CurrentUser = Depends(require_roles(ROLE_ADMIN)),
+@router.put("/semesters/{academic_year}/{term}", summary="Sửa ngày bắt đầu/kết thúc của học kỳ")
+def update_semester(body: SemesterDatesRequest, academic_year: str = Path(pattern=r"^\d{4}-\d{4}$"),
+                    term: int = Path(ge=1, le=3), _: CurrentUser = Depends(require_roles()),
                     db: Database = Depends(get_db)):
-    facilities.delete_semester(db, semester_id)
+    return {"data": facilities.save_semester(db, academic_year, term, body.start_date, body.end_date,
+                                             creating=False)}
+
+
+@router.delete("/semesters/{academic_year}/{term}", summary="Xóa học kỳ (bị chặn khi đã có vi phạm liên kết)")
+def delete_semester(academic_year: str = Path(pattern=r"^\d{4}-\d{4}$"), term: int = Path(ge=1, le=3),
+                    _: CurrentUser = Depends(require_roles()), db: Database = Depends(get_db)):
+    facilities.delete_semester(db, academic_year, term)
     return {"data": {"deleted": True}}
 
 @router.delete("/areas/{area_id}", summary="Xóa khu vực (Quản trị viên)")

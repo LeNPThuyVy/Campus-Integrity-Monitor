@@ -30,7 +30,6 @@
     },
     LOI_VIPHAM: {
       title: 'Loại vi phạm',
-      adminOnly: true,
       fields: [
         { name: 'TEN_LOI', label: 'Tên lỗi', maxLength: 100 },
         { name: 'DIEM_TRU', label: 'Điểm trừ tham khảo (hệ thống không tự trừ điểm)', number: true },

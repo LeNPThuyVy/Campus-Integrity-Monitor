@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="420" viewBox="0 0 320 420" role="img" aria-label="Ảnh minh họa">
+  <rect width="320" height="420" fill="#e7ebf0"/>
+  <rect x="0" y="330" width="320" height="90" fill="#cfd6df"/>
+  <circle cx="160" cy="110" r="52" fill="#9aa6b5"/>
+  <path d="M70 330c0-90 40-150 90-150s90 60 90 150z" fill="#7f8da0"/>
+  <rect x="8" y="8" width="304" height="404" fill="none" stroke="#ba1a1a" stroke-width="3" stroke-dasharray="10 6"/>
+  <text x="160" y="384" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#3c4858">Ảnh minh họa</text>
+</svg>

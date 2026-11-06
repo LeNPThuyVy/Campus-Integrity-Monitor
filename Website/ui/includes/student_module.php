@@ -996,13 +996,18 @@ function student_violation_add(PDO $pdo, array $data, DateTimeImmutable $today):
             409, 'duplicate_same_day');
     }
 
+    // (NAM_HOC, HOC_KY) = semester containing the violation date (both NULL when no semester covers it).
     $insert = $pdo->prepare(
-        'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, GHI_CHU) OUTPUT INSERTED.ID
-         VALUES (:type, :student, :day, :note)'
+        'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, GHI_CHU, NAM_HOC, HOC_KY) OUTPUT INSERTED.ID
+         SELECT :type, :student, :day, :note, hk.NAM_HOC, hk.HOC_KY
+         FROM (SELECT 1 AS X) one
+         OUTER APPLY (SELECT TOP (1) NAM_HOC, HOC_KY FROM HOCKY WHERE :day_hk BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC
+                      ORDER BY NGAY_BAT_DAU DESC) hk'
     );
     $insert->bindValue(':type', $typeId, PDO::PARAM_INT);
     $insert->bindValue(':student', $studentId, PDO::PARAM_INT);
     $insert->bindValue(':day', $date);
+    $insert->bindValue(':day_hk', $date);
     $insert->bindValue(':note', $note, $note === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
     $insert->execute();
     return ['id' => (int)$insert->fetchColumn(), 'student_id' => $studentId];
@@ -1019,4 +1024,78 @@ function student_violation_delete(PDO $pdo, mixed $violationId, mixed $studentId
     if ($delete->rowCount() === 0) {
         student_request_error('Không tìm thấy bản ghi vi phạm của sinh viên này.', 404);
     }
+}
+
+/*
+ * Bulk delete of manual violations by semester (ADMIN only, enforced in api/students.php).
+ * A record belongs to the semester by (NAM_HOC, HOC_KY), or by its date when those are NULL (rows
+ * recorded before the semester was declared).
+ */
+const STUDENT_SEMESTER_VIOLATION_FILTER =
+    'FROM CT_VIPHAM v INNER JOIN HOCKY h ON h.NAM_HOC = :year AND h.HOC_KY = :term
+     WHERE (v.NAM_HOC = h.NAM_HOC AND v.HOC_KY = h.HOC_KY)
+        OR (v.NAM_HOC IS NULL AND v.NGAY_VIPHAM BETWEEN h.NGAY_BAT_DAU AND h.NGAY_KET_THUC)';
+
+/** Validated semester key: ['year' => '2025-2026', 'term' => 1]. */
+function student_semester_key(mixed $year, mixed $term): array
+{
+    $termNumber = filter_var($term, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 3]]);
+    if (!is_string($year) || preg_match('/^(\d{4})-(\d{4})$/', $year, $m) !== 1 || (int)$m[2] !== (int)$m[1] + 1
+        || $termNumber === false) {
+        student_request_error('Năm học hoặc học kỳ không hợp lệ.', 422);
+    }
+    return ['year' => $year, 'term' => $termNumber];
+}
+
+/** Adds TEN_HK, the display name built from the key (it is not stored). */
+function student_semester_row(array $row): array
+{
+    $row['NAM_HOC'] = trim((string)$row['NAM_HOC']);
+    $row['HOC_KY'] = (int)$row['HOC_KY'];
+    $row['TEN_HK'] = 'Học kỳ ' . $row['HOC_KY'] . ' (' . $row['NAM_HOC'] . ')';
+    return $row;
+}
+
+function student_semesters(PDO $pdo): array
+{
+    $rows = $pdo->query('SELECT NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')
+        ->fetchAll();
+    return array_map('student_semester_row', $rows);
+}
+
+/** Semester row plus the number of manual violations a bulk delete would remove. */
+function student_semester_violation_count(PDO $pdo, mixed $year, mixed $term): array
+{
+    student_require_violation_schema($pdo);
+    $key = student_semester_key($year, $term);
+    $semester = $pdo->prepare('SELECT NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY
+                               WHERE NAM_HOC = :year AND HOC_KY = :term');
+    $semester->execute($key);
+    $row = $semester->fetch();
+    if (!$row) {
+        student_request_error('Không tìm thấy học kỳ.', 404);
+    }
+    $count = $pdo->prepare('SELECT COUNT(*) ' . STUDENT_SEMESTER_VIOLATION_FILTER);
+    $count->execute($key);
+    return ['semester' => student_semester_row($row), 'count' => (int)$count->fetchColumn()];
+}
+
+/**
+ * Delete every manual violation of a semester. $confirmCount must equal the count shown to the
+ * admin, so records added after the confirmation dialog opened are never removed silently.
+ */
+function student_violation_delete_semester(PDO $pdo, mixed $year, mixed $term, mixed $confirmCount): int
+{
+    $expected = filter_var($confirmCount, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+    if ($expected === false) {
+        student_request_error('Số bản ghi xác nhận không hợp lệ.', 422);
+    }
+    $current = student_semester_violation_count($pdo, $year, $term);
+    if ($current['count'] !== $expected) {
+        student_request_error('Số bản ghi vi phạm của học kỳ đã thay đổi (hiện có ' . $current['count']
+            . '). Hãy mở lại hộp xác nhận.', 409, 'count_changed');
+    }
+    $delete = $pdo->prepare('DELETE v ' . STUDENT_SEMESTER_VIOLATION_FILTER);
+    $delete->execute(['year' => $current['semester']['NAM_HOC'], 'term' => $current['semester']['HOC_KY']]);
+    return $delete->rowCount();
 }

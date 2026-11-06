@@ -21,4 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            $isCsrfError = $e instanceof \Illuminate\Session\TokenMismatchException
+                || ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && $e->getStatusCode() === 419);
+            if ($isCsrfError && ($request->is('api/*') || $request->expectsJson())) {
+                return response()->json([
+                    'error' => 'CSRF token không hợp lệ hoặc bị thiếu (HTTP 403 Forbidden).',
+                ], 403);
+            }
+            return null;
+        });
     })->create();

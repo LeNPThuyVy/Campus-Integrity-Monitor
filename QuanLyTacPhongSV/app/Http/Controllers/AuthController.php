@@ -85,10 +85,12 @@ class AuthController extends Controller
             $notice = 'Bạn đã đăng xuất.';
         } elseif ($request->has('password_changed')) {
             $notice = 'Đã đổi mật khẩu. Vui lòng đăng nhập lại bằng mật khẩu mới.';
+        } elseif ($request->has('expired')) {
+            $notice = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
         }
 
         return view('auth.login', [
-            'next' => $request->query('next', 'home'),
+            'next' => $this->normalizeNextPath($request->query('next')),
             'notice' => $notice,
             'error' => null,
         ]);
@@ -98,7 +100,7 @@ class AuthController extends Controller
     {
         $username = trim((string)$request->input('username', ''));
         $password = (string)$request->input('password', '');
-        $next = $this->safeNext($request->input('next'));
+        $next = $this->normalizeNextPath($request->input('next'));
 
         if ($username === '' || $password === '') {
             return view('auth.login', [
@@ -197,7 +199,7 @@ class AuthController extends Controller
 
             $request->session()->forget('url.intended');
 
-            $target = ($next && $next !== 'home' && $next !== 'dashboard') ? $this->safeNext($next) : route('dashboard');
+            $target = $this->safeNext($next);
             return redirect()->to($target);
         } catch (Throwable $e) {
             report($e);
@@ -249,9 +251,10 @@ class AuthController extends Controller
         $new = (string)$request->input('new_password', '');
         $confirm = (string)$request->input('confirm_password', '');
 
-        if ($new === '' || strlen($new) < 8) {
+        $strengthErrors = self::validatePasswordStrength($new);
+        if (!empty($strengthErrors)) {
             return view('auth.change_password', [
-                'error' => 'Mật khẩu mới tối thiểu 8 ký tự.',
+                'error' => 'Mật khẩu mới chưa đủ độ mạnh: ' . implode(' ', $strengthErrors),
                 'pageTitle' => 'Đổi mật khẩu',
             ]);
         }
@@ -277,6 +280,13 @@ class AuthController extends Controller
                 ]);
             }
 
+            if ($current === $new || password_verify($new, (string)$user['PASSWORD_HASH'])) {
+                return view('auth.change_password', [
+                    'error' => 'Mật khẩu mới phải khác mật khẩu hiện tại.',
+                    'pageTitle' => 'Đổi mật khẩu',
+                ]);
+            }
+
             $newHash = password_hash($new, PASSWORD_BCRYPT);
             $upd = $pdo->prepare('UPDATE TAIKHOAN SET PASSWORD_HASH = :hash, TOKEN_VERSION = TOKEN_VERSION + 1 WHERE ID = :id');
             $upd->execute(['hash' => $newHash, 'id' => $userId]);
@@ -292,6 +302,31 @@ class AuthController extends Controller
                 'pageTitle' => 'Đổi mật khẩu',
             ]);
         }
+    }
+
+    /**
+     * Kiểm tra độ phức tạp mật khẩu đồng bộ với FastAPI security.validate_password_strength.
+     * @return list<string>
+     */
+    public static function validatePasswordStrength(string $password): array
+    {
+        $problems = [];
+        if (strlen($password) < 8) {
+            $problems[] = 'phải có ít nhất 8 ký tự;';
+        }
+        if (strlen($password) > 128) {
+            $problems[] = 'không được vượt quá 128 ký tự;';
+        }
+        if (!preg_match('/[A-Z]/', $password)) {
+            $problems[] = 'cần ít nhất 1 chữ in hoa;';
+        }
+        if (!preg_match('/[a-z]/', $password)) {
+            $problems[] = 'cần ít nhất 1 chữ thường;';
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            $problems[] = 'cần ít nhất 1 chữ số.';
+        }
+        return $problems;
     }
 
     protected function decodeHexUnicode(?string $hex): string
@@ -317,14 +352,44 @@ class AuthController extends Controller
         return mb_check_encoding($hex, 'UTF-8') ? $hex : mb_convert_encoding($hex, 'UTF-8', 'Windows-1252');
     }
 
-    protected function safeNext(?string $next): string
+    public function normalizeNextPath(?string $next): string
     {
-        if (!is_string($next) || $next === '' || $next === 'home' || $next === 'dashboard' || $next === 'login' || $next === 'login.php') {
+        if (!is_string($next) || trim($next) === '') {
+            return 'home';
+        }
+        $next = trim($next);
+        // Nếu là full URL cùng host thì chỉ trích xuất path + query
+        if (str_starts_with($next, 'http://') || str_starts_with($next, 'https://')) {
+            $parsed = parse_url($next);
+            $appHost = parse_url((string)config('app.url'), PHP_URL_HOST);
+            $reqHost = request()->getHost();
+            if (!empty($parsed['host']) && $parsed['host'] !== $appHost && $parsed['host'] !== $reqHost) {
+                return 'home';
+            }
+            $path = ltrim((string)($parsed['path'] ?? ''), '/');
+            $query = isset($parsed['query']) && $parsed['query'] !== '' ? '?' . $parsed['query'] : '';
+            $next = $path . $query;
+        } else {
+            if (str_contains($next, '//') || str_contains($next, ':')) {
+                return 'home';
+            }
+            $next = ltrim($next, '/');
+        }
+        if ($next === '' || in_array($next, ['home', 'dashboard', 'login', 'login.php', 'logout', 'logout.php'], true)) {
+            return 'home';
+        }
+        if (preg_match('/^[a-zA-Z0-9_\-\.\/]+(\?[A-Za-z0-9_=&%-]*)?$/', $next) !== 1) {
+            return 'home';
+        }
+        return $next;
+    }
+
+    public function safeNext(?string $next): string
+    {
+        $normalized = $this->normalizeNextPath($next);
+        if ($normalized === 'home') {
             return route('dashboard');
         }
-        if (preg_match('/^[a-zA-Z0-9_\-\.\/]+(\?[A-Za-z0-9_=&%-]*)?$/', $next) !== 1 || str_contains($next, '//') || str_contains($next, ':')) {
-            return route('dashboard');
-        }
-        return url($next);
+        return url($normalized);
     }
 }

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <!-- Bản HTML tĩnh dùng dữ liệu mẫu, xuất từ view Blade của website -->
+  <script src="assets/js/mock-api.js"></script>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta name="csrf-token" content="mau">
+  <meta name="user-role" content="ADMIN">
+  <meta name="cim-api-base-url" content="http://127.0.0.1:8001">
+  <title>Đổi mật khẩu · CTSV</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/images/logo.jpg" type="image/jpeg">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="assets/js/tailwind.config.js"></script>
+</head>
+<body class="bg-surface font-body-md text-body-md text-on-surface antialiased">
+<div class="fixed inset-0 z-40 hidden bg-inverse-surface/40 lg:hidden" id="sidebar-backdrop"></div>
+
+<aside class="fixed left-0 top-0 z-50 flex h-full w-[260px] -translate-x-full flex-col justify-between bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-transform duration-200 select-none lg:translate-x-0" id="sidebar">
+  <div class="flex flex-col">
+    <div class="p-space-md flex items-center gap-space-sm bg-surface-container-low">
+      <div class="w-10 h-10 rounded-xl bg-surface-container-lowest flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-0.5 border border-surface-container">
+        <img src="assets/images/logo.jpg" alt="Logo trường" class="w-full h-full object-contain rounded-lg">
+      </div>
+      <div class="flex flex-col min-w-0">
+        <span class="font-headline-sm text-headline-sm text-primary uppercase tracking-tight truncate">Quản lý tác phong</span>
+        <span class="font-label-sm text-label-sm text-on-surface-variant truncate">Phòng Công tác Sinh viên</span>
+      </div>
+    </div>
+    <div class="px-space-md pt-space-md pb-space-xs">
+      <span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Hệ thống giám sát</span>
+    </div>
+    <nav class="flex flex-col gap-space-xs px-space-sm" aria-label="Điều hướng chính">
+                                  <a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+             href="tong_quan.html">
+            <span class="material-symbols-outlined text-[20px]">dashboard</span>
+            <span class="font-label-lg text-label-lg">Tổng quan</span>
+          </a>
+                                          <a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+             href="ban_ghi_vi_pham.html">
+            <span class="material-symbols-outlined text-[20px]">warning</span>
+            <span class="font-label-lg text-label-lg">Bản ghi vi phạm</span>
+          </a>
+                                          <a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+             href="bao_cao.html">
+            <span class="material-symbols-outlined text-[20px]">bar_chart</span>
+            <span class="font-label-lg text-label-lg">Thống kê &amp; báo cáo</span>
+          </a>
+                                          <a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+             href="sinh_vien.html">
+            <span class="material-symbols-outlined text-[20px]">school</span>
+            <span class="font-label-lg text-label-lg">Sinh viên</span>
+          </a>
+                                          <a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+             href="danh_muc.html">
+            <span class="material-symbols-outlined text-[20px]">category</span>
+            <span class="font-label-lg text-label-lg">Danh mục</span>
+          </a>
+                                          <a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+             href="camera_khu_vuc.html">
+            <span class="material-symbols-outlined text-[20px]">videocam</span>
+            <span class="font-label-lg text-label-lg">Camera &amp; khu vực</span>
+          </a>
+                                          <a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+             href="phan_quyen.html">
+            <span class="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+            <span class="font-label-lg text-label-lg">Tài khoản &amp; phân quyền</span>
+          </a>
+                  </nav>
+  </div>
+  <p class="px-space-md pb-space-md font-label-sm text-label-sm text-outline">
+    Bản ghi AI không chứa danh tính sinh viên. CTSV tự đối chiếu và xử lý điểm rèn luyện bên ngoài hệ thống.
+  </p>
+</aside>
+
+<div class="lg:pl-[260px]">
+  <header class="fixed top-0 left-0 right-0 lg:left-[260px] h-16 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-30 px-space-md sm:px-space-lg flex items-center justify-between gap-space-md">
+    <div class="flex items-center gap-space-sm min-w-0">
+      <button class="lg:hidden w-9 h-9 rounded-xl bg-surface-container-low flex items-center justify-center" id="sidebar-toggle" type="button" aria-label="Mở menu" aria-controls="sidebar" aria-expanded="false">
+        <span class="material-symbols-outlined text-[20px]">menu</span>
+      </button>
+      <div class="flex items-center gap-1.5 text-on-surface-variant min-w-0">
+        <span class="hidden sm:inline font-body-sm text-body-sm">CTSV</span>
+        <span class="hidden sm:inline material-symbols-outlined text-[16px]">chevron_right</span>
+        <span class="font-label-md text-label-md text-on-surface font-semibold truncate">Đổi mật khẩu</span>
+      </div>
+    </div>
+    <div class="relative" id="account-menu">
+      <button class="flex items-center gap-space-sm pl-2 py-1 pr-1.5 rounded-xl hover:bg-surface-container-low transition-all" type="button" aria-haspopup="true" aria-expanded="false" id="account-menu-button">
+        <span class="hidden sm:flex flex-col text-right">
+          <span class="font-label-md text-label-md text-on-surface font-semibold leading-tight">Quản trị hệ thống</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant leading-tight">Quản trị viên</span>
+        </span>
+        <span class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+          <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
+        </span>
+        <span class="material-symbols-outlined text-[16px] text-outline">expand_more</span>
+      </button>
+      <div class="absolute right-0 top-full mt-1.5 w-56 bg-surface-container-lowest rounded-xl shadow-[0_10px_15px_-3px_rgba(15,23,42,0.12)] py-1.5 hidden z-50" id="account-menu-panel">
+        <div class="px-space-md py-2 border-b border-surface-container sm:hidden">
+          <div class="font-label-md font-semibold text-on-surface">Quản trị hệ thống</div>
+          <div class="font-label-sm text-on-surface-variant">Quản trị viên</div>
+        </div>
+        <a class="flex items-center gap-space-sm px-space-md py-2 text-on-surface hover:bg-surface-container-low font-label-md transition-colors" href="doi_mat_khau.html">
+          <span class="material-symbols-outlined text-[18px]">key</span>
+          <span>Đổi mật khẩu</span>
+        </a>
+        <form method="POST" action="dang_nhap.html" class="m-0">
+          <input type="hidden" name="_token" value="mau" autocomplete="off">          <button class="w-full flex items-center gap-space-sm px-space-md py-2 text-error hover:bg-error/10 font-label-md transition-colors text-left" type="submit">
+            <span class="material-symbols-outlined text-[18px]">logout</span>
+            <span>Đăng xuất</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <main class="pt-16 px-space-md sm:px-space-lg min-h-screen">
+    <div class="flex flex-col gap-space-md py-space-md pb-space-xl max-w-xl">
+  <div>
+    <h1 class="font-headline-xl text-headline-xl">Đổi mật khẩu</h1>
+    <p class="text-on-surface-variant">Sau khi đổi, mọi phiên đăng nhập cũ sẽ bị thu hồi và bạn cần đăng nhập lại.</p>
+  </div>
+    <form class="flex flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg shadow-sm" method="post" action="doi_mat_khau.html" id="password-form">
+    <input type="hidden" name="_token" value="mau" autocomplete="off">    <label class="flex flex-col gap-1">
+      <span class="font-label-md text-label-md">Mật khẩu hiện tại</span>
+      <input class="h-10 rounded-lg bg-surface-container-low px-3" type="password" name="current_password" autocomplete="current-password" required maxlength="256">
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="font-label-md text-label-md">Mật khẩu mới</span>
+      <input class="h-10 rounded-lg bg-surface-container-low px-3" type="password" name="new_password" id="new-password" autocomplete="new-password" required minlength="8" maxlength="128">
+      <span class="font-label-sm text-label-sm text-on-surface-variant">Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và chữ số.</span>
+      <span class="flex h-1.5 gap-1 overflow-hidden rounded-full" aria-hidden="true">
+        <span class="w-1/4 bg-surface-variant" data-bar></span><span class="w-1/4 bg-surface-variant" data-bar></span>
+        <span class="w-1/4 bg-surface-variant" data-bar></span><span class="w-1/4 bg-surface-variant" data-bar></span>
+      </span>
+      <span class="font-label-sm text-label-sm" id="strength-label">Chưa nhập</span>
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="font-label-md text-label-md">Nhập lại mật khẩu mới</span>
+      <input class="h-10 rounded-lg bg-surface-container-low px-3" type="password" name="confirm_password" id="confirm-password" autocomplete="new-password" required maxlength="128">
+    </label>
+    <button class="self-start rounded-lg bg-primary-container px-space-lg py-2 font-label-md text-on-primary" type="submit">Đổi mật khẩu</button>
+  </form>
+</div>
+  </main>
+</div>
+
+<div class="fixed bottom-5 right-5 z-[60] flex max-w-sm flex-col gap-2" id="toast-region" aria-live="polite"></div>
+
+<dialog class="w-[min(92vw,460px)] rounded-xl p-0 shadow-xl backdrop:bg-inverse-surface/50" id="confirm-dialog">
+  <form method="dialog" class="flex flex-col gap-space-md p-space-lg">
+    <h2 class="font-headline-md text-headline-md" id="confirm-title">Xác nhận thao tác</h2>
+    <p class="text-on-surface-variant" id="confirm-message"></p>
+    <div class="flex justify-end gap-space-sm">
+      <button class="rounded-lg bg-surface-container px-space-md py-2 font-label-md" value="cancel" type="submit">Hủy</button>
+      <button class="rounded-lg bg-primary-container px-space-md py-2 font-label-md text-on-primary" value="ok" id="confirm-ok" type="submit">Xác nhận</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="assets/js/common.js"></script>
+<script>
+  (() => {
+    const input = document.getElementById('new-password');
+    const confirm = document.getElementById('confirm-password');
+    const bars = document.querySelectorAll('[data-bar]');
+    const label = document.getElementById('strength-label');
+    const colors = ['bg-error', 'bg-tertiary', 'bg-secondary', 'bg-primary-container'];
+    const names = ['Yếu', 'Trung bình', 'Khá', 'Mạnh'];
+    input.addEventListener('input', () => {
+      const value = input.value;
+      let score = 0;
+      if (value.length >= 8) score++;
+      if (/[A-Z]/.test(value) && /[a-z]/.test(value)) score++;
+      if (/[0-9]/.test(value)) score++;
+      if (/[^A-Za-z0-9]/.test(value) || value.length >= 12) score++;
+      bars.forEach((bar, index) => { bar.className = 'w-1/4 ' + (index < score ? colors[score - 1] : 'bg-surface-variant'); });
+      label.textContent = value ? names[Math.max(score, 1) - 1] : 'Chưa nhập';
+    });
+    document.getElementById('password-form').addEventListener('submit', (event) => {
+      if (input.value !== confirm.value) {
+        event.preventDefault();
+        CIM.toast('Mật khẩu nhập lại không khớp.', 'error');
+      }
+    });
+  })();
+</script>
+</body>
+</html>

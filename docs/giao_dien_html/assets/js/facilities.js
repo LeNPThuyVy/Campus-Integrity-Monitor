@@ -1,0 +1,249 @@
+(() => {
+  'use strict';
+
+  const state = { areas: [], cameras: [], semesters: [] };
+  const statusBadge = (active) => CIM.el('span',
+    `rounded-full px-2 py-0.5 font-label-sm text-label-sm ${active ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container text-on-surface-variant'}`,
+    active ? 'Đang sử dụng' : 'Ngừng sử dụng');
+
+  // ------------------------------------------------------------------ tabs
+  const tabs = document.querySelectorAll('[data-tab]');
+  function showTab(name) {
+    tabs.forEach((tab) => {
+      const active = tab.dataset.tab === name;
+      tab.classList.toggle('bg-surface-container-lowest', active);
+      tab.classList.toggle('shadow-sm', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    document.querySelectorAll('[data-panel]').forEach((panel) => {
+      const active = panel.dataset.panel === name;
+      panel.classList.toggle('hidden', !active);
+      panel.classList.toggle('grid', active);
+    });
+  }
+  tabs.forEach((tab) => tab.addEventListener('click', () => showTab(tab.dataset.tab)));
+  showTab('areas');
+
+  // ------------------------------------------------------------------ generic form helpers
+  function setupForm(formId, onSubmit, titles) {
+    const form = document.getElementById(formId);
+    if (!form) return null;
+    const cancel = form.querySelector('[data-cancel]');
+    const title = form.querySelector('[data-title]');
+    form.addEventListener('reset', () => setTimeout(() => {
+      form.elements.id.value = '';
+      title.textContent = titles.create;
+      cancel.classList.add('hidden');
+    }, 0));
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      const button = form.querySelector('button[type="submit"]');
+      CIM.setBusy(button, true);
+      try {
+        await onSubmit(form, form.elements.id.value || null);
+        form.reset();
+      } catch (error) {
+        CIM.toast(error.message, 'error');
+      } finally {
+        CIM.setBusy(button, false);
+      }
+    });
+    return {
+      edit(values) {
+        for (const [key, value] of Object.entries(values)) {
+          const input = form.elements[key];
+          if (!input) continue;
+          if (input.type === 'checkbox') input.checked = Boolean(value); else input.value = value ?? '';
+        }
+        title.textContent = titles.edit;
+        cancel.classList.remove('hidden');
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      },
+    };
+  }
+
+  function actionButton(label, handler, className = 'bg-surface-container') {
+    const button = CIM.el('button', `ml-1 rounded-lg px-3 py-1.5 font-label-md ${className}`, label);
+    button.type = 'button';
+    button.addEventListener('click', handler);
+    return button;
+  }
+
+  // ------------------------------------------------------------------ areas
+  const areaForm = setupForm('area-form', async (form, id) => {
+    const body = { code: form.elements.code.value, name: form.elements.name.value,
+      description: form.elements.description.value || null, active: form.elements.active.checked };
+    if (id && !body.active && !(await CIM.confirmAction(
+      'Ngừng sử dụng khu vực này? Camera thuộc khu vực sẽ không ghi nhận vi phạm mới; dữ liệu cũ vẫn được giữ.',
+      { danger: true }))) return;
+    await CIM.api(id ? 'area' : 'areas', { method: id ? 'PUT' : 'POST', params: id ? { id } : {}, body });
+    CIM.toast(id ? 'Đã cập nhật khu vực.' : 'Đã thêm khu vực.');
+    await loadAll();
+  }, { create: 'Thêm khu vực', edit: 'Sửa khu vực' });
+
+  function renderAreas() {
+    const tbody = document.getElementById('area-body');
+    if (!state.areas.length) { CIM.stateRow(tbody, 6, 'Chưa có khu vực. Quản trị viên cần khai báo khu vực trước khi thêm camera.'); return; }
+    tbody.replaceChildren(...state.areas.map((area) => {
+      const row = CIM.el('tr', 'border-t border-surface-container');
+      row.append(CIM.el('td', 'px-space-md py-3 font-data-mono', area.code), CIM.el('td', 'px-space-md py-3', area.name),
+        CIM.el('td', 'px-space-md py-3 text-on-surface-variant', area.description || '—'),
+        CIM.el('td', 'px-space-md py-3', area.camera_count));
+      const status = CIM.el('td', 'px-space-md py-3');
+      status.append(statusBadge(area.active));
+      const actions = CIM.el('td', 'px-space-md py-3 text-right whitespace-nowrap');
+      if (areaForm) {
+        actions.append(actionButton('Sửa', () => areaForm.edit(area)));
+        actions.append(actionButton('Xóa', async () => {
+          if (!(await CIM.confirmAction(`Xóa khu vực ${area.code} (${area.name})? Thao tác này không thể hoàn tác.`, { danger: true, okText: 'Xóa' }))) return;
+          try {
+            await CIM.api('area', { method: 'DELETE', params: { id: area.id } });
+            CIM.toast('Đã xóa khu vực thành công.');
+            await loadAll();
+          } catch (error) { CIM.toast(error.message, 'error'); }
+        }, 'bg-error-container text-on-error-container'));
+      } else {
+        actions.textContent = 'Chỉ xem';
+      }
+      row.append(status, actions);
+      return row;
+    }));
+  }
+
+  // ------------------------------------------------------------------ cameras
+  const cameraForm = setupForm('camera-form', async (form, id) => {
+    const body = { code: form.elements.code.value, name: form.elements.name.value,
+      area_id: Number(form.elements.area_id.value), location: form.elements.location.value || null,
+      active: form.elements.active.checked };
+    if (id && !body.active && !(await CIM.confirmAction(
+      'Ngừng sử dụng camera này? Desktop dùng camera này sẽ bị từ chối khi gửi vi phạm mới.', { danger: true }))) return;
+    await CIM.api(id ? 'camera' : 'cameras', { method: id ? 'PUT' : 'POST', params: id ? { id } : {}, body });
+    CIM.toast(id ? 'Đã cập nhật camera.' : 'Đã thêm camera.');
+    await loadAll();
+  }, { create: 'Thêm camera', edit: 'Sửa camera' });
+
+  function renderCameras() {
+    const tbody = document.getElementById('camera-body');
+    if (!state.cameras.length) { CIM.stateRow(tbody, 5, 'Chưa có camera.'); return; }
+    tbody.replaceChildren(...state.cameras.map((camera) => {
+      const row = CIM.el('tr', 'border-t border-surface-container');
+      const name = CIM.el('td', 'px-space-md py-3');
+      name.append(CIM.el('div', 'font-semibold', camera.name), CIM.el('div', 'text-on-surface-variant', camera.location || '—'));
+      const status = CIM.el('td', 'px-space-md py-3');
+      status.append(statusBadge(camera.active));
+      const actions = CIM.el('td', 'px-space-md py-3 text-right whitespace-nowrap');
+      if (cameraForm) {
+        actions.append(actionButton('Sửa', () => cameraForm.edit({ ...camera, area_id: camera.area.id })));
+        actions.append(actionButton('Xóa', async () => {
+          if (!(await CIM.confirmAction(`Xóa camera ${camera.code} (${camera.name})? Thao tác này không thể hoàn tác.`, { danger: true, okText: 'Xóa' }))) return;
+          try {
+            await CIM.api('camera', { method: 'DELETE', params: { id: camera.id } });
+            CIM.toast('Đã xóa camera thành công.');
+            await loadAll();
+          } catch (error) { CIM.toast(error.message, 'error'); }
+        }, 'bg-error-container text-on-error-container'));
+      } else {
+        actions.textContent = 'Chỉ xem';
+      }
+      row.append(
+        CIM.el('td', 'px-space-md py-3 font-data-mono', camera.code),
+        name,
+        CIM.el('td', 'px-space-md py-3', camera.area.name),
+        status,
+        actions
+      );
+      return row;
+    }));
+  }
+
+  // Kept separate from renderCameras: the first camera can only be created once this list is filled.
+  function renderAreaChoices() {
+    const areaSelect = document.getElementById('camera-form')?.elements.area_id;
+    if (!areaSelect) return;
+    const selected = areaSelect.value;
+    areaSelect.replaceChildren(new Option('-- Chọn khu vực --', ''),
+      ...state.areas.map((a) => new Option(`${a.code} - ${a.name}${a.active ? '' : ' (ngừng)'}`, a.id)));
+    areaSelect.value = selected;
+  }
+
+  // ------------------------------------------------------------------ semesters
+  // A semester is keyed by (academic year, term); that key cannot change, editing only changes the dates.
+  const semesterForm = setupForm('semester-form', async (form, id) => {
+    const dates = { start_date: form.elements.start_date.value, end_date: form.elements.end_date.value };
+    if (id) {
+      const [academic_year, term] = id.split('|');
+      await CIM.api('semester', { method: 'PUT', params: { academic_year, term }, body: dates });
+    } else {
+      await CIM.api('semesters', { method: 'POST', body: { academic_year: form.elements.academic_year.value,
+        term: Number(form.elements.term.value), ...dates } });
+    }
+    CIM.toast(id ? 'Đã cập nhật học kỳ.' : 'Đã thêm học kỳ.');
+    await loadAll();
+  }, { create: 'Thêm học kỳ', edit: 'Sửa ngày của học kỳ' });
+  const semesterFormEl = document.getElementById('semester-form');
+  function lockSemesterKey(locked) {
+    if (semesterFormEl && semesterFormEl.elements.academic_year) {
+      semesterFormEl.elements.academic_year.readOnly = locked;
+      semesterFormEl.elements.term.disabled = locked;
+    }
+  }
+  semesterFormEl?.addEventListener('reset', () => lockSemesterKey(false));
+
+  function renderSemesters() {
+    const tbody = document.getElementById('semester-body');
+    if (!state.semesters.length) { CIM.stateRow(tbody, 5, 'Chưa khai báo học kỳ. Báo cáo theo học kỳ cần ít nhất một học kỳ.'); return; }
+    tbody.replaceChildren(...state.semesters.map((semester) => {
+      const row = CIM.el('tr', 'border-t border-surface-container');
+      const nameTd = CIM.el('td', 'px-space-md py-3 flex items-center gap-2', semester.name);
+      if (semester.is_current) {
+        nameTd.append(CIM.el('span', 'rounded-full px-2 py-0.5 font-label-sm text-label-sm bg-primary-container text-on-primary-container font-semibold', 'Đang diễn ra'));
+      }
+      row.append(
+        CIM.el('td', 'px-space-md py-3 font-data-mono', semester.academic_year),
+        nameTd,
+        CIM.el('td', 'px-space-md py-3', CIM.formatDate(semester.start_date)),
+        CIM.el('td', 'px-space-md py-3', CIM.formatDate(semester.end_date))
+      );
+      const actions = CIM.el('td', 'px-space-md py-3 text-right whitespace-nowrap');
+      if (semesterForm) {
+        actions.append(actionButton('Sửa', () => {
+          semesterForm.edit({ ...semester, id: `${semester.academic_year}|${semester.term}` });
+          lockSemesterKey(true);
+        }));
+        actions.append(actionButton('Xóa', async () => {
+          if (!(await CIM.confirmAction(`Xóa ${semester.name}? Không xóa được nếu đã có vi phạm thuộc học kỳ này.`, { danger: true, okText: 'Xóa' }))) return;
+          try {
+            await CIM.api('semester', { method: 'DELETE', params: { academic_year: semester.academic_year, term: semester.term } });
+            CIM.toast('Đã xóa học kỳ.');
+            await loadAll();
+          } catch (error) { CIM.toast(error.message, 'error'); }
+        }, 'bg-error-container text-on-error-container'));
+      } else {
+        actions.textContent = 'Chỉ xem';
+      }
+      row.append(actions);
+      return row;
+    }));
+  }
+
+  async function loadAll() {
+    for (const id of ['area-body', 'camera-body']) CIM.stateRow(document.getElementById(id), 6, 'Đang tải…', 'loading');
+    CIM.stateRow(document.getElementById('semester-body'), 5, 'Đang tải…', 'loading');
+    try {
+      const [areas, cameras, semesters] = await Promise.all([CIM.api('areas'), CIM.api('cameras'), CIM.api('semesters')]);
+      state.areas = areas.items;
+      state.cameras = cameras.items;
+      state.semesters = semesters.items;
+      renderAreas();
+      renderAreaChoices();
+      renderCameras();
+      renderSemesters();
+    } catch (error) {
+      for (const id of ['area-body', 'camera-body']) CIM.stateRow(document.getElementById(id), 6, error.message, 'error');
+      CIM.stateRow(document.getElementById('semester-body'), 5, error.message, 'error');
+    }
+  }
+
+  loadAll();
+})();

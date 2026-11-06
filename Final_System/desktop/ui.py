@@ -578,7 +578,7 @@ class CampusMonitorUI:
             return spin
 
         self.spin_frame_skip     = add_spinbox(spin_panel, 0, 0, "Khung nhảy (Skip):", "FRAME_SKIP",                1, 20)
-        self.spin_history_len    = add_spinbox(spin_panel, 0, 1, "Độ dài lịch sử:",    "LEN_HISTORY",              5, 50)
+        self.spin_history_len    = add_spinbox(spin_panel, 0, 1, "Độ dài lịch sử:",    "LEN_HISTORY",              5, 1000)
         self.spin_voting_thresh  = add_spinbox(spin_panel, 1, 0, "Khung tối thiểu:",   "VOTING_THREDSHOLD",        1, 50)
         self.spin_missing_thresh = add_spinbox(spin_panel, 1, 1, "Ngưỡng biến mất:",  "MISSING_COUNTER_THRESHOLD",1, 60)
         self.spin_dedup          = add_spinbox(spin_panel, 2, 0, "Chống lặp (giây):",  "EVENT_DEDUP_SECONDS",     10, 3600)

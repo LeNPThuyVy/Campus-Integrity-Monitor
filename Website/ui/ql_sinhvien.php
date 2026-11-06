@@ -28,6 +28,12 @@ include __DIR__ . '/includes/header.php';
 <span class="material-symbols-outlined text-[18px]">file_download</span>
 <span class="">Xuất danh sách</span>
 </button>
+<?php if ($cimUser['role'] === 'ADMIN'): ?>
+<button class="flex items-center gap-space-xs px-3.5 py-2 rounded-xl bg-error-container hover:bg-error hover:text-on-error text-on-error-container font-label-md text-label-md transition-all shadow-sm" id="open-semester-purge-btn" type="button">
+<span class="material-symbols-outlined text-[18px]">delete_sweep</span>
+<span class="">Xóa vi phạm theo học kỳ</span>
+</button>
+<?php endif; ?>
 <button class="flex items-center gap-space-xs px-4 py-2 rounded-xl bg-primary-container text-on-primary hover:bg-primary transition-all font-label-md text-label-md shadow-sm" id="open-drawer-btn">
 <span class="material-symbols-outlined text-[18px]">person_add</span>
 <span class="">Thêm sinh viên</span>
@@ -437,6 +443,25 @@ include __DIR__ . '/includes/header.php';
 </div>
 </div>
 </div>
+<?php if ($cimUser['role'] === 'ADMIN'): ?>
+<!-- Bulk delete of manual violations (CT_VIPHAM) by semester: ADMIN only (also enforced in api/students.php) -->
+<dialog class="w-[min(92vw,500px)] rounded-xl p-0 shadow-xl backdrop:bg-inverse-surface/50" id="semester-purge-dialog" aria-labelledby="semester-purge-title">
+<form class="flex flex-col gap-space-md p-space-lg" id="semester-purge-form" method="dialog" novalidate>
+<h2 class="font-headline-md text-headline-md text-error" id="semester-purge-title">Xóa vi phạm theo học kỳ</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Xóa toàn bộ vi phạm ghi nhận thủ công của sinh viên trong một học kỳ. Bản ghi phát hiện từ camera và số liệu báo cáo không bị ảnh hưởng. Thao tác không thể hoàn tác.</p>
+<label class="flex flex-col gap-1 font-label-md">Học kỳ
+<select class="h-9 rounded-lg bg-surface-container-low px-3" id="sp-semester" required></select></label>
+<p class="font-label-md text-label-md" id="sp-count" aria-live="polite"></p>
+<label class="flex flex-col gap-1 font-label-md">Nhập lại mã học kỳ để xác nhận
+<input class="h-9 rounded-lg bg-surface-container-low px-3 font-data-mono" id="sp-confirm" autocomplete="off" disabled></label>
+<p class="font-body-sm text-body-sm text-error" id="sp-status" role="status" aria-live="polite"></p>
+<div class="flex justify-end gap-space-sm">
+<button class="rounded-lg bg-surface-container px-space-md py-2 font-label-md" id="sp-cancel" value="cancel" type="button">Hủy</button>
+<button class="rounded-lg bg-error px-space-md py-2 font-label-md text-on-error disabled:opacity-50" id="sp-submit" type="submit" disabled>Xóa vi phạm</button>
+</div>
+</form>
+</dialog>
+<?php endif; ?>
 <script src="assets/js/students.js" defer></script>
 <script src="assets/js/student_violations.js" defer></script>
 <?php include __DIR__ . '/includes/footer.php'; ?>

@@ -7,11 +7,19 @@ $pageTitle = 'Bản ghi vi phạm';
 include __DIR__ . '/includes/header.php';
 ?>
 <div class="flex flex-col gap-space-md py-space-md pb-space-xl">
-  <div>
-    <h1 class="font-headline-xl text-headline-xl">Tra cứu bản ghi vi phạm</h1>
-    <p class="text-on-surface-variant">
-      Bản ghi do Desktop/AI gửi lên. Hệ thống không gắn MSSV hay họ tên; CTSV tự đối chiếu danh tính và xử lý điểm rèn luyện bên ngoài hệ thống.
-    </p>
+  <div class="flex flex-col gap-space-sm sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h1 class="font-headline-xl text-headline-xl">Tra cứu bản ghi vi phạm</h1>
+      <p class="text-on-surface-variant">
+        Bản ghi do Desktop/AI gửi lên. Hệ thống không gắn MSSV hay họ tên; CTSV tự đối chiếu danh tính và xử lý điểm rèn luyện bên ngoài hệ thống.
+      </p>
+      <p class="font-label-sm text-label-sm text-outline">
+        Bản ghi phát hiện đã xem/đã xử lý/bỏ qua tự xóa sau 1 ngày. Chi tiết vi phạm đã ghi cho sinh viên không bị ảnh hưởng.
+      </p>
+    </div>
+    <button class="flex shrink-0 items-center gap-1 self-start rounded-lg bg-error px-space-md py-2 font-label-md text-on-error" id="delete-all-detections" type="button">
+      <span class="material-symbols-outlined text-[18px]">delete_sweep</span>Xóa toàn bộ bản ghi phát hiện
+    </button>
   </div>
 
   <form class="grid grid-cols-1 gap-space-sm rounded-xl bg-surface-container-lowest p-space-md shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8" id="violation-filters">
@@ -41,6 +49,11 @@ include __DIR__ . '/includes/header.php';
       </button>
     </div>
   </form>
+
+  <div class="hidden flex items-center justify-between gap-space-sm rounded-xl bg-error-container px-space-md py-space-sm text-on-error-container" id="new-violations-bar" role="status">
+    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">notifications_active</span><span id="new-violations-text">Có vi phạm mới.</span></span>
+    <button class="rounded-lg bg-surface-container-lowest px-space-md py-1.5 font-label-md text-on-surface" type="button" id="new-violations-reload">Tải lại danh sách</button>
+  </div>
 
   <section class="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
     <div class="overflow-x-auto">

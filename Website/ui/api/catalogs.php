@@ -42,11 +42,6 @@ $body = student_decode_json_body();
 $entity = strtoupper((string)($body['entity'] ?? ''));
 $action = $body['action'] ?? '';
 
-// Violation types drive AI ingestion and reports: only administrators may change them.
-if ($entity === 'LOI_VIPHAM' && ($_SESSION['role'] ?? null) !== 'ADMIN') {
-    student_json_error('Chỉ Quản trị viên được thay đổi loại vi phạm.', 403);
-}
-
 try {
     $pdo->beginTransaction();
     if ($action === 'save') {

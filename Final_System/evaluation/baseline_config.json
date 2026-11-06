@@ -1,0 +1,12 @@
+{
+    "_mo_ta": "Cấu hình voting/event gốc của app trước khi tinh chỉnh (03/11/2026), dùng cho mục 5.0 của báo cáo.",
+    "CLASSIFY_CONF": 0.6,
+    "DETECT_CARD_CONF": 0.5,
+    "LEN_HISTORY": 12,
+    "VOTING_THREDSHOLD": 5,
+    "VIOLATION_RATIO": 0.55,
+    "LABEL_HOLD_SECONDS": 2,
+    "MISSING_COUNTER_THRESHOLD": 5,
+    "EVENT_DEDUP_SECONDS": 60,
+    "EVENT_MIN_TRACK_SECONDS": 0
+}

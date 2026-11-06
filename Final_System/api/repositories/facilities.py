@@ -153,14 +153,32 @@ def save_camera(db: Database, camera_id: int | None, code: str, name: str, area_
 
 
 # ------------------------------------------------------------------------------- semesters
+# HOCKY is keyed by (NAM_HOC, HOC_KY); the display name is derived, never stored.
+
+ACADEMIC_YEAR_PATTERN = re.compile(r"^(\d{4})-(\d{4})$")
+
+
+def semester_key(academic_year: str, term: int) -> tuple[str, int]:
+    match = ACADEMIC_YEAR_PATTERN.fullmatch((academic_year or "").strip())
+    if not match or int(match.group(2)) != int(match.group(1)) + 1:
+        raise validation_error("Năm học phải có dạng YYYY-YYYY, năm sau lớn hơn năm trước 1 (ví dụ 2025-2026).")
+    if term not in (1, 2, 3):
+        raise validation_error("Học kỳ phải là 1, 2 hoặc 3.")
+    return match.group(0), term
+
+
+def semester_name(academic_year: str, term: int) -> str:
+    return f"Học kỳ {term} ({academic_year})"
+
 
 def semester_to_dict(row: dict[str, Any], today: date | None = None) -> dict[str, Any]:
     today = today or date.today()
     start_date = row["NGAY_BAT_DAU"]
     end_date = row["NGAY_KET_THUC"]
     is_current = bool(start_date <= today <= end_date)
+    academic_year, term = row["NAM_HOC"].strip(), int(row["HOC_KY"])
     return {
-        "id": row["ID"], "code": row["MA_HK"], "name": row["TEN_HK"],
+        "academic_year": academic_year, "term": term, "name": semester_name(academic_year, term),
         "start_date": start_date, "end_date": end_date, "is_current": is_current,
     }
 
@@ -170,8 +188,9 @@ def list_semesters(db: Database) -> list[dict[str, Any]]:
             db.fetch_all("SELECT * FROM dbo.HOCKY ORDER BY NGAY_BAT_DAU DESC")]
 
 
-def get_semester(db: Database, semester_id: int) -> dict[str, Any]:
-    row = db.fetch_one("SELECT * FROM dbo.HOCKY WHERE ID = ?", (semester_id,))
+def get_semester(db: Database, academic_year: str, term: int) -> dict[str, Any]:
+    academic_year, term = semester_key(academic_year, term)
+    row = db.fetch_one("SELECT * FROM dbo.HOCKY WHERE NAM_HOC = ? AND HOC_KY = ?", (academic_year, term))
     if row is None:
         raise not_found("Không tìm thấy học kỳ.")
     return semester_to_dict(row)
@@ -183,51 +202,46 @@ def current_semester(db: Database, today: date) -> dict[str, Any] | None:
     return semester_to_dict(row, today) if row else None
 
 
-def save_semester(db: Database, semester_id: int | None, code: str, name: str, start_date: date,
-                  end_date: date) -> dict[str, Any]:
-    code = _code(code, "Mã học kỳ", 20)
-    name = _text(name, "Tên học kỳ", 100)
+def save_semester(db: Database, academic_year: str, term: int, start_date: date, end_date: date,
+                  creating: bool) -> dict[str, Any]:
+    """Create a semester, or (creating=False) change its dates; the key itself never changes."""
+    academic_year, term = semester_key(academic_year, term)
     if end_date < start_date:
         raise validation_error("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.")
     try:
         with db.transaction() as cursor:
             cursor.execute(
-                "SELECT TOP (1) MA_HK FROM dbo.HOCKY WHERE (? IS NULL OR ID <> ?) "
+                "SELECT TOP (1) NAM_HOC, HOC_KY FROM dbo.HOCKY WHERE NOT (NAM_HOC = ? AND HOC_KY = ?) "
                 "AND NGAY_BAT_DAU <= ? AND NGAY_KET_THUC >= ?",
-                semester_id, semester_id, end_date, start_date,
+                academic_year, term, end_date, start_date,
             )
             overlap = cursor.fetchone()
             if overlap is not None:
-                raise conflict(f"Khoảng thời gian bị trùng với học kỳ {overlap[0]}.")
-            if semester_id is None:
-                cursor.execute("INSERT INTO dbo.HOCKY (MA_HK, TEN_HK, NGAY_BAT_DAU, NGAY_KET_THUC) "
-                               "OUTPUT INSERTED.ID VALUES (?, ?, ?, ?)", code, name, start_date, end_date)
-                semester_id = cursor.fetchone()[0]
+                raise conflict(f"Khoảng thời gian bị trùng với {semester_name(overlap[0].strip(), overlap[1])}.")
+            if creating:
+                cursor.execute("INSERT INTO dbo.HOCKY (NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC) "
+                               "VALUES (?, ?, ?, ?)", academic_year, term, start_date, end_date)
             else:
-                cursor.execute("UPDATE dbo.HOCKY SET MA_HK = ?, TEN_HK = ?, NGAY_BAT_DAU = ?, "
-                               "NGAY_KET_THUC = ? WHERE ID = ?", code, name, start_date, end_date, semester_id)
+                cursor.execute("UPDATE dbo.HOCKY SET NGAY_BAT_DAU = ?, NGAY_KET_THUC = ? "
+                               "WHERE NAM_HOC = ? AND HOC_KY = ?", start_date, end_date, academic_year, term)
                 if cursor.rowcount == 0:
                     raise not_found("Không tìm thấy học kỳ.")
     except Exception as exc:
         if getattr(exc, "status_code", None):
             raise
-        _translate_write_error(exc, "Mã học kỳ đã tồn tại.")
-    return get_semester(db, semester_id)
+        _translate_write_error(exc, f"{semester_name(academic_year, term)} đã tồn tại.")
+    return get_semester(db, academic_year, term)
 
 
-def delete_semester(db: Database, semester_id: int) -> None:
-    """Semesters are linked to CT_VIPHAM via MA_HK; deleting a referenced semester is disallowed."""
+def delete_semester(db: Database, academic_year: str, term: int) -> None:
+    """Semesters are linked to CT_VIPHAM via (NAM_HOC, HOC_KY); deleting a referenced semester is disallowed."""
+    academic_year, term = semester_key(academic_year, term)
     with db.transaction() as cursor:
-        cursor.execute(
-            "SELECT COUNT(*) FROM dbo.CT_VIPHAM cv "
-            "INNER JOIN dbo.HOCKY hk ON cv.MA_HK = hk.MA_HK "
-            "WHERE hk.ID = ?",
-            semester_id,
-        )
+        cursor.execute("SELECT COUNT(*) FROM dbo.CT_VIPHAM WHERE NAM_HOC = ? AND HOC_KY = ?", academic_year, term)
         count = cursor.fetchone()[0]
         if count > 0:
             raise conflict(f"Không thể xóa học kỳ vì đã có {count} chi tiết vi phạm liên kết trong hệ thống.")
-        cursor.execute("DELETE FROM dbo.HOCKY WHERE ID = ?", semester_id)
+        cursor.execute("DELETE FROM dbo.HOCKY WHERE NAM_HOC = ? AND HOC_KY = ?", academic_year, term)
         if cursor.rowcount == 0:
             raise not_found("Không tìm thấy học kỳ.")
 

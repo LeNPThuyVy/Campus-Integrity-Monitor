@@ -5,6 +5,8 @@
   const tbody = document.getElementById('violation-body');
   const dialog = document.getElementById('violation-dialog');
   const state = { page: 1, pages: 1, current: null };
+  const newBar = document.getElementById('new-violations-bar');
+  let pendingNew = 0;
   const EVIDENCE_BADGES = {
     available: ['Còn ảnh', 'bg-secondary-container text-on-secondary-container'],
     expired: ['Hết hạn', 'bg-tertiary-container text-on-tertiary-container'],
@@ -22,8 +24,10 @@
     return { ...data, page: state.page, page_size: document.getElementById('page-size').value };
   }
 
-  async function load() {
-    CIM.stateRow(tbody, 7, 'Đang tải bản ghi…', 'loading');
+  async function load({ quiet = false } = {}) {
+    newBar.classList.add('hidden');
+    pendingNew = 0;
+    if (!quiet) CIM.stateRow(tbody, 7, 'Đang tải bản ghi…', 'loading');
     try {
       const result = await CIM.api('violations', { params: params() });
       state.pages = result.pages;
@@ -126,6 +130,7 @@
       CIM.toast('Đã cập nhật trạng thái xử lý.');
       dialog.close();
       load();
+      window.dispatchEvent(new CustomEvent('cim:violations-changed'));
     } catch (error) {
       CIM.toast(error.message, 'error');
     } finally {
@@ -156,6 +161,50 @@
     }
   }
 
+  // Bell (notifications.js) found new violations: refresh in place only when that cannot move rows under the user.
+  window.addEventListener('cim:new-violations', (event) => {
+    if (state.page === 1 && form.elements.sort.value === 'newest' && !dialog.open) {
+      load({ quiet: true });
+      return;
+    }
+    pendingNew += event.detail?.count || 1;
+    document.getElementById('new-violations-text').textContent = `Có ${pendingNew} vi phạm mới từ camera.`;
+    newBar.classList.remove('hidden');
+  });
+  document.getElementById('new-violations-reload').addEventListener('click', () => { state.page = 1; load(); });
+
+  // Deletes AI detection records + images only; student violation details (CT_VIPHAM) stay.
+  document.getElementById('delete-all-detections').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    const ok = await CIM.confirmAction(
+      'Xóa TẤT CẢ bản ghi phát hiện vi phạm và ảnh bằng chứng, kể cả bản ghi Mới chưa xem. '
+      + 'Chi tiết vi phạm đã ghi cho sinh viên KHÔNG bị xóa. Thao tác này không hoàn tác được.',
+      { title: 'Xóa toàn bộ bản ghi phát hiện?', okText: 'Xóa toàn bộ', danger: true },
+    );
+    if (!ok) return;
+    button.disabled = true; // not CIM.setBusy: it would flatten the icon into text
+    button.classList.add('opacity-60', 'cursor-wait');
+    try {
+      const { data } = await CIM.api('violations', { method: 'DELETE' });
+      CIM.toast(`Đã xóa ${data.deleted.toLocaleString('vi-VN')} bản ghi phát hiện.`,
+        data.errors ? 'error' : 'success');
+      state.page = 1;
+      load();
+      window.dispatchEvent(new CustomEvent('cim:violations-changed'));
+    } catch (error) {
+      CIM.toast(error.message, 'error');
+    } finally {
+      button.disabled = false;
+      button.classList.remove('opacity-60', 'cursor-wait');
+    }
+  });
+
+  // Links from the bell: list_vipham.php?status=MOI&id=123
+  const query = new URLSearchParams(window.location.search);
+  if (['MOI', 'DA_XEM', 'DA_XU_LY', 'BO_QUA'].includes(query.get('status'))) form.elements.status.value = query.get('status');
+  const linkedId = Number(query.get('id'));
+
   fillFilters();
   load();
+  if (Number.isInteger(linkedId) && linkedId > 0) openDetail(linkedId);
 })();

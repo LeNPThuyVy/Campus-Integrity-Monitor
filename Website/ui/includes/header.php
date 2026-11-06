@@ -85,6 +85,21 @@ $navigation = [
       </div>
     </div>
     <?php if ($cimUser): ?>
+    <div class="flex items-center gap-space-xs">
+    <div class="relative" id="notif-menu">
+      <button class="relative w-9 h-9 rounded-xl hover:bg-surface-container-low flex items-center justify-center transition-all" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Thông báo vi phạm mới" id="notif-button">
+        <span class="material-symbols-outlined text-[22px] text-on-surface-variant" id="notif-icon">notifications</span>
+        <span class="absolute -top-0.5 -right-0.5 hidden min-w-[18px] h-[18px] px-1 rounded-full bg-error text-on-error text-[11px] font-semibold leading-[18px] text-center" id="notif-badge"></span>
+      </button>
+      <div class="absolute right-0 top-full mt-1.5 w-[min(92vw,360px)] bg-surface-container-lowest rounded-xl shadow-[0_10px_15px_-3px_rgba(15,23,42,0.12)] hidden z-50" id="notif-panel">
+        <div class="flex items-center justify-between px-space-md py-2.5 border-b border-surface-container">
+          <span class="font-label-lg text-label-lg font-semibold">Vi phạm chưa xử lý</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant" id="notif-total"></span>
+        </div>
+        <ul class="max-h-[60vh] overflow-y-auto py-1" id="notif-list"></ul>
+        <a class="block border-t border-surface-container px-space-md py-2.5 text-center font-label-md text-primary hover:bg-surface-container-low rounded-b-xl" href="list_vipham.php?status=MOI">Xem tất cả vi phạm mới</a>
+      </div>
+    </div>
     <div class="relative" id="account-menu">
       <button class="flex items-center gap-space-sm pl-2 py-1 pr-1.5 rounded-xl hover:bg-surface-container-low transition-all" type="button" aria-haspopup="true" aria-expanded="false" id="account-menu-button">
         <span class="hidden sm:flex flex-col text-right">
@@ -112,6 +127,7 @@ $navigation = [
           </button>
         </form>
       </div>
+    </div>
     </div>
     <?php endif; ?>
   </header>

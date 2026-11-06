@@ -13,6 +13,8 @@ function Get-CimPhp {
 }
 
 function Get-CimPython {
+    $py312 = & py -3.12 -c "import sys; print(sys.executable)" 2>$null
+    if ($py312 -and (Test-Path $py312)) { return $py312 }
     $command = Get-Command python -ErrorAction SilentlyContinue
     if (-not $command) { throw "Không tìm thấy Python 3.10+ trong PATH." }
     return $command.Source

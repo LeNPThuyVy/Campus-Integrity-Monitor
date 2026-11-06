@@ -90,10 +90,12 @@
     <form class="flex flex-col gap-space-sm rounded-xl bg-surface-container-lowest p-space-md shadow-sm" id="semester-form">
       <h2 class="font-headline-md text-headline-md" data-title>Thêm học kỳ</h2>
       <input type="hidden" name="id">
-      <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Mã học kỳ</span>
-        <input class="{{ $input }}" name="code" maxlength="20" required pattern="[A-Za-z0-9_\-]+" placeholder="VD: HK1-2026"></label>
-      <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Tên học kỳ</span>
-        <input class="{{ $input }}" name="name" maxlength="100" required placeholder="Học kỳ 1 năm học 2026-2027"></label>
+      <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Năm học</span>
+        <input class="{{ $input }}" name="academic_year" maxlength="9" required pattern="\d{4}-\d{4}" placeholder="VD: 2026-2027"></label>
+      <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Học kỳ</span>
+        <select class="{{ $input }}" name="term" required>
+          <option value="1">Học kỳ 1</option><option value="2">Học kỳ 2</option><option value="3">Học kỳ 3 (hè)</option>
+        </select></label>
       <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Ngày bắt đầu</span>
         <input class="{{ $input }}" type="date" name="start_date" required></label>
       <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Ngày kết thúc</span>
@@ -107,7 +109,7 @@
     <div class="min-w-0 overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm {{ $isAdmin ? '' : 'xl:col-span-2' }}">
       <div class="overflow-x-auto"><table class="w-full text-left">
         <thead class="bg-surface-container-low font-label-sm text-label-sm uppercase text-outline"><tr>
-          <th class="px-space-md py-3">Mã</th><th class="px-space-md py-3">Tên</th><th class="px-space-md py-3">Bắt đầu</th>
+          <th class="px-space-md py-3">Năm học</th><th class="px-space-md py-3">Tên học kỳ</th><th class="px-space-md py-3">Bắt đầu</th>
           <th class="px-space-md py-3">Kết thúc</th><th class="px-space-md py-3 text-right">Thao tác</th>
         </tr></thead>
         <tbody id="semester-body"></tbody>

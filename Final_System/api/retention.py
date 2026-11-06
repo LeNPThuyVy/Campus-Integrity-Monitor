@@ -158,6 +158,19 @@ class RetentionScheduler:
             self._thread = None
 
 
+def _build_storage(settings):
+    if settings.r2_access_key and settings.r2_secret_key and settings.r2_endpoint:
+        from api.r2_storage import R2EvidenceStorage
+        return R2EvidenceStorage(
+            endpoint=settings.r2_endpoint,
+            access_key=settings.r2_access_key,
+            secret_key=settings.r2_secret_key,
+            bucket=settings.r2_bucket,
+            presign_ttl=settings.r2_presign_ttl_seconds,
+        )
+    return EvidenceStorage(settings.evidence_dir)
+
+
 def main() -> int:
     from api.settings import get_settings
 
@@ -166,7 +179,7 @@ def main() -> int:
     parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     settings = get_settings()
-    report = purge_expired_evidence(Database(settings.database), EvidenceStorage(settings.evidence_dir),
+    report = purge_expired_evidence(Database(settings.database), _build_storage(settings),
                                     settings.now_local())
     print(report.as_dict())
     return 1 if report.errors else 0
