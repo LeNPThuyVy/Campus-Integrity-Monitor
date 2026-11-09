@@ -23,6 +23,47 @@ class CimProxyController extends Controller
         $route = (string)$request->query('r', '');
         $id = $request->query('id');
 
+        // NF-04: Giới hạn kích thước payload body tối đa 64KB (65536 bytes)
+        $contentLength = (int)$request->header('Content-Length', 0);
+        $rawBody = $request->getContent();
+        if ($contentLength > 65536 || strlen($rawBody) > 65536) {
+            return response()->json(['error' => 'Kích thước payload vượt quá giới hạn cho phép (tối đa 64KB).'], 413);
+        }
+
+        // NF-05: Kiểm tra độ dài query param không vượt quá 100 ký tự (cả tên key, value, và mảng nested)
+        $validateQueryLength = function (mixed $value, string $keyName) use (&$validateQueryLength): ?string {
+            if (mb_strlen($keyName) > 100) {
+                return "Tên tham số '{$keyName}' quá dài (tối đa 100 ký tự).";
+            }
+            if (is_array($value)) {
+                foreach ($value as $subKey => $subVal) {
+                    $err = $validateQueryLength($subVal, "{$keyName}.{$subKey}");
+                    if ($err !== null) {
+                        return $err;
+                    }
+                }
+                return null;
+            }
+            if (is_string($value) && mb_strlen($value) > 100) {
+                return "Tham số '{$keyName}' quá dài (tối đa 100 ký tự).";
+            }
+            return null;
+        };
+
+        foreach ($request->query() as $key => $val) {
+            $err = $validateQueryLength($val, (string)$key);
+            if ($err !== null) {
+                return response()->json(['error' => $err], 422);
+            }
+        }
+
+        // VL-02: Kiểm tra khoảng ngày hợp lệ
+        $dateFromParam = $request->query('date_from');
+        $dateToParam = $request->query('date_to');
+        if (is_string($dateFromParam) && is_string($dateToParam) && $dateFromParam !== '' && $dateToParam !== '' && $dateFromParam > $dateToParam) {
+            return response()->json(['error' => 'Khoảng thời gian không hợp lệ: Từ ngày phải nhỏ hơn hoặc bằng Đến ngày.'], 422);
+        }
+
         // RB-11: Bắt buộc xác thực header X-CSRF-Token cho mọi request thay đổi dữ liệu
         if (!in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
             $csrfHeader = (string)$request->header('X-CSRF-Token', '');
@@ -80,6 +121,7 @@ class CimProxyController extends Controller
             ],
             'account' => ['PUT' => ['/api/v1/accounts/{id}', $ADMIN, [], false]],
             'account-password' => ['POST' => ['/api/v1/accounts/{id}/reset-password', $ADMIN, [], false]],
+            'purge-camera-violations' => ['POST' => ['', $ALL, [], false]],
         ];
 
         if (!isset($routes[$route])) {
@@ -122,6 +164,10 @@ class CimProxyController extends Controller
 
         if ($route === 'violation-types') {
             return $this->handleViolationTypes();
+        }
+
+        if ($route === 'purge-camera-violations') {
+            return $this->handlePurgeCameraViolations();
         }
 
         if ($route === 'violations') {
@@ -181,11 +227,24 @@ class CimProxyController extends Controller
         return response()->json($decoded ?: ['error' => $result['body']], $result['status']);
     }
 
+    protected static ?\PDO $cachedPdo = null;
+
     protected function getPdo(): \PDO
     {
+        if (self::$cachedPdo !== null) {
+            try {
+                self::$cachedPdo->query('SELECT 1');
+                return self::$cachedPdo;
+            } catch (\Throwable) {
+                self::$cachedPdo = null;
+            }
+        }
+
         if (extension_loaded('pdo_sqlsrv')) {
             try {
-                return \Illuminate\Support\Facades\DB::connection('sqlsrv')->getPdo();
+                $pdo = \Illuminate\Support\Facades\DB::connection('sqlsrv')->getPdo();
+                self::$cachedPdo = $pdo;
+                return $pdo;
             } catch (\Throwable) {
                 // Tiếp tục thử kết nối trực tiếp
             }
@@ -203,19 +262,23 @@ class CimProxyController extends Controller
                 try {
                     if ($trusted) {
                         $dsn = sprintf('odbc:Driver={%s};Server=%s;Database=%s;Trusted_Connection=yes;', $drv, $host, $database);
-                        return new \PDO($dsn, null, null, [
+                        $pdo = new \PDO($dsn, null, null, [
                             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                             \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                             \PDO::ATTR_EMULATE_PREPARES => false,
                         ]);
+                        self::$cachedPdo = $pdo;
+                        return $pdo;
                     }
 
                     $dsn = sprintf('odbc:Driver={%s};Server=%s;Database=%s;', $drv, $host, $database);
-                    return new \PDO($dsn, $username, $password, [
+                    $pdo = new \PDO($dsn, $username, $password, [
                         \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                         \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                         \PDO::ATTR_EMULATE_PREPARES => false,
                     ]);
+                    self::$cachedPdo = $pdo;
+                    return $pdo;
                 } catch (\Throwable) {
                     continue;
                 }
@@ -226,14 +289,47 @@ class CimProxyController extends Controller
             $encrypt = config('cim.db.encrypt');
             $trustCert = config('cim.db.trust_server_certificate');
             $dsn = sprintf('sqlsrv:Server=%s;Database=%s;Encrypt=%s;TrustServerCertificate=%s', $host, $database, $encrypt, $trustCert);
-            return new \PDO($dsn, $trusted ? null : $username, $trusted ? null : $password, [
+            $pdo = new \PDO($dsn, $trusted ? null : $username, $trusted ? null : $password, [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                 \PDO::ATTR_EMULATE_PREPARES => false,
             ]);
+            self::$cachedPdo = $pdo;
+            return $pdo;
         }
 
         throw new \RuntimeException('Không tìm thấy driver PDO tương thích (pdo_odbc hoặc pdo_sqlsrv) để kết nối SQL Server.');
+    }
+
+    protected function handlePurgeCameraViolations(): Response
+    {
+        try {
+            $pdo = $this->getPdo();
+            $pdo->beginTransaction();
+            $pdo->exec('DELETE FROM ANH_VIPHAM');
+            $pdo->exec('DELETE FROM PHAT_HIEN_VIPHAM');
+            $pdo->commit();
+
+            $evidenceDir = storage_path('app/public/evidence');
+            if (is_dir($evidenceDir)) {
+                $files = glob($evidenceDir . '/*');
+                foreach ($files as $f) {
+                    if (is_file($f)) {
+                        @unlink($f);
+                    }
+                }
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Đã xóa toàn bộ bản ghi phát hiện tại PHAT_HIEN_VIPHAM và ANH_VIPHAM thành công. Bản ghi CT_VIPHAM được bảo toàn nguyên vẹn.'
+            ]);
+        } catch (\Throwable $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            return response()->json(['error' => 'Lỗi khi xóa bản ghi phát hiện: ' . $e->getMessage()], 500);
+        }
     }
 
     protected function handleAccounts(Request $request, string $route, string $method, mixed $id): Response
@@ -649,7 +745,18 @@ class CimProxyController extends Controller
             $pdo = $this->getPdo();
 
             if ($method === 'GET') {
-                $stmt = $pdo->query('SELECT c.ID as id, c.MA_CAMERA as code, c.TEN_CAMERA as name, CONVERT(VARCHAR(MAX), CAST(c.TEN_CAMERA AS VARBINARY(MAX)), 2) as name_hex, c.VI_TRI as location, c.DANG_SU_DUNG as active, k.ID as area_id, k.TEN_KHU_VUC as area_name, CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex FROM CAMERA c LEFT JOIN KHU_VUC k ON k.ID = c.KHU_VUC_ID ORDER BY c.ID');
+                $areaId = filter_var($request->query('area_id'), FILTER_VALIDATE_INT);
+                $sql = 'SELECT c.ID as id, c.MA_CAMERA as code, c.TEN_CAMERA as name, CONVERT(VARCHAR(MAX), CAST(c.TEN_CAMERA AS VARBINARY(MAX)), 2) as name_hex, c.VI_TRI as location, c.DANG_SU_DUNG as active, k.ID as area_id, k.TEN_KHU_VUC as area_name, CONVERT(VARCHAR(MAX), CAST(k.TEN_KHU_VUC AS VARBINARY(MAX)), 2) as area_name_hex FROM CAMERA c LEFT JOIN KHU_VUC k ON k.ID = c.KHU_VUC_ID';
+                if ($areaId) {
+                    $sql .= ' WHERE c.KHU_VUC_ID = :area_id';
+                }
+                $sql .= ' ORDER BY c.ID';
+                $stmt = $pdo->prepare($sql);
+                if ($areaId) {
+                    $stmt->execute(['area_id' => $areaId]);
+                } else {
+                    $stmt->execute();
+                }
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 $items = [];
                 foreach ($rows as $r) {
@@ -659,6 +766,7 @@ class CimProxyController extends Controller
                         'name' => $this->decodeHexUnicode($r['name_hex'] ?? null, $r['name']),
                         'location' => (string)($r['location'] ?? ''),
                         'active' => (bool)$r['active'],
+                        'area_id' => (int)($r['area_id'] ?? 1),
                         'area' => [
                             'id' => (int)($r['area_id'] ?? 1),
                             'name' => $this->decodeHexUnicode($r['area_name_hex'] ?? null, $r['area_name'] ?? 'Khu vực'),
@@ -1053,7 +1161,24 @@ class CimProxyController extends Controller
 
             $filter = $where ? ' WHERE ' . implode(' AND ', $where) : '';
 
-            $countSql = "SELECT COUNT(*) FROM ({$subQuery}) u" . $filter;
+            // NF-09: Tối ưu count query không thực hiện cast/hex text nặng trên toàn bộ dữ liệu
+            $countUnions = [];
+            if ($source === '' || $source === 'ALL' || $source === 'CAMERA') {
+                $countUnions[] = "
+                    SELECT b.ID, b.THOI_DIEM, b.LOI_ID, c.KHU_VUC_ID, a.CAMERA_ID, b.TINH_TRANG_XU_LY as TRANG_THAI_XU_LY
+                    FROM PHAT_HIEN_VIPHAM b
+                    LEFT JOIN ANH_VIPHAM a ON a.PHAT_HIEN_ID = b.ID
+                    LEFT JOIN CAMERA c ON a.CAMERA_ID = c.ID
+                ";
+            }
+            if ($source === '' || $source === 'ALL' || $source === 'CO_DO') {
+                $countUnions[] = "
+                    SELECT cv.ID, COALESCE(cv.THOI_DIEM, DATEADD(MINUTE, 450, CAST(cv.NGAY_VIPHAM AS DATETIME2(0)))) as THOI_DIEM, cv.ID_LOI as LOI_ID, cv.KHU_VUC_ID, CAST(NULL AS INT) as CAMERA_ID, 'DA_XU_LY' as TRANG_THAI_XU_LY
+                    FROM CT_VIPHAM cv
+                ";
+            }
+            $countSubQuery = implode(' UNION ALL ', $countUnions);
+            $countSql = "SELECT COUNT(*) FROM ({$countSubQuery}) u" . $filter;
             $countStmt = $pdo->prepare($countSql);
             foreach ($params as $k => $v) {
                 $countStmt->bindValue(':' . $k, $v);
@@ -1164,10 +1289,11 @@ class CimProxyController extends Controller
                     if (!in_array($status, ['MOI', 'DA_XEM', 'DA_XU_LY', 'BO_QUA'], true)) {
                         return response()->json(['error' => 'Trạng thái xử lý không hợp lệ.'], 422);
                     }
+                    $timeExpr = ($status === 'MOI') ? 'NULL' : 'SYSDATETIME()';
                     $upd = $pdo->prepare("UPDATE PHAT_HIEN_VIPHAM SET TINH_TRANG_XU_LY = :st,
-                                          XU_LY_LUC = CASE WHEN :st2 = 'MOI' THEN NULL ELSE SYSDATETIME() END
+                                          XU_LY_LUC = {$timeExpr}
                                           WHERE ID = :id");
-                    $upd->execute(['st' => $status, 'st2' => $status, 'id' => $numericId]);
+                    $upd->execute(['st' => $status, 'id' => $numericId]);
                 } else {
                     $note = mb_substr(trim((string)($body['note'] ?? '')), 0, 500);
                     $upd = $pdo->prepare('UPDATE CT_VIPHAM SET GHI_CHU = :nt WHERE ID = :id');
@@ -1468,6 +1594,26 @@ class CimProxyController extends Controller
         $countStmt->execute($params);
         $total = (int)$countStmt->fetchColumn();
 
+        // NT-10: Bao gồm cả cảnh báo Camera AI vào tổng vi phạm
+        try {
+            $camWhere = [
+                'CAST(pv.THOI_DIEM AS DATE) >= :date_from',
+                'CAST(pv.THOI_DIEM AS DATE) <= :date_to',
+            ];
+            $camParams = [
+                'date_from' => $dateRange['date_from'],
+                'date_to' => $dateRange['date_to'],
+            ];
+            if ($typeId) {
+                $camWhere[] = 'pv.LOI_ID = :type_id';
+                $camParams['type_id'] = $typeId;
+            }
+            $camFilterSql = ' WHERE ' . implode(' AND ', $camWhere);
+            $camCountStmt = $pdo->prepare('SELECT COUNT(*) FROM PHAT_HIEN_VIPHAM pv' . $camFilterSql);
+            $camCountStmt->execute($camParams);
+            $total += (int)$camCountStmt->fetchColumn();
+        } catch (\Throwable) {}
+
         // 1. Theo loại vi phạm
         $byType = [];
         $typeSql = 'SELECT lv.ID as id, MAX(lv.TEN_LOI) as name, MAX(CONVERT(VARCHAR(MAX), CAST(lv.TEN_LOI AS VARBINARY(MAX)), 2)) as name_hex, COUNT(cv.ID) as count 
@@ -1677,38 +1823,85 @@ class CimProxyController extends Controller
             $dateRange = $this->resolveDateRange($request, 'month');
             $summary = $this->getSummaryData($pdo, $request, $dateRange);
 
-            // KPI bộ đếm thực tế
+            // NT-10: KPI bộ đếm thực tế (hợp nhất cả CT_VIPHAM và PHAT_HIEN_VIPHAM)
             $todayStr = date('Y-m-d');
             $weekStart = date('Y-m-d', strtotime('monday this week'));
+            $weekEnd = date('Y-m-d', strtotime('sunday this week'));
             $monthStart = date('Y-m-01');
 
-            $cToday = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM = '{$todayStr}'")->fetchColumn();
-            $cWeek = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= '{$weekStart}'")->fetchColumn();
-            $cMonth = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= '{$monthStart}'")->fetchColumn();
-            $semStmt = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE :today BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
-            $semStmt->execute(['today' => $todayStr]);
-            $currentSemRow = $semStmt->fetch(\PDO::FETCH_ASSOC);
-            if (!$currentSemRow) {
-                $currentSemRow = $pdo->query('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetch(\PDO::FETCH_ASSOC);
-            }
-            $currentSemYear = $currentSemRow ? trim((string)$currentSemRow['NAM_HOC']) : '2026-2027';
-            $currentSemTerm = $currentSemRow ? (int)$currentSemRow['HOC_KY'] : 1;
-            $currentSemName = $currentSemRow ? "Học kỳ {$currentSemTerm} ({$currentSemYear})" : 'Học kỳ 1 (2026-2027)';
+            $areaId = filter_var($request->query('area_id'), FILTER_VALIDATE_INT);
 
-            if ($currentSemRow) {
-                $cSemesterStmt = $pdo->prepare('SELECT COUNT(*) FROM CT_VIPHAM
-                                                 WHERE (NAM_HOC = :y AND HOC_KY = :t)
-                                                    OR (NAM_HOC IS NULL AND NGAY_VIPHAM BETWEEN :start AND :end)');
-                $cSemesterStmt->execute([
-                    'y' => $currentSemYear,
-                    't' => $currentSemTerm,
-                    'start' => $currentSemRow['NGAY_BAT_DAU'],
-                    'end' => $currentSemRow['NGAY_KET_THUC'],
-                ]);
-                $cSemester = (int)$cSemesterStmt->fetchColumn();
+            if ($areaId) {
+                $tStmt = $pdo->prepare("SELECT (SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM = :d AND KHU_VUC_ID = :area) + (SELECT COUNT(*) FROM PHAT_HIEN_VIPHAM WHERE CAST(THOI_DIEM AS DATE) = :d2)");
+                $tStmt->execute(['d' => $todayStr, 'd2' => $todayStr, 'area' => $areaId]);
+                $cToday = (int)$tStmt->fetchColumn();
+
+                $wStmt = $pdo->prepare("SELECT (SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= :w1 AND NGAY_VIPHAM <= :w2 AND KHU_VUC_ID = :area) + (SELECT COUNT(*) FROM PHAT_HIEN_VIPHAM WHERE CAST(THOI_DIEM AS DATE) >= :w3 AND CAST(THOI_DIEM AS DATE) <= :w4)");
+                $wStmt->execute(['w1' => $weekStart, 'w2' => $weekEnd, 'w3' => $weekStart, 'w4' => $weekEnd, 'area' => $areaId]);
+                $cWeek = (int)$wStmt->fetchColumn();
             } else {
-                $cSemester = (int)$pdo->query("SELECT COUNT(*) FROM CT_VIPHAM")->fetchColumn();
+                $cToday = (int)$pdo->query("SELECT (SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM = '{$todayStr}') + (SELECT COUNT(*) FROM PHAT_HIEN_VIPHAM WHERE CAST(THOI_DIEM AS DATE) = '{$todayStr}')")->fetchColumn();
+                $cWeek = (int)$pdo->query("SELECT (SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= '{$weekStart}' AND NGAY_VIPHAM <= '{$weekEnd}') + (SELECT COUNT(*) FROM PHAT_HIEN_VIPHAM WHERE CAST(THOI_DIEM AS DATE) >= '{$weekStart}' AND CAST(THOI_DIEM AS DATE) <= '{$weekEnd}')")->fetchColumn();
             }
+
+            // Đếm số lượng vi phạm cho thẻ Tháng dựa trên bộ lọc nếu người dùng lọc theo tháng
+            if ($dateRange['period'] === 'month') {
+                $mFrom = $dateRange['date_from'];
+                $mTo = $dateRange['date_to'];
+                $cMonthStmt = $pdo->prepare("SELECT 
+                    (SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= :m_from AND NGAY_VIPHAM <= :m_to" . ($areaId ? " AND KHU_VUC_ID = :area1" : "") . ") 
+                    + (SELECT COUNT(*) FROM PHAT_HIEN_VIPHAM WHERE CAST(THOI_DIEM AS DATE) >= :m_from2 AND CAST(THOI_DIEM AS DATE) <= :m_to2)");
+                $cMonthParams = ['m_from' => $mFrom, 'm_to' => $mTo, 'm_from2' => $mFrom, 'm_to2' => $mTo];
+                if ($areaId) {
+                    $cMonthParams['area1'] = $areaId;
+                }
+                $cMonthStmt->execute($cMonthParams);
+                $cMonth = (int)$cMonthStmt->fetchColumn();
+            } else {
+                $cMonth = (int)$pdo->query("SELECT (SELECT COUNT(*) FROM CT_VIPHAM WHERE NGAY_VIPHAM >= '{$monthStart}') + (SELECT COUNT(*) FROM PHAT_HIEN_VIPHAM WHERE CAST(THOI_DIEM AS DATE) >= '{$monthStart}')")->fetchColumn();
+            }
+
+            // Học kỳ: Nếu người dùng lọc theo học kỳ cụ thể
+            if ($dateRange['period'] === 'semester' && !empty($dateRange['academic_year']) && !empty($dateRange['term'])) {
+                $currentSemYear = $dateRange['academic_year'];
+                $currentSemTerm = (int)$dateRange['term'];
+                $currentSemName = $dateRange['label'];
+                $cSemStart = $dateRange['date_from'];
+                $cSemEnd = $dateRange['date_to'];
+            } else {
+                $semStmt = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY WHERE :today BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
+                $semStmt->execute(['today' => $todayStr]);
+                $currentSemRow = $semStmt->fetch(\PDO::FETCH_ASSOC);
+                if (!$currentSemRow) {
+                    $currentSemRow = $pdo->query('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetch(\PDO::FETCH_ASSOC);
+                }
+                $currentSemYear = $currentSemRow ? trim((string)$currentSemRow['NAM_HOC']) : '2026-2027';
+                $currentSemTerm = $currentSemRow ? (int)$currentSemRow['HOC_KY'] : 1;
+                $currentSemName = $currentSemRow ? "Học kỳ {$currentSemTerm} ({$currentSemYear})" : 'Học kỳ 1 (2026-2027)';
+                $cSemStart = $currentSemRow ? $currentSemRow['NGAY_BAT_DAU'] : '2026-08-15';
+                $cSemEnd = $currentSemRow ? $currentSemRow['NGAY_KET_THUC'] : '2027-01-15';
+            }
+
+            $cSemesterStmt = $pdo->prepare("SELECT (SELECT COUNT(*) FROM CT_VIPHAM
+                                             WHERE ((NAM_HOC = :y AND HOC_KY = :t)
+                                                OR (NAM_HOC IS NULL AND NGAY_VIPHAM BETWEEN :start AND :end))" . ($areaId ? " AND KHU_VUC_ID = :area1" : "") . ")
+                                                + (SELECT COUNT(*) FROM PHAT_HIEN_VIPHAM WHERE CAST(THOI_DIEM AS DATE) BETWEEN :start2 AND :end2)");
+            $cSemParams = [
+                'y' => $currentSemYear,
+                't' => $currentSemTerm,
+                'start' => $cSemStart,
+                'end' => $cSemEnd,
+                'start2' => $cSemStart,
+                'end2' => $cSemEnd,
+            ];
+            if ($areaId) {
+                $cSemParams['area1'] = $areaId;
+            }
+            $cSemesterStmt->execute($cSemParams);
+            $cSemester = (int)$cSemesterStmt->fetchColumn();
+
+            $isCurrentMonth = ($dateRange['period'] === 'month' && $dateRange['date_from'] === date('Y-m-01'));
+            $monthLabel = ($dateRange['period'] === 'month') ? $dateRange['label'] : ('Tháng ' . date('m/Y'));
 
             $data = [
                 'counters' => [
@@ -1717,8 +1910,10 @@ class CimProxyController extends Controller
                     'month' => $cMonth,
                     'semester' => $cSemester,
                 ],
+                'month_label' => $monthLabel,
+                'is_current_month' => $isCurrentMonth,
                 'current_semester' => ['name' => $currentSemName],
-                'range' => ['label' => $dateRange['label']],
+                'range' => ['label' => $dateRange['label'], 'period' => $dateRange['period']],
                 'summary' => $summary,
             ];
 

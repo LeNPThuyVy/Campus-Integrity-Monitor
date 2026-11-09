@@ -243,6 +243,8 @@ class CampusMonitorUI:
         self.sender_status     = tk.StringVar(value="")
         self.alert_text        = tk.StringVar(value="")
         self._log_items: dict  = {}
+        self._track_api_status: dict[int, str] = {}
+        self._delivered_events: dict[str, tuple[str, str]] = {}
         self._alert_clear_job  = None
         self.MAX_LOG_ROWS      = 300
 
@@ -383,9 +385,9 @@ class CampusMonitorUI:
         right_panel.pack(fill="both", expand=True, side="right")
         self.create_right_panel(right_panel)
 
-    def make_modern_button(self, parent, text, command, bg_color, hover_color, fg_color="white", height=38):
+    def make_modern_button(self, parent, text, command, bg_color, hover_color, fg_color="white", height=38, width=None):
         """Creates a flat modern button with smooth hover state bindings."""
-        btn_frame = tk.Frame(parent, bg=bg_color, height=height)
+        btn_frame = tk.Frame(parent, bg=bg_color, height=height, width=width)
         btn_frame.pack_propagate(False)
 
         btn = tk.Button(btn_frame, text=text, command=command, bg=bg_color, fg=fg_color,
@@ -449,27 +451,27 @@ class CampusMonitorUI:
         self.lbl_filename.pack(fill="x", side="left", expand=True, padx=(0, 6), ipady=6)
 
         btn_browse_frame = self.make_modern_button(self.file_frame, "Chọn...", self.browse_video,
-                                                   "#64748B", "#475569", height=32)
+                                                   "#64748B", "#475569", height=32, width=70)
         btn_browse_frame.pack(side="right")
-        btn_browse_frame.pack_propagate(True)
 
         self._update_segmented_ui()
         self.on_source_change()
 
         # Action Buttons Row
-        control_frame = tk.Frame(src_card, bg=self.COLOR_CARD)
-        control_frame.pack(fill="x", padx=16, pady=(12, 12))
+        self.control_frame = tk.Frame(src_card, bg=self.COLOR_CARD)
+        self.control_frame.pack(fill="x", padx=16, pady=(12, 12))
+        self.control_frame.columnconfigure(0, weight=1)
+        self.control_frame.columnconfigure(1, weight=0)
 
         self.btn_toggle_wrapper = self.make_modern_button(
-            control_frame, "▶  BẮT ĐẦU GIÁM SÁT", self.toggle_monitoring,
+            self.control_frame, "▶  BẮT ĐẦU GIÁM SÁT", self.toggle_monitoring,
             self.COLOR_PRIMARY, self.COLOR_PRIMARY_HOVER, height=40)
-        self.btn_toggle_wrapper.pack(fill="x", side="left", expand=True, padx=(0, 8))
+        self.btn_toggle_wrapper.grid(row=0, column=0, sticky="ew", padx=(0, 8))
 
-        btn_reset_wrapper = self.make_modern_button(
-            control_frame, "↺ Đặt Lại", self.reset_stats,
-            "#EF4444", "#DC2626", height=40)
-        btn_reset_wrapper.pack(side="right")
-        btn_reset_wrapper.pack_propagate(True)
+        self.btn_reset_wrapper = self.make_modern_button(
+            self.control_frame, "↺ Đặt Lại", self.reset_stats,
+            "#EF4444", "#DC2626", height=40, width=96)
+        self.btn_reset_wrapper.grid(row=0, column=1, sticky="nsew")
 
         # 2. Configuration Settings Card
         cfg_card = tk.Frame(parent, bg=self.COLOR_CARD,
@@ -508,16 +510,26 @@ class CampusMonitorUI:
         )
 
         def _on_cfg_mousewheel(event):
-            cfg_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            try:
+                cfg_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            except Exception:
+                pass
 
-        def _bind_cfg_mousewheel(event):
-            cfg_canvas.bind_all("<MouseWheel>", _on_cfg_mousewheel)
+        def _bind_mousewheel_tree(w):
+            w.bind("<MouseWheel>", _on_cfg_mousewheel, add="+")
+            for c in w.winfo_children():
+                _bind_mousewheel_tree(c)
 
-        def _unbind_cfg_mousewheel(event):
-            cfg_canvas.unbind_all("<MouseWheel>")
-
-        cfg_card.bind("<Enter>", _bind_cfg_mousewheel)
-        cfg_card.bind("<Leave>", _unbind_cfg_mousewheel)
+        scroll_frame.bind(
+            "<Configure>",
+            lambda e: (cfg_canvas.configure(scrollregion=cfg_canvas.bbox("all")), _bind_mousewheel_tree(scroll_frame))
+        )
+        cfg_canvas.bind(
+            "<Configure>",
+            lambda e: cfg_canvas.itemconfig(canvas_window, width=e.width)
+        )
+        cfg_card.bind("<Enter>", lambda e: cfg_canvas.bind_all("<MouseWheel>", _on_cfg_mousewheel))
+        cfg_card.bind("<Leave>", lambda e: cfg_canvas.unbind_all("<MouseWheel>"))
 
         # Custom Modern Slider Helper with Live Value Pill Badge
         def add_slider(label, param_key, from_val, to_val, resolution):
@@ -540,6 +552,8 @@ class CampusMonitorUI:
             def _on_slide(val):
                 formatted = f"{float(val):.2f}" if resolution < 1 else str(int(float(val)))
                 val_badge.configure(text=formatted)
+                self.app.params[param_key] = float(val) if resolution < 1 else int(float(val))
+                self.app.apply_params_to_config()
 
             slider = ModernSlider(container, from_val=from_val, to_val=to_val,
                                   resolution=resolution, init_val=init_val,
@@ -572,8 +586,17 @@ class CampusMonitorUI:
                            fg=self.COLOR_TEXT_MAIN, bg="#F8FAFC")
             lbl.pack(anchor="w")
 
+            def _on_spin_change():
+                try:
+                    val = int(spin.get())
+                    self.app.params[param_key] = val
+                    self.app.apply_params_to_config()
+                except Exception:
+                    pass
+
             spin = ModernSpinbox(cell, from_i=from_i, to_i=to_i,
-                                 init_val=self.app.params[param_key], width=5)
+                                 init_val=self.app.params[param_key], width=5,
+                                 command=_on_spin_change)
             spin.pack(anchor="w", pady=(3, 0))
             return spin
 
@@ -647,7 +670,7 @@ class CampusMonitorUI:
         screen_header.pack(fill="x", side="top")
         screen_header.pack_propagate(False)
 
-        self.lbl_screen_title = tk.Label(screen_header, text="📹  Màn hình camera giám sát: Camera 1 - Camera Desktop Local",
+        self.lbl_screen_title = tk.Label(screen_header, text=f"📹  Màn hình camera giám sát: {self.app.camera_label()}",
                                          font=self.font_header, fg=self.COLOR_SECONDARY, bg=self.COLOR_CARD_HEADER)
         self.lbl_screen_title.pack(side="left", padx=16, pady=8)
 
@@ -714,19 +737,21 @@ class CampusMonitorUI:
 
         # Tracking Log Table View
         self.tree_frame = tk.Frame(self.tab_container, bg=self.COLOR_CARD)
-        columns = ("time", "id", "uniform_status", "card_status", "matched_cnt")
+        columns = ("time", "id", "uniform_status", "card_status", "matched_cnt", "api_status")
         self.log_tree = ttk.Treeview(self.tree_frame, columns=columns, show="headings", style="Treeview")
         self.log_tree.heading("time",           text="Thời Gian")
         self.log_tree.heading("id",             text="Track ID")
         self.log_tree.heading("uniform_status", text="Đồng Phục")
         self.log_tree.heading("card_status",    text="Thẻ Sinh Viên")
         self.log_tree.heading("matched_cnt",    text="Số Khung Trùng Khớp")
+        self.log_tree.heading("api_status",     text="Trạng Thái Gửi API")
 
-        self.log_tree.column("time",           width=110, anchor="center")
-        self.log_tree.column("id",             width=90,  anchor="center")
-        self.log_tree.column("uniform_status", width=200, anchor="center")
-        self.log_tree.column("card_status",    width=200, anchor="center")
-        self.log_tree.column("matched_cnt",    width=160, anchor="center")
+        self.log_tree.column("time",           width=90,  anchor="center")
+        self.log_tree.column("id",             width=70,  anchor="center")
+        self.log_tree.column("uniform_status", width=140, anchor="center")
+        self.log_tree.column("card_status",    width=140, anchor="center")
+        self.log_tree.column("matched_cnt",    width=130, anchor="center")
+        self.log_tree.column("api_status",     width=220, anchor="center")
 
         self.log_tree.tag_configure("ok",      background="#F0FDF4", foreground="#16A34A")
         self.log_tree.tag_configure("violate", background="#FEF2F2", foreground="#DC2626")
@@ -746,7 +771,8 @@ class CampusMonitorUI:
             self.alert_tree.heading(key, text=text)
             self.alert_tree.column(key, width=width, anchor="center")
 
-        self.alert_tree.tag_configure("alert_row", background="#FEF2F2", foreground="#DC2626")
+        self.alert_tree.tag_configure("alert_row",  background="#FEF2F2", foreground="#DC2626")
+        self.alert_tree.tag_configure("alert_sent", background="#F0FDF4", foreground="#16A34A")
 
         alert_scroll = ttk.Scrollbar(self.alert_frame, orient="vertical", command=self.alert_tree.yview, style="Vertical.TScrollbar")
         self.alert_tree.configure(yscrollcommand=alert_scroll.set)
@@ -923,9 +949,13 @@ class CampusMonitorUI:
 
     def _show_api_result(self, result):
         ok, message = result
-        self.api_status.set(("✔ " if ok else "✖ ") + message)
+        prefix = "[OK] " if ok else "[LỖI] "
+        self.api_status.set(prefix + message)
+        if hasattr(self, "lbl_screen_title"):
+            self.lbl_screen_title.configure(text=f"📹  Màn hình camera giám sát: {self.app.camera_label()}")
 
     def refresh_sender_status(self):
+        self.drain_delivered_events()
         status = self.app.sender.status
         text = f"Đã gửi: {status.sent} | Chờ gửi: {status.pending} | Bị từ chối: {status.failed}"
         problem = status.paused_reason or status.last_error
@@ -945,7 +975,10 @@ class CampusMonitorUI:
         if self.video_source_type.get() == "Camera":
             self.file_frame.pack_forget()
         else:
-            self.file_frame.pack(fill="x", padx=16, pady=5)
+            if hasattr(self, "control_frame"):
+                self.file_frame.pack(fill="x", padx=16, pady=5, before=self.control_frame)
+            else:
+                self.file_frame.pack(fill="x", padx=16, pady=5)
 
     def browse_video(self):
         filename = filedialog.askopenfilename(
@@ -1048,9 +1081,12 @@ class CampusMonitorUI:
         for item in self.log_tree.get_children():
             self.log_tree.delete(item)
         self._log_items.clear()
+        self._track_api_status.clear()
+        self._delivered_events.clear()
 
-        self.app.reset_state()
-        self.status_message.set("Đã đặt lại dữ liệu giám sát.")
+        self.app.reset_parameters_to_default()
+        self._sync_sliders_from_params()
+        self.status_message.set("Đã đặt lại dữ liệu giám sát và thông số mặc định.")
 
     # ------------------------------------------------------------------
     # Frame Loop (UI scheduling only – processing delegated to App)
@@ -1112,6 +1148,7 @@ class CampusMonitorUI:
             logging.error(f"Error in update_frame: {e}")
 
         self.drain_alerts()
+        self.drain_delivered_events()
 
         if self.is_running:
             self.root.after(self.frame_delay, self.update_frame)
@@ -1261,22 +1298,25 @@ class CampusMonitorUI:
             u_status_txt = "Đúng đồng phục" if u_lbl == "Uniform" else ("Sai đồng phục" if u_lbl == "Non_Uniform" else "Đang chờ...")
             c_status_txt = "Đeo thẻ" if c_lbl == "Card" else ("Không đeo thẻ" if c_lbl == "No_Card" else "Đang chờ...")
 
-            # Decide row highlight tag
+            # Decide row highlight tag & api status
             if u_lbl == "Non_Uniform" or c_lbl == "No_Card":
                 row_tag = "violate"
+                api_status_txt = self._track_api_status.get(track_id, "Phát hiện vi phạm (Đang xếp hàng)")
             elif u_lbl == "Uniform" and c_lbl == "Card":
                 row_tag = "ok"
+                api_status_txt = "Đúng tác phong (Không gửi)"
             else:
                 row_tag = "waiting"
+                api_status_txt = "Đang theo dõi..."
 
             item = self._log_items.get(track_id)
             if item is not None and self.log_tree.exists(item):
                 vals = self.log_tree.item(item)["values"]
-                if vals[2] != u_status_txt or vals[3] != c_status_txt or vals[4] != matched:
-                    self.log_tree.item(item, values=(vals[0], track_id, u_status_txt, c_status_txt, matched), tags=(row_tag,))
+                if vals[2] != u_status_txt or vals[3] != c_status_txt or vals[4] != matched or (len(vals) > 5 and vals[5] != api_status_txt):
+                    self.log_tree.item(item, values=(vals[0], track_id, u_status_txt, c_status_txt, matched, api_status_txt), tags=(row_tag,))
             else:
                 self._log_items[track_id] = self.log_tree.insert(
-                    "", 0, values=(current_time_str, track_id, u_status_txt, c_status_txt, matched), tags=(row_tag,))
+                    "", 0, values=(current_time_str, track_id, u_status_txt, c_status_txt, matched, api_status_txt), tags=(row_tag,))
 
         # Keep the log bounded so long sessions do not slow the UI down.
         children = self.log_tree.get_children()
@@ -1306,9 +1346,19 @@ class CampusMonitorUI:
             except queue.Empty:
                 break
             latest = alert
-            send_text = "Đã lưu, đang gửi lên API" if alert["queued"] else (alert["note"] or "Không gửi")
-            self.alert_tree.insert("", 0, values=(alert["time"], alert["track_id"], alert["label"],
-                                                  alert["camera"], send_text), tags=("alert_row",))
+            item_id = str(alert.get("event_id") or f"alert_{time.time()}_{alert['track_id']}")
+            if item_id in self._delivered_events:
+                send_text, row_tag = self._delivered_events[item_id]
+            else:
+                send_text = "Đã lưu, đang gửi lên API" if alert["queued"] else (alert["note"] or "Không gửi")
+                row_tag = "alert_row"
+            self._track_api_status[alert["track_id"]] = send_text
+            if self.alert_tree.exists(item_id):
+                self.alert_tree.item(item_id, values=(alert["time"], alert["track_id"], alert["label"],
+                                                      alert["camera"], send_text), tags=(row_tag,))
+            else:
+                self.alert_tree.insert("", 0, iid=item_id, values=(alert["time"], alert["track_id"], alert["label"],
+                                                                   alert["camera"], send_text), tags=(row_tag,))
         children = self.alert_tree.get_children()
         if len(children) > self.MAX_LOG_ROWS:
             for item in children[self.MAX_LOG_ROWS:]:
@@ -1321,6 +1371,55 @@ class CampusMonitorUI:
             if self._alert_clear_job is not None:
                 self.root.after_cancel(self._alert_clear_job)
             self._alert_clear_job = self.root.after(6000, self._clear_alert)
+
+    def drain_delivered_events(self):
+        """Update alert_tree and log_tree rows when background ViolationSender completes an upload."""
+        delivered_q = getattr(self.app.sender, "delivered_queue", None)
+        if delivered_q is None:
+            return
+        while True:
+            try:
+                item = delivered_q.get_nowait()
+            except queue.Empty:
+                break
+            event_id = str(item.get("event_id") or "")
+            track_id = item.get("track_id")
+            status = item.get("status")
+            reason = item.get("reason")
+            if status == "sent":
+                # Show the violation type actually sent, so it can be compared with the live label
+                # in the tracking table (that label may still change after the event was sent).
+                sent_label = None
+                if event_id and self.alert_tree.exists(event_id):
+                    alert_vals = self.alert_tree.item(event_id, "values")
+                    if len(alert_vals) >= 3:
+                        sent_label = alert_vals[2]
+                send_text = f"[OK] Đã gửi: {sent_label}" if sent_label else "[OK] Đã gửi lên API"
+                row_tag = "alert_sent"
+            else:
+                send_text = f"[LỖI] {reason}" if reason else "[LỖI] Gửi API thất bại"
+                row_tag = "alert_row"
+
+            if event_id:
+                self._delivered_events[event_id] = (send_text, row_tag)
+                if self.alert_tree.exists(event_id):
+                    vals = list(self.alert_tree.item(event_id, "values"))
+                    if len(vals) >= 5:
+                        vals[4] = send_text
+                        self.alert_tree.item(event_id, values=tuple(vals), tags=(row_tag,))
+
+            if track_id is not None:
+                try:
+                    tid = int(track_id)
+                except (ValueError, TypeError):
+                    tid = track_id
+                self._track_api_status[tid] = send_text
+                log_item = self._log_items.get(tid)
+                if log_item is not None and self.log_tree.exists(log_item):
+                    lvals = list(self.log_tree.item(log_item, "values"))
+                    if len(lvals) >= 6:
+                        lvals[5] = send_text
+                        self.log_tree.item(log_item, values=tuple(lvals))
 
     def _clear_alert(self):
         self._alert_clear_job = None

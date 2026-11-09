@@ -50,8 +50,8 @@ Route::middleware(['auth.cim'])->group(function () {
 Route::get('/login.php', function (Request $request) {
     return redirect()->route('login', $request->query());
 });
-Route::get('/home.php', fn() => redirect()->route('dashboard'));
-Route::get('/list_vipham.php', fn() => redirect()->route('violations'));
+Route::get('/home.php', fn(Request $request) => redirect()->route('dashboard', $request->query()));
+Route::get('/list_vipham.php', fn(Request $request) => redirect()->route('violations', $request->query()));
 Route::get('/ql_sinhvien.php', fn() => redirect()->route('students'));
 Route::get('/camera_khuvuc.php', fn() => redirect()->route('facilities'));
 Route::get('/reporting.php', fn() => redirect()->route('reports'));

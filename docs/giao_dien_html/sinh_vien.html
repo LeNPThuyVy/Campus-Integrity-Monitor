@@ -8,13 +8,27 @@
   <meta name="csrf-token" content="mau">
   <meta name="user-role" content="ADMIN">
   <meta name="cim-api-base-url" content="http://127.0.0.1:8001">
-  <title>Sinh viên · CTSV</title>
+  <title>Quản lý sinh viên · CTSV</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/images/logo.jpg" type="image/jpeg">
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
   <script src="assets/js/tailwind.config.js"></script>
+  <style>
+    @keyframes bellShake {
+      0% { transform: rotate(0); }
+      15% { transform: rotate(14deg); }
+      30% { transform: rotate(-14deg); }
+      45% { transform: rotate(10deg); }
+      60% { transform: rotate(-10deg); }
+      75% { transform: rotate(4deg); }
+      100% { transform: rotate(0); }
+    }
+    .bell-shake {
+      animation: bellShake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+  </style>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased">
 <div class="fixed inset-0 z-40 hidden bg-inverse-surface/40 lg:hidden" id="sidebar-backdrop"></div>
@@ -85,10 +99,48 @@
       <div class="flex items-center gap-1.5 text-on-surface-variant min-w-0">
         <span class="hidden sm:inline font-body-sm text-body-sm">CTSV</span>
         <span class="hidden sm:inline material-symbols-outlined text-[16px]">chevron_right</span>
-        <span class="font-label-md text-label-md text-on-surface font-semibold truncate">Sinh viên</span>
+        <span class="font-label-md text-label-md text-on-surface font-semibold truncate">Quản lý sinh viên</span>
       </div>
     </div>
-    <div class="relative" id="account-menu">
+    <div class="flex items-center gap-space-sm">
+      <!-- SSE Connection indicator -->
+      <div id="sse-status-badge" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200" title="Trạng thái kết nối Realtime">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="sse-status-dot"></span>
+        <span id="sse-status-text">Trực tuyến</span>
+      </div>
+
+      <!-- Notification Bell -->
+      <div class="relative" id="notification-menu">
+        <button id="notification-bell-btn" class="relative w-10 h-10 rounded-xl bg-surface-container-low hover:bg-surface-container flex items-center justify-center transition-all text-on-surface-variant focus:outline-none" type="button" aria-label="Thông báo vi phạm" aria-expanded="false">
+          <span class="material-symbols-outlined text-[22px]" id="notification-bell-icon">notifications</span>
+          <span id="notification-badge" class="absolute -top-1 -right-1 hidden min-w-[20px] h-5 px-1.5 rounded-full bg-error text-on-error font-bold text-[11px] items-center justify-center shadow-sm">0</span>
+        </button>
+
+        <!-- Dropdown panel -->
+        <div id="notification-panel" class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container py-0 hidden z-50 overflow-hidden">
+          <div class="px-4 py-3 bg-surface-container-low flex items-center justify-between border-b border-surface-container">
+            <div class="flex items-center gap-2">
+              <span class="font-label-lg font-bold text-on-surface">Vi phạm chưa xử lý</span>
+              <span id="notification-panel-count" class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-semibold text-xs">0</span>
+            </div>
+            <button id="notification-refresh-btn" type="button" class="text-xs text-primary hover:underline flex items-center gap-1" title="Làm mới">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+            </button>
+          </div>
+
+          <div id="notification-list" class="max-h-80 overflow-y-auto divide-y divide-surface-container">
+            <div class="p-4 text-center text-on-surface-variant text-sm">Đang tải thông báo...</div>
+          </div>
+
+          <div class="p-2 bg-surface-container-low border-t border-surface-container text-center">
+            <a href="ban_ghi_vi_pham.html?status=MOI" class="block py-1.5 text-xs font-semibold text-primary hover:underline">
+              Xem tất cả vi phạm mới &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative" id="account-menu">
       <button class="flex items-center gap-space-sm pl-2 py-1 pr-1.5 rounded-xl hover:bg-surface-container-low transition-all" type="button" aria-haspopup="true" aria-expanded="false" id="account-menu-button">
         <span class="hidden sm:flex flex-col text-right">
           <span class="font-label-md text-label-md text-on-surface font-semibold leading-tight">Quản trị hệ thống</span>
@@ -109,13 +161,14 @@
           <span>Đổi mật khẩu</span>
         </a>
         <form method="POST" action="dang_nhap.html" class="m-0">
-          <input type="hidden" name="_token" value="mau" autocomplete="off">          <button class="w-full flex items-center gap-space-sm px-space-md py-2 text-error hover:bg-error/10 font-label-md transition-colors text-left" type="submit">
+          <input type="hidden" name="_token" value="" autocomplete="off">          <button class="w-full flex items-center gap-space-sm px-space-md py-2 text-error hover:bg-error/10 font-label-md transition-colors text-left" type="submit">
             <span class="material-symbols-outlined text-[18px]">logout</span>
             <span>Đăng xuất</span>
           </button>
         </form>
       </div>
     </div>
+  </div>
   </header>
 
   <main class="pt-16 px-space-md sm:px-space-lg min-h-screen">
@@ -141,10 +194,12 @@
 <span class="material-symbols-outlined text-[18px]">file_download</span>
 <span class="">Xuất danh sách</span>
 </button>
-<button class="flex items-center gap-space-xs px-3.5 py-2 rounded-xl bg-error-container hover:bg-error hover:text-white text-on-error-container font-label-md text-label-md transition-all shadow-sm" id="open-reset-violations-btn" type="button" title="Đặt lại số lượt vi phạm của toàn bộ sinh viên về 0">
+
+<button class="flex items-center gap-space-xs px-3.5 py-2 rounded-xl bg-error/10 hover:bg-error/20 text-error font-label-md text-label-md transition-all shadow-sm" id="open-reset-semester-btn" type="button" title="Xóa toàn bộ biên bản vi phạm của sinh viên theo từng học kỳ">
 <span class="material-symbols-outlined text-[18px]">restart_alt</span>
-<span class="">Reset vi phạm</span>
+<span class="">Xóa vi phạm theo học kỳ</span>
 </button>
+
 <button class="flex items-center gap-space-xs px-4 py-2 rounded-xl bg-primary-container text-on-primary hover:bg-primary transition-all font-label-md text-label-md shadow-sm" id="open-drawer-btn">
 <span class="material-symbols-outlined text-[18px]">person_add</span>
 <span class="">Thêm sinh viên</span>
@@ -617,10 +672,10 @@
     </form>
   </div>
 </div>
-</div>
-<!-- Modal: Reset Toàn bộ Vi phạm Học kỳ -->
-<div class="fixed inset-0 z-50 hidden items-center justify-center p-space-md overflow-y-auto" id="student-reset-modal">
-  <div class="fixed inset-0 bg-inverse-surface/40 backdrop-blur-xs transition-opacity cursor-pointer" id="student-reset-backdrop"></div>
+
+<!-- Modal: Xác thực Mật mã Xóa Vi phạm Theo Học kỳ (ST-16, ST-17) -->
+<div class="fixed inset-0 z-50 hidden items-center justify-center p-space-md overflow-y-auto" id="student-semester-reset-modal">
+  <div class="fixed inset-0 bg-inverse-surface/40 backdrop-blur-xs transition-opacity cursor-pointer" id="reset-modal-backdrop"></div>
   <div class="relative w-full max-w-md bg-surface-container-lowest rounded-xl shadow-[0_20px_25px_-5px_rgba(15,23,42,0.15)] flex flex-col z-10 overflow-hidden my-auto">
     <div class="p-space-lg bg-surface-container-low flex items-center justify-between border-b border-surface-container">
       <div class="flex items-center gap-space-sm">
@@ -628,47 +683,82 @@
           <span class="material-symbols-outlined text-[22px]">restart_alt</span>
         </div>
         <div>
-          <h2 class="font-headline-sm text-headline-sm text-error">Reset toàn bộ vi phạm</h2>
-          <p class="font-body-sm text-[11px] text-on-surface-variant">Xác nhận đưa vi phạm sinh viên về 0</p>
+          <h2 class="font-headline-sm text-headline-sm text-error">Xóa vi phạm theo học kỳ</h2>
+          <p class="font-body-sm text-[11px] text-on-surface-variant">Chọn học kỳ và xác nhận đưa vi phạm về 0</p>
         </div>
       </div>
-      <button class="w-8 h-8 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface flex items-center justify-center transition-colors" id="close-student-reset-btn" type="button">
+      <button class="w-8 h-8 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface flex items-center justify-center transition-colors" id="close-reset-modal-btn" type="button">
         <span class="material-symbols-outlined text-[20px]">close</span>
       </button>
     </div>
-    <form class="p-space-lg flex flex-col gap-space-md" id="student-reset-form">
+
+    <form class="p-space-lg flex flex-col gap-space-md" id="reset-violations-form">
       <div class="p-space-sm rounded-lg bg-error-container/20 border border-error/20 flex items-start gap-2 text-error font-body-sm text-[12px]">
         <span class="material-symbols-outlined text-[18px] shrink-0 mt-0.5">warning</span>
         <div>
           <p class="font-semibold">Cảnh báo hành động không thể hoàn tác!</p>
-          <p class="mt-0.5">Toàn bộ biên bản vi phạm và cảnh báo sẽ bị xóa. Số lượt vi phạm của tất cả sinh viên sẽ trả về <strong>0 lượt vi phạm</strong>.</p>
+          <p class="mt-0.5">Toàn bộ biên bản vi phạm của sinh viên trong học kỳ được chọn sẽ bị xóa vĩnh viễn (bảng CT_VIPHAM). Số lượt vi phạm của sinh viên trong học kỳ này sẽ được trả về <strong>0 lượt vi phạm</strong>.</p>
         </div>
       </div>
+
+      <!-- ST-16 & ST-17: Chọn học kỳ cần xóa -->
       <div class="flex flex-col gap-1.5">
-        <label class="font-label-sm text-label-sm text-on-surface font-semibold" for="student-reset-password">
-          Mật mã bảo mật xác nhận xóa <span class="text-error">*</span>
+        <label class="font-label-sm text-label-sm text-on-surface font-semibold" for="reset-semester-select">
+          Chọn học kỳ cần xóa vi phạm <span class="text-error">*</span>
         </label>
         <div class="relative">
-          <input class="w-full h-10 px-3 pr-10 rounded-lg bg-surface-container-low text-on-surface font-body-md focus:bg-surface-container-lowest focus:outline-none transition-all" id="student-reset-password" type="password" placeholder="Nhập mật mã bảo mật để reset..." required autocomplete="current-password">
-          <button class="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface flex items-center" id="toggle-student-reset-pwd" type="button">
-            <span class="material-symbols-outlined text-[18px]" id="toggle-student-reset-pwd-icon">visibility</span>
+          <select class="w-full h-10 px-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md focus:outline-none appearance-none cursor-pointer" id="reset-semester-select" required>
+            <option value="">Đang tải danh sách học kỳ...</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-[18px] text-outline pointer-events-none">expand_more</span>
+        </div>
+      </div>
+
+      <!-- ST-17: Hiển thị rõ số lượng bản ghi dự kiến xóa -->
+      <div class="p-3 rounded-lg bg-surface-container-low border border-surface-container flex items-start gap-2.5 text-on-surface font-body-sm text-[12px]" id="reset-semester-count-box">
+        <span class="material-symbols-outlined text-[18px] text-primary shrink-0 mt-0.5">info</span>
+        <div id="reset-semester-count-text">
+          Đang tính số bản ghi vi phạm của học kỳ...
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="font-label-sm text-label-sm text-on-surface font-semibold" for="reset-password-input">
+          Nhập mật mã xác nhận xóa vi phạm <span class="text-error">*</span>
+        </label>
+        <div class="relative">
+          <input class="w-full h-10 px-3 pr-10 rounded-lg bg-surface-container-low text-on-surface font-body-md focus:bg-surface-container-lowest focus:outline-none transition-all" id="reset-password-input" type="password" placeholder="Nhập mật mã bảo mật để reset..." required autocomplete="current-password">
+          <button class="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface flex items-center" id="toggle-reset-password-btn" type="button">
+            <span class="material-symbols-outlined text-[18px]" id="toggle-reset-password-icon">visibility</span>
           </button>
         </div>
-        <p class="font-body-sm text-[11px] text-error hidden" id="student-reset-error"></p>
+        <p class="font-body-sm text-[11px] text-error hidden" id="reset-password-error"></p>
       </div>
+
+      <div class="p-space-sm rounded-lg bg-surface-container-low border border-surface-container flex flex-col gap-2">
+        <label class="flex items-center gap-2 text-on-surface font-body-sm text-[12px] cursor-pointer">
+          <input class="rounded text-primary focus:ring-primary w-4 h-4" id="reset-student-violations-check" type="checkbox" checked disabled>
+          <span>Đưa số lượt vi phạm của sinh viên trong học kỳ về <strong>0 vi phạm</strong> (Bảng CT_VIPHAM)</span>
+        </label>
+        <label class="flex items-center gap-2 text-on-surface-variant font-body-sm text-[12px] cursor-pointer">
+          <input class="rounded text-error focus:ring-error w-4 h-4" id="reset-include-camera-check" type="checkbox">
+          <span>Xóa kèm cả lịch sử ảnh và cảnh báo Camera AI (mặc định giữ lại để đối soát thống kê)</span>
+        </label>
+      </div>
+
       <div class="flex items-center justify-end gap-space-sm pt-2">
-        <button class="px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" id="cancel-student-reset-btn" type="button">
+        <button class="px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" id="cancel-reset-btn" type="button">
           Hủy bỏ
         </button>
-        <button class="px-5 py-2 rounded-xl bg-error text-on-error hover:bg-error/90 font-label-md text-label-md shadow-sm transition-all flex items-center gap-1.5" id="confirm-student-reset-btn" type="submit">
+        <button class="px-5 py-2 rounded-xl bg-error text-on-error hover:bg-error/90 font-label-md text-label-md shadow-sm transition-all flex items-center gap-1.5" id="confirm-reset-btn" type="submit">
           <span class="material-symbols-outlined text-[18px]">delete_forever</span>
-          <span>Xác nhận Reset về 0</span>
+          <span>Xác nhận xóa vi phạm</span>
         </button>
       </div>
     </form>
   </div>
 </div>
-
+</div>
   </main>
 </div>
 

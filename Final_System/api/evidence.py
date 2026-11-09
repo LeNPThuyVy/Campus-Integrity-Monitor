@@ -56,7 +56,7 @@ def validate_and_normalize_image(data: bytes, max_bytes: int, max_dimension: int
     if len(data) > max_bytes:
         raise EvidenceError(f"Ảnh vượt quá dung lượng cho phép ({max_bytes // 1024} KB).", 413)
     if not (data.startswith(JPEG_SIGNATURE) or data.startswith(PNG_SIGNATURE)):
-        raise EvidenceError("Ảnh phải ở định dạng JPEG hoặc PNG.", 415)
+        raise EvidenceError("Ảnh phải ở định dạng JPEG hoặc PNG.", 422)
     image = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_COLOR)
     if image is None:
         raise EvidenceError("Không đọc được nội dung ảnh (ảnh hỏng hoặc sai định dạng).")

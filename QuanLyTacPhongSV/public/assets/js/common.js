@@ -104,7 +104,7 @@
     text.textContent = message;
     item.append(icon, text);
     region.append(item);
-    setTimeout(() => item.remove(), type === 'error' ? 7000 : 4000);
+    setTimeout(() => item.remove(), type === 'error' ? 7000 : 5000);
   }
 
   function confirmAction(message, { title = 'Xác nhận thao tác', okText = 'Xác nhận', danger = false } = {}) {
@@ -208,11 +208,281 @@
     MOI: 'Mới báo động (Chờ Cờ Đỏ)',
     DA_XEM: 'Đã điều Đội Cờ Đỏ',
     DA_XU_LY: 'Đã kiểm tra tại phòng học',
-    BO_QUA: 'Đã kiểm tra',
+    BO_QUA: 'Bỏ qua (cảnh báo sai)',
   };
+
+  // ---------------------------------------------------------------- Realtime & Notification Bell
+  let currentMoiCount = 0;
+  let unreadWhileHidden = 0;
+  const originalDocumentTitle = document.title;
+
+  function getBaseDocumentTitle() {
+    return (originalDocumentTitle || document.title).replace(/^\(\d+\)\s*/, '');
+  }
+
+  function updateTabTitle() {
+    if (document.hidden && unreadWhileHidden > 0) {
+      document.title = `(${unreadWhileHidden}) ${getBaseDocumentTitle()}`;
+    } else {
+      document.title = getBaseDocumentTitle();
+    }
+  }
+
+  function clearHiddenUnread() {
+    unreadWhileHidden = 0;
+    updateTabTitle();
+  }
+
+  function updateBadgeDisplay(count) {
+    currentMoiCount = Math.max(0, Number(count) || 0);
+    const badge = document.getElementById('notification-badge');
+    const panelCount = document.getElementById('notification-panel-count');
+    if (panelCount) panelCount.textContent = String(currentMoiCount);
+    if (!badge) return;
+    if (currentMoiCount > 0) {
+      badge.textContent = currentMoiCount > 99 ? '99+' : String(currentMoiCount);
+      badge.classList.remove('hidden');
+      badge.classList.add('flex');
+    } else {
+      badge.textContent = '0';
+      badge.classList.add('hidden');
+      badge.classList.remove('flex');
+    }
+  }
+
+  function adjustNotificationBadge(delta) {
+    updateBadgeDisplay(currentMoiCount + delta);
+  }
+
+  function triggerBellShake() {
+    const icon = document.getElementById('notification-bell-icon');
+    if (!icon) return;
+    icon.classList.remove('bell-shake');
+    void icon.offsetWidth;
+    icon.classList.add('bell-shake');
+    setTimeout(() => icon.classList.remove('bell-shake'), 700);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      clearHiddenUnread();
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    clearHiddenUnread();
+  });
+
+  async function loadNotificationList() {
+    const listEl = document.getElementById('notification-list');
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="p-4 text-center text-on-surface-variant text-sm"><span class="material-symbols-outlined mr-2 animate-spin align-middle text-[16px]">progress_activity</span>Đang tải...</div>';
+    try {
+      const res = await api('violations', { params: { status: 'MOI', limit: 10, page: 1 } });
+      const items = res?.items || [];
+      const total = res?.total !== undefined ? res.total : items.length;
+      updateBadgeDisplay(total);
+
+      if (items.length === 0) {
+        listEl.innerHTML = '<div class="p-6 text-center text-on-surface-variant text-sm">Không có vi phạm nào chưa xử lý</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      items.forEach((item) => {
+        const row = document.createElement('a');
+        row.href = `list_vipham.php?status=MOI&id=${encodeURIComponent(item.id)}`;
+        row.className = 'block p-3 hover:bg-surface-container-low transition-colors cursor-pointer text-left';
+        
+        const cameraName = item.camera_name || item.camera_id || 'Camera';
+        const areaName = item.area_name ? ` · ${item.area_name}` : '';
+        const timeStr = formatDateTime(item.timestamp || item.created_at);
+        const violationType = item.violation_type || 'Vi phạm tác phong';
+
+        row.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <span class="font-label-md font-semibold text-primary truncate">${violationType}</span>
+            <span class="text-[11px] text-outline shrink-0">${timeStr.split(' ')[1] || ''}</span>
+          </div>
+          <div class="text-xs text-on-surface-variant mt-0.5 truncate">
+            <span class="material-symbols-outlined text-[13px] align-middle text-outline mr-0.5">videocam</span>${cameraName}${areaName}
+          </div>
+        `;
+        listEl.appendChild(row);
+      });
+    } catch {
+      listEl.innerHTML = '<div class="p-4 text-center text-error text-xs">Không thể tải danh sách thông báo</div>';
+    }
+  }
+
+  function initNotificationBell() {
+    const bellBtn = document.getElementById('notification-bell-btn');
+    const panel = document.getElementById('notification-panel');
+    const refreshBtn = document.getElementById('notification-refresh-btn');
+
+    if (!bellBtn || !panel) return;
+
+    bellBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = panel.classList.toggle('hidden');
+      bellBtn.setAttribute('aria-expanded', String(!isHidden));
+      if (!isHidden) {
+        loadNotificationList();
+      }
+    });
+
+    refreshBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      loadNotificationList();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!panel.contains(e.target) && !bellBtn.contains(e.target)) {
+        panel.classList.add('hidden');
+        bellBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        panel.classList.add('hidden');
+        bellBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    api('violations', { params: { status: 'MOI', limit: 1, page: 1 } })
+      .then((res) => {
+        if (res?.total !== undefined) {
+          updateBadgeDisplay(res.total);
+        }
+      })
+      .catch(() => {});
+  }
+
+  // ---------------------------------------------------------------- SSE Realtime Client
+  let sseEventSource = null;
+  let sseRetryCount = 0;
+  let sseRetryTimer = null;
+  let hasShownDisconnectToast = false;
+
+  function updateSseStatus(status) {
+    const badge = document.getElementById('sse-status-badge');
+    const dot = document.getElementById('sse-status-dot');
+    const text = document.getElementById('sse-status-text');
+    if (!badge || !dot || !text) return;
+
+    if (status === 'connected') {
+      badge.className = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200';
+      dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+      text.textContent = 'Trực tuyến';
+      hasShownDisconnectToast = false;
+    } else if (status === 'reconnecting') {
+      badge.className = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200';
+      dot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-ping';
+      text.textContent = 'Đang kết nối lại...';
+    } else {
+      badge.className = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200';
+      dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+      text.textContent = 'Mất kết nối';
+    }
+  }
+
+  function startSseConnection() {
+    const apiBaseMeta = document.querySelector('meta[name="cim-api-base-url"]');
+    const baseUrl = apiBaseMeta?.content ? apiBaseMeta.content.replace(/\/$/, '') : '';
+    const sseUrl = baseUrl ? `${baseUrl}/api/v1/violations/stream` : '/api/v1/violations/stream';
+
+    try {
+      if (sseEventSource) {
+        sseEventSource.close();
+      }
+      sseEventSource = new EventSource(sseUrl);
+
+      sseEventSource.onopen = () => {
+        sseRetryCount = 0;
+        updateSseStatus('connected');
+      };
+
+      let lastProcessedViolationId = null;
+
+      function handleIncomingViolation(raw) {
+        if (!raw || typeof raw !== 'object') return;
+        const eventName = raw.event || '';
+        if (eventName === 'connected') return;
+
+        const payload = raw.data || raw;
+        const id = payload?.id;
+        if (id && lastProcessedViolationId === id) return;
+        if (id) lastProcessedViolationId = id;
+
+        adjustNotificationBadge(1);
+        triggerBellShake();
+
+        const cam = payload?.camera?.name || payload?.camera_name || payload?.camera?.code || payload?.camera_id || 'Camera';
+        const type = payload?.type?.name || payload?.violation_type || 'Tác phong';
+        toast(`Có vi phạm mới từ ${cam} (${type})`, 'info');
+
+        if (document.hidden) {
+          unreadWhileHidden++;
+          updateTabTitle();
+        }
+
+        window.dispatchEvent(new CustomEvent('cim:new-violation', { detail: payload }));
+      }
+
+      sseEventSource.onmessage = (e) => {
+        try {
+          const parsed = JSON.parse(e.data);
+          handleIncomingViolation(parsed);
+        } catch {}
+      };
+
+      sseEventSource.addEventListener('new_violation', (e) => {
+        try {
+          const parsed = JSON.parse(e.data);
+          handleIncomingViolation(parsed);
+        } catch {}
+      });
+
+      sseEventSource.addEventListener('violation', (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          handleIncomingViolation(payload);
+        } catch {}
+      });
+
+      sseEventSource.onerror = () => {
+        sseEventSource.close();
+        sseEventSource = null;
+        updateSseStatus('disconnected');
+
+        if (!hasShownDisconnectToast) {
+          toast('Mất kết nối với máy chủ AI Realtime. Đang tự động kết nối lại...', 'error');
+          hasShownDisconnectToast = true;
+        }
+
+        const backoffSeconds = Math.min(30, 2 * Math.pow(2, sseRetryCount));
+        sseRetryCount++;
+        
+        clearTimeout(sseRetryTimer);
+        sseRetryTimer = setTimeout(() => {
+          updateSseStatus('reconnecting');
+          startSseConnection();
+        }, backoffSeconds * 1000);
+      };
+    } catch {
+      updateSseStatus('disconnected');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initNotificationBell();
+    startSseConnection();
+  });
 
   window.CIM = {
     api, ApiError, toast, confirmAction, el, stateRow, formatDateTime, formatDate, isoDate, download, setBusy,
     buildUrl, role, isAdmin: role === 'ADMIN', PROCESSING_LABELS,
+    adjustNotificationBadge, updateBadgeDisplay,
   };
 })();

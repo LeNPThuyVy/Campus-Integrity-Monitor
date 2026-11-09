@@ -15,6 +15,20 @@
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
   <script src="assets/js/tailwind.config.js"></script>
+  <style>
+    @keyframes bellShake {
+      0% { transform: rotate(0); }
+      15% { transform: rotate(14deg); }
+      30% { transform: rotate(-14deg); }
+      45% { transform: rotate(10deg); }
+      60% { transform: rotate(-10deg); }
+      75% { transform: rotate(4deg); }
+      100% { transform: rotate(0); }
+    }
+    .bell-shake {
+      animation: bellShake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+  </style>
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface antialiased">
 <div class="fixed inset-0 z-40 hidden bg-inverse-surface/40 lg:hidden" id="sidebar-backdrop"></div>
@@ -88,7 +102,45 @@
         <span class="font-label-md text-label-md text-on-surface font-semibold truncate">Tài khoản &amp; phân quyền</span>
       </div>
     </div>
-    <div class="relative" id="account-menu">
+    <div class="flex items-center gap-space-sm">
+      <!-- SSE Connection indicator -->
+      <div id="sse-status-badge" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200" title="Trạng thái kết nối Realtime">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="sse-status-dot"></span>
+        <span id="sse-status-text">Trực tuyến</span>
+      </div>
+
+      <!-- Notification Bell -->
+      <div class="relative" id="notification-menu">
+        <button id="notification-bell-btn" class="relative w-10 h-10 rounded-xl bg-surface-container-low hover:bg-surface-container flex items-center justify-center transition-all text-on-surface-variant focus:outline-none" type="button" aria-label="Thông báo vi phạm" aria-expanded="false">
+          <span class="material-symbols-outlined text-[22px]" id="notification-bell-icon">notifications</span>
+          <span id="notification-badge" class="absolute -top-1 -right-1 hidden min-w-[20px] h-5 px-1.5 rounded-full bg-error text-on-error font-bold text-[11px] items-center justify-center shadow-sm">0</span>
+        </button>
+
+        <!-- Dropdown panel -->
+        <div id="notification-panel" class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container py-0 hidden z-50 overflow-hidden">
+          <div class="px-4 py-3 bg-surface-container-low flex items-center justify-between border-b border-surface-container">
+            <div class="flex items-center gap-2">
+              <span class="font-label-lg font-bold text-on-surface">Vi phạm chưa xử lý</span>
+              <span id="notification-panel-count" class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-semibold text-xs">0</span>
+            </div>
+            <button id="notification-refresh-btn" type="button" class="text-xs text-primary hover:underline flex items-center gap-1" title="Làm mới">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+            </button>
+          </div>
+
+          <div id="notification-list" class="max-h-80 overflow-y-auto divide-y divide-surface-container">
+            <div class="p-4 text-center text-on-surface-variant text-sm">Đang tải thông báo...</div>
+          </div>
+
+          <div class="p-2 bg-surface-container-low border-t border-surface-container text-center">
+            <a href="ban_ghi_vi_pham.html?status=MOI" class="block py-1.5 text-xs font-semibold text-primary hover:underline">
+              Xem tất cả vi phạm mới &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative" id="account-menu">
       <button class="flex items-center gap-space-sm pl-2 py-1 pr-1.5 rounded-xl hover:bg-surface-container-low transition-all" type="button" aria-haspopup="true" aria-expanded="false" id="account-menu-button">
         <span class="hidden sm:flex flex-col text-right">
           <span class="font-label-md text-label-md text-on-surface font-semibold leading-tight">Quản trị hệ thống</span>
@@ -109,13 +161,14 @@
           <span>Đổi mật khẩu</span>
         </a>
         <form method="POST" action="dang_nhap.html" class="m-0">
-          <input type="hidden" name="_token" value="mau" autocomplete="off">          <button class="w-full flex items-center gap-space-sm px-space-md py-2 text-error hover:bg-error/10 font-label-md transition-colors text-left" type="submit">
+          <input type="hidden" name="_token" value="" autocomplete="off">          <button class="w-full flex items-center gap-space-sm px-space-md py-2 text-error hover:bg-error/10 font-label-md transition-colors text-left" type="submit">
             <span class="material-symbols-outlined text-[18px]">logout</span>
             <span>Đăng xuất</span>
           </button>
         </form>
       </div>
     </div>
+  </div>
   </header>
 
   <main class="pt-16 px-space-md sm:px-space-lg min-h-screen">
@@ -126,7 +179,7 @@
   </div>
 
   <section class="grid grid-cols-1 gap-space-md xl:grid-cols-[minmax(280px,360px)_1fr]">
-    <form class="flex flex-col gap-space-sm rounded-xl bg-surface-container-lowest p-space-md shadow-sm" id="account-form">
+    <form class="flex flex-col gap-space-sm rounded-xl bg-surface-container-lowest p-space-md shadow-sm" id="account-form" data-current-user-id="1" data-current-username="admin_ctsv">
       <h2 class="font-headline-md text-headline-md" id="account-form-title">Tạo tài khoản</h2>
       <input type="hidden" name="id">
       <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm">Tên đăng nhập</span>

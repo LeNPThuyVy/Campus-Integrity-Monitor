@@ -12,6 +12,34 @@ require_once dirname(__DIR__) . '/includes/auth.php';
 const CIM_PROXY_MAX_BODY = 65536;
 
 $user = cim_require_api_user();
+
+// NF-04: Giới hạn kích thước payload body tối đa 64KB (65536 bytes)
+$contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+$rawBody = file_get_contents('php://input');
+if ($contentLength > CIM_PROXY_MAX_BODY || ($rawBody !== false && strlen($rawBody) > CIM_PROXY_MAX_BODY)) {
+    student_json_error('Nội dung yêu cầu quá lớn.', 413);
+}
+
+// NF-05: Chặn mọi query param > 100 ký tự (cả tên key và value) trên toàn bộ $_GET
+$validateQueryLength = function (mixed $value, string $keyName) use (&$validateQueryLength): void {
+    if (strlen($keyName) > 100) {
+        student_json_error("Tên tham số '{$keyName}' quá dài (tối đa 100 ký tự).", 422);
+    }
+    if (is_array($value)) {
+        foreach ($value as $subKey => $subVal) {
+            $validateQueryLength($subVal, "{$keyName}.{$subKey}");
+        }
+        return;
+    }
+    if (is_string($value) && strlen($value) > 100) {
+        student_json_error("Tham số '{$keyName}' quá dài (tối đa 100 ký tự).", 422);
+    }
+};
+
+foreach ($_GET as $key => $val) {
+    $validateQueryLength($val, (string)$key);
+}
+
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $route = (string)($_GET['r'] ?? '');
 $id = $_GET['id'] ?? null;

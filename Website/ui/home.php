@@ -9,7 +9,7 @@ include __DIR__ . '/includes/header.php';
 <div class="flex flex-col gap-space-md py-space-md pb-space-xl">
   <div class="flex flex-col gap-1">
     <h1 class="font-headline-xl text-headline-xl">Tổng quan vi phạm tác phong</h1>
-    <p class="text-on-surface-variant">Số liệu lấy trực tiếp từ SQL Server qua API. <span id="dashboard-range" class="font-semibold text-on-surface"></span></p>
+    <p class="text-on-surface-variant"><span id="dashboard-range" class="font-semibold text-on-surface"></span></p>
     <p class="font-label-sm text-label-sm text-outline">Chỉ tính các bản ghi phát hiện còn lưu: bản ghi đã xem/đã xử lý/bỏ qua tự xóa sau 1 ngày.</p>
   </div>
 

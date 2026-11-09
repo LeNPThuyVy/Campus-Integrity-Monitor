@@ -4,18 +4,20 @@
 <div class="flex flex-col gap-space-md py-space-md pb-space-xl">
   <div class="flex flex-col gap-1">
     <h1 class="font-headline-xl text-headline-xl">Tổng quan vi phạm tác phong</h1>
-    <p class="text-on-surface-variant">Số liệu lấy trực tiếp từ SQL Server qua API. <span id="dashboard-range" class="font-semibold text-on-surface"></span></p>
+    <p class="text-on-surface-variant"><span id="dashboard-range" class="font-semibold text-on-surface"></span></p>
   </div>
 
   <section class="grid grid-cols-2 gap-space-sm lg:grid-cols-4" aria-label="Số vi phạm theo kỳ">
     @foreach ([['today', 'Hôm nay', 'today'], ['week', 'Tuần này', 'date_range'], ['month', 'Tháng này', 'calendar_month'], ['semester', 'Học kỳ hiện tại', 'school']] as [$key, $label, $icon])
     <article class="rounded-xl bg-surface-container-lowest p-space-md shadow-sm">
       <div class="flex items-center justify-between text-on-surface-variant">
-        <span class="font-label-md text-label-md">{{ $label }}</span>
+        <span class="font-label-md text-label-md" id="card-label-{{ $key }}">{{ $label }}</span>
         <span class="material-symbols-outlined text-[20px]">{{ $icon }}</span>
       </div>
       <p class="mt-2 font-headline-xl text-headline-xl" data-counter="{{ $key }}">…</p>
-      @if ($key === 'semester')
+      @if ($key === 'month')
+        <p class="font-label-sm text-label-sm text-on-surface-variant" id="month-name"></p>
+      @elseif ($key === 'semester')
         <p class="font-label-sm text-label-sm text-on-surface-variant" id="semester-name"></p>
       @endif
     </article>

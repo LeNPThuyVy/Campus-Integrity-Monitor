@@ -6,7 +6,7 @@ import pytest
 import ai.config as my_config
 from ai.classifier import Prediction
 from ai.pipeline import PipelineResult
-from ai.temporal_voting import TemporalVoting
+from ai.temporal_voting import TemporalVoting, VotingResult
 from ai.violation_events import ViolationEventDetector, combined_status, crop_evidence
 from ai.my_utils import Utils
 
@@ -21,6 +21,9 @@ def default_config(monkeypatch):
     monkeypatch.setattr(my_config, "MIN_PERSON_HEIGHT_RATIO", 0.25)
     monkeypatch.setattr(my_config, "MISSING_COUNTER_THRESHOLD", 3)
     monkeypatch.setattr(my_config, "LEN_HISTORY", 10)
+    # Older event tests check other rules; the stability gate has its own tests below.
+    monkeypatch.setattr(my_config, "EVENT_STABLE_SECONDS", 0)
+    monkeypatch.setattr(my_config, "EVENT_MIN_VOTES", 0)
 
 
 def result(track_id, uniform, card, conf=0.9, bbox=(10, 10, 110, 210)):
@@ -278,3 +281,86 @@ def test_event_waits_until_track_was_visible_long_enough(monkeypatch):
         if detector.process(frame, frame_results, voting.vote(), now + timedelta(seconds=index)):
             reported_at.append(index)
     assert reported_at == [6]
+
+
+# ---------------------------------------------------------------- stability gate
+def _card_flip_frames():
+    """Card vote is noisy at first (decides Card -> UNIFORM), then settles on No_Card (-> BOTH)."""
+    cards = ["Card", "Card", "Card", "No_Card", "No_Card"] + ["No_Card"] * 8
+    return [[result(1, "Non_Uniform", card)] for card in cards]
+
+
+def _run(detector, frames, start):
+    voting = TemporalVoting()
+    events = []
+    for index, frame_results in enumerate(frames):
+        voting.update(frame_results)
+        for event in detector.process(_frame(), frame_results, voting.vote(), start + timedelta(seconds=index)):
+            events.append((index, event))
+    return events
+
+
+def test_early_unstable_status_is_not_sent_and_final_status_wins():
+    start = datetime(2026, 11, 8, 8, 0, tzinfo=timezone.utc)
+    # Old behaviour (no gate): the early UNIFORM decision is what the API receives.
+    old = _run(ViolationEventDetector(dedup_seconds=60, stable_seconds=0, min_votes=0), _card_flip_frames(), start)
+    assert [event.violation_code for _, event in old] == ["UNIFORM"]
+    # With the gate: one event only, and it carries the settled status BOTH.
+    new = _run(ViolationEventDetector(dedup_seconds=60, stable_seconds=3, min_votes=5), _card_flip_frames(), start)
+    assert [event.violation_code for _, event in new] == ["BOTH"]
+    # Status became BOTH at index 7 -> confirmed 3 s later.
+    assert new[0][0] == 10
+
+
+def _vote(uniform, card, votes=10):
+    return VotingResult(label=uniform, matched_count=votes, uniform_label=uniform, card_label=card,
+                        uniform_confidence=0.9, card_confidence=0.9, uniform_votes=votes, card_votes=votes)
+
+
+def test_oscillating_status_never_produces_an_event():
+    detector = ViolationEventDetector(dedup_seconds=60, stable_seconds=3, min_votes=0)
+    start = datetime(2026, 11, 8, 8, 0, tzinfo=timezone.utc)
+    frame_results = [result(1, "Non_Uniform", "Card")]
+    for index in range(12):
+        card = "Card" if index % 2 == 0 else "No_Card"
+        votes = {1: _vote("Non_Uniform", card)}
+        assert detector.process(_frame(), frame_results, votes, start + timedelta(seconds=index)) == []
+
+
+def test_stable_status_is_sent_with_crop_from_confirming_frame():
+    detector = ViolationEventDetector(dedup_seconds=60, stable_seconds=3, min_votes=0)
+    start = datetime(2026, 11, 8, 8, 0, tzinfo=timezone.utc)
+    reported = []
+    for index in range(6):
+        frame = _frame()
+        frame[:, :] = index * 10 + 5  # every frame has a distinct base colour
+        frame[0:40, :] = 255            # keep the crop non-trivial (std > 2)
+        votes = {1: _vote("Uniform", "No_Card")}
+        for event in detector.process(frame, [result(1, "Uniform", "No_Card")], votes, start + timedelta(seconds=index)):
+            reported.append((index, event))
+    assert len(reported) == 1
+    index, event = reported[0]
+    assert index == 3 and event.violation_code == "NO_CARD"
+    assert int(event.crop[-1, -1, 0]) == index * 10 + 5
+
+
+def test_not_enough_votes_blocks_the_event():
+    detector = ViolationEventDetector(dedup_seconds=60, stable_seconds=0, min_votes=10)
+    now = datetime(2026, 11, 8, 8, 0, tzinfo=timezone.utc)
+    votes = {1: _vote("Non_Uniform", "No_Card", votes=9)}
+    assert detector.process(_frame(), [result(1, "Non_Uniform", "No_Card")], votes, now) == []
+    votes = {1: _vote("Non_Uniform", "No_Card", votes=10)}
+    assert len(detector.process(_frame(), [result(1, "Non_Uniform", "No_Card")], votes, now)) == 1
+
+
+def test_compliant_in_between_restarts_the_stability_timer():
+    detector = ViolationEventDetector(dedup_seconds=60, stable_seconds=3, min_votes=0)
+    start = datetime(2026, 11, 8, 8, 0, tzinfo=timezone.utc)
+    sequence = [("Non_Uniform", "Card")] * 2 + [("Uniform", "Card")] + [("Non_Uniform", "Card")] * 4
+    reported = []
+    for index, (uniform, card) in enumerate(sequence):
+        votes = {1: _vote(uniform, card)}
+        if detector.process(_frame(), [result(1, uniform, card)], votes, start + timedelta(seconds=index)):
+            reported.append(index)
+    # Timer restarts at index 3 (after the compliant frame) -> sent at index 6.
+    assert reported == [6]
