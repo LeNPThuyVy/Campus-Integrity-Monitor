@@ -17,7 +17,8 @@ from evaluation.common import VOTING_KEYS, iou, override_config, read_csv, read_
 from evaluation.run_pipeline import CLOCK_ORIGIN
 
 # Every frame decides on its own: the "no temporal voting" baseline.
-FRAME_LEVEL = {"LEN_HISTORY": 1, "VOTING_THREDSHOLD": 1, "LABEL_HOLD_SECONDS": 0, "HYSTERESIS_MARGIN": 0.0}
+FRAME_LEVEL = {"LEN_HISTORY": 1, "VOTING_THREDSHOLD": 1, "LABEL_HOLD_SECONDS": 0, "HYSTERESIS_MARGIN": 0.0,
+               "EVENT_STABLE_SECONDS": 0, "EVENT_MIN_VOTES": 0}
 
 
 @dataclass

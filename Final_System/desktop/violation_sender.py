@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import queue
 import threading
 import time
 from dataclasses import dataclass
@@ -26,8 +27,8 @@ logger = logging.getLogger("cim.desktop.sender")
 
 RETRYABLE_STATUS = {408, 425, 429, 500, 502, 503, 504}
 AUTH_STATUS = {401, 403}
-MAX_BACKOFF_SECONDS = 60
-AUTH_PAUSE_SECONDS = 60
+MAX_BACKOFF_SECONDS = 3
+AUTH_PAUSE_SECONDS = 15
 
 
 @dataclass
@@ -62,6 +63,21 @@ def _api_message(response) -> str:
         return f"HTTP {response.status_code}"
 
 
+def _clean_str(val: str | None) -> str:
+    if not val:
+        return ""
+    s = str(val)
+    for enc in ("cp1252", "latin1", "iso-8859-1"):
+        try:
+            candidate = s.encode(enc).decode("utf-8")
+            if "\ufffd" not in candidate and len(candidate) > 0:
+                s = candidate
+                break
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+    return s.rstrip(" -:").strip()
+
+
 def check_connection(config: ApiConfig, session=None) -> tuple[bool, str, dict | None]:
     """Call GET /api/v1/device/me to validate URL, camera code and device key."""
     import requests
@@ -75,8 +91,17 @@ def check_connection(config: ApiConfig, session=None) -> tuple[bool, str, dict |
     except requests.RequestException as exc:
         return False, f"Không kết nối được API: {type(exc).__name__}", None
     if response.status_code == 200:
-        data = response.json()["data"]
-        return True, f"Đã kết nối: {data['camera']['name']} - {data['area']['name']}", data
+        data = response.json().get("data", {})
+        cam_info = data.get("camera", {})
+        area_info = data.get("area", {})
+        cam_name = _clean_str(cam_info.get("name") or cam_info.get("code") or config.camera_code)
+        area_name = _clean_str(area_info.get("name") or area_info.get("code") or "")
+        if isinstance(cam_info, dict) and "name" in cam_info:
+            cam_info["name"] = cam_name
+        if isinstance(area_info, dict) and "name" in area_info:
+            area_info["name"] = area_name
+        label = f"Đã kết nối: {cam_name}" + (f" - {area_name}" if area_name else "")
+        return True, label, data
     return False, _api_message(response), None
 
 
@@ -94,6 +119,7 @@ class ViolationSender:
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self.status = SenderStatus()
+        self.delivered_queue: queue.Queue = queue.Queue(maxsize=1000)
         self._refresh_counts()
 
     # ------------------------------------------------------------------ configuration
@@ -159,6 +185,15 @@ class ViolationSender:
         if image_path.exists():
             os.replace(image_path, self.failed_dir / image_path.name)
         meta_path.unlink(missing_ok=True)
+        try:
+            self.delivered_queue.put_nowait({
+                "event_id": metadata.get("event_id"),
+                "track_id": metadata.get("track_id"),
+                "status": "failed",
+                "reason": reason,
+            })
+        except queue.Full:
+            pass
 
     def _remove_pending(self, meta_path: Path) -> None:
         meta_path.with_suffix(".jpg").unlink(missing_ok=True)
@@ -196,6 +231,14 @@ class ViolationSender:
             self.status.last_success_at = time.time()
             self.status.last_error = None
             self.status.paused_reason = None
+            try:
+                self.delivered_queue.put_nowait({
+                    "event_id": metadata.get("event_id"),
+                    "track_id": metadata.get("track_id"),
+                    "status": "sent",
+                })
+            except queue.Full:
+                pass
             return "sent"
         message = _api_message(response)
         if response.status_code in AUTH_STATUS:

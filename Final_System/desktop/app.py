@@ -23,7 +23,7 @@ from ai.temporal_voting import TemporalVoting
 from ai.violation_events import ViolationEventDetector, combined_status
 from ai.brightness import BrightnessNormalizer
 from desktop.camera import Camera
-from desktop.violation_sender import ApiConfig, ViolationSender, check_connection
+from desktop.violation_sender import ApiConfig, ViolationSender, _clean_str, check_connection
 import ai.config as my_config
 
 CONFIG_FILE_PATH = os.path.join(os.path.dirname(__file__), "config.json")
@@ -81,16 +81,16 @@ class App:
         self.worker_thread = None
         self._state_lock = threading.Lock()
 
-        # Whether violation events may be recorded for the current session.
-        self.recording_enabled = False
-        self.recording_note = "Chưa kiểm tra kết nối API."
-        self.camera_info: dict | None = None
-
         # Loaded once at startup; UI sliders may update these values later
         self.params: dict = {}
         self._spawned_api_process: subprocess.Popen | None = None
         self.load_parameters()
         self.ensure_local_api()
+
+        # Whether violation events may be recorded for the current session.
+        self.recording_enabled = bool(self.api_config().configured)
+        self.recording_note = "Chưa kiểm tra kết nối API."
+        self.camera_info: dict | None = None
 
         self.sender = ViolationSender(OUTBOX_DIR, self.api_config())
         self.sender.start()
@@ -102,6 +102,37 @@ class App:
     # ------------------------------------------------------------------
     # Configuration Management
     # ------------------------------------------------------------------
+
+    def default_parameters(self) -> dict:
+        """Returns standard default parameters based on ai.config (preserving API_URL and CAMERA_CODE)."""
+        params = getattr(self, "params", {}) or {}
+        return {
+            "DETECT_CONF":               0.3,
+            "CLASSIFY_CONF":             0.7,
+            "MIN_PERSON_HEIGHT_RATIO":   0.25,
+            "LABEL_HOLD_SECONDS":        2,
+            "DETECT_CARD_CONF":          0.3,
+            "DETECT_CARD_IOU":           0.3,
+            "DETECT_CARD_IMAGE_SIZE":    224,
+            "IOU_THRESHOLD":             0.45,
+            "FRAME_SKIP":                2,
+            "BRIGHTNESS_ENABLED":        1,
+            "LEN_HISTORY":               10,
+            "VOTING_THREDSHOLD":         6,
+            "VIOLATION_RATIO":           0.6,
+            "MISSING_COUNTER_THRESHOLD": 10,
+            "EVENT_DEDUP_SECONDS":       600,
+            "EVENT_MIN_TRACK_SECONDS":   0,
+            "API_URL":                   params.get("API_URL", "http://127.0.0.1:8001"),
+            "CAMERA_CODE":               params.get("CAMERA_CODE", ""),
+        }
+
+    def reset_parameters_to_default(self) -> dict:
+        """Resets all parameters to standard defaults and saves to config.json."""
+        defaults = self.default_parameters()
+        self.save_parameters(defaults)
+        self.reset_state()
+        return self.params
 
     def load_parameters(self) -> dict:
         """Loads configuration from config.json, falling back to ai.config defaults."""
@@ -263,7 +294,11 @@ class App:
         return False
 
     def api_config(self) -> ApiConfig:
-        return ApiConfig(base_url=self.params["API_URL"], camera_code=self.params["CAMERA_CODE"])
+        params = getattr(self, "params", {}) or {}
+        return ApiConfig(
+            base_url=params.get("API_URL", ""),
+            camera_code=params.get("CAMERA_CODE", "")
+        )
 
     def check_api(self) -> tuple[bool, str]:
         """Validate API URL + camera code. Decides whether events may be recorded."""
@@ -287,8 +322,8 @@ class App:
 
     def camera_label(self) -> str:
         if self.camera_info and self.camera_info.get("camera", {}).get("name"):
-            return self.camera_info["camera"]["name"]
-        return self.params.get("CAMERA_NAME") or "Camera 1 - Camera Desktop Local"
+            return _clean_str(self.camera_info["camera"]["name"])
+        return _clean_str(self.params.get("CAMERA_NAME") or "Camera 1 - Camera Desktop Local")
 
     # ------------------------------------------------------------------
     # Camera / Stream Control
@@ -385,7 +420,7 @@ class App:
 
     def _record_event(self, event) -> None:
         queued = False
-        if self.recording_enabled:
+        if self.recording_enabled or self.api_config().configured:
             queued = self.sender.enqueue(event, self.params["CAMERA_CODE"])
         alert = {
             "event_id": event.event_id,

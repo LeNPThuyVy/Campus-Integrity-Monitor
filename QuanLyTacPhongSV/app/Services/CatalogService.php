@@ -11,11 +11,17 @@ use RuntimeException;
 
 class CatalogService
 {
+    protected static ?PDO $cachedPdo = null;
+
     public function getPdo(): PDO
     {
+        if (self::$cachedPdo !== null) {
+            return self::$cachedPdo;
+        }
+
         if (extension_loaded('pdo_sqlsrv')) {
             try {
-                return DB::connection('sqlsrv')->getPdo();
+                return self::$cachedPdo = DB::connection('sqlsrv')->getPdo();
             } catch (\Throwable) {
                 // Tiếp tục thử kết nối trực tiếp
             }
@@ -33,7 +39,7 @@ class CatalogService
                 try {
                     if ($trusted) {
                         $dsn = sprintf('odbc:Driver={%s};Server=%s;Database=%s;Trusted_Connection=yes;', $drv, $host, $database);
-                        return new PDO($dsn, null, null, [
+                        return self::$cachedPdo = new PDO($dsn, null, null, [
                             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                             PDO::ATTR_EMULATE_PREPARES => false,
@@ -41,7 +47,7 @@ class CatalogService
                     }
 
                     $dsn = sprintf('odbc:Driver={%s};Server=%s;Database=%s;', $drv, $host, $database);
-                    return new PDO($dsn, $username, $password, [
+                    return self::$cachedPdo = new PDO($dsn, $username, $password, [
                         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                         PDO::ATTR_EMULATE_PREPARES => false,
@@ -56,7 +62,7 @@ class CatalogService
             $encrypt = config('cim.db.encrypt');
             $trustCert = config('cim.db.trust_server_certificate');
             $dsn = sprintf('sqlsrv:Server=%s;Database=%s;Encrypt=%s;TrustServerCertificate=%s', $host, $database, $encrypt, $trustCert);
-            return new PDO($dsn, $trusted ? null : $username, $trusted ? null : $password, [
+            return self::$cachedPdo = new PDO($dsn, $trusted ? null : $username, $trusted ? null : $password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
@@ -123,11 +129,11 @@ class CatalogService
         return match ($entity) {
             'KHOA' => [
                 'MA_KHOA' => $this->code($data['MA_KHOA'] ?? null, 'khoa', 10),
-                'TEN_KHOA' => $this->requiredText($data['TEN_KHOA'] ?? null, 'TEN_KHOA', 50),
+                'TEN_KHOA' => $this->requiredText($data['TEN_KHOA'] ?? null, 'TEN_KHOA', 100),
             ],
             'NGANH' => [
                 'MA_NGANH' => $this->code($data['MA_NGANH'] ?? null, 'ngành', 10),
-                'TEN_NGANH' => $this->requiredText($data['TEN_NGANH'] ?? null, 'TEN_NGANH', 50),
+                'TEN_NGANH' => $this->requiredText($data['TEN_NGANH'] ?? null, 'TEN_NGANH', 100),
                 'MA_KHOA' => $this->code($data['MA_KHOA'] ?? null, 'khoa', 10),
             ],
             'LOP' => [
@@ -235,9 +241,19 @@ class CatalogService
 
         if ($entity === 'KHOA') {
             if ($id === null) {
-                $stmt = $pdo->prepare('INSERT INTO KHOA (MA_KHOA, TEN_KHOA) OUTPUT INSERTED.ID VALUES (?, ?)');
+                $check = $pdo->prepare('SELECT ID FROM KHOA WHERE MA_KHOA = ?');
+                $check->execute([$record['MA_KHOA']]);
+                $existingId = $check->fetchColumn();
+                if ($existingId !== false) {
+                    $stmt = $pdo->prepare('UPDATE KHOA SET TEN_KHOA = ? WHERE ID = ?');
+                    $stmt->execute([$record['TEN_KHOA'], (int)$existingId]);
+                    return (int)$existingId;
+                }
+                $stmt = $pdo->prepare('INSERT INTO KHOA (MA_KHOA, TEN_KHOA) VALUES (?, ?)');
                 $stmt->execute([$record['MA_KHOA'], $record['TEN_KHOA']]);
-                return (int)$stmt->fetchColumn();
+                $find = $pdo->prepare('SELECT ID FROM KHOA WHERE MA_KHOA = ?');
+                $find->execute([$record['MA_KHOA']]);
+                return (int)$find->fetchColumn();
             }
             $stmt = $pdo->prepare('UPDATE KHOA SET MA_KHOA = ?, TEN_KHOA = ? WHERE ID = ?');
             $stmt->execute([$record['MA_KHOA'], $record['TEN_KHOA'], $id]);
@@ -252,9 +268,19 @@ class CatalogService
                 throw new InvalidArgumentException('Khoa không tồn tại.');
             }
             if ($id === null) {
-                $stmt = $pdo->prepare('INSERT INTO NGANH (MA_NGANH, TEN_NGANH, KHOA_ID) OUTPUT INSERTED.ID VALUES (?, ?, ?)');
+                $check = $pdo->prepare('SELECT ID FROM NGANH WHERE MA_NGANH = ?');
+                $check->execute([$record['MA_NGANH']]);
+                $existingId = $check->fetchColumn();
+                if ($existingId !== false) {
+                    $stmt = $pdo->prepare('UPDATE NGANH SET TEN_NGANH = ?, KHOA_ID = ? WHERE ID = ?');
+                    $stmt->execute([$record['TEN_NGANH'], (int)$khoaId, (int)$existingId]);
+                    return (int)$existingId;
+                }
+                $stmt = $pdo->prepare('INSERT INTO NGANH (MA_NGANH, TEN_NGANH, KHOA_ID) VALUES (?, ?, ?)');
                 $stmt->execute([$record['MA_NGANH'], $record['TEN_NGANH'], (int)$khoaId]);
-                return (int)$stmt->fetchColumn();
+                $find = $pdo->prepare('SELECT ID FROM NGANH WHERE MA_NGANH = ?');
+                $find->execute([$record['MA_NGANH']]);
+                return (int)$find->fetchColumn();
             }
             $stmt = $pdo->prepare('UPDATE NGANH SET MA_NGANH = ?, TEN_NGANH = ?, KHOA_ID = ? WHERE ID = ?');
             $stmt->execute([$record['MA_NGANH'], $record['TEN_NGANH'], (int)$khoaId, $id]);
@@ -269,9 +295,19 @@ class CatalogService
                 throw new InvalidArgumentException('Ngành không tồn tại.');
             }
             if ($id === null) {
-                $stmt = $pdo->prepare('INSERT INTO LOP (MA_LOP, NGANH_ID) OUTPUT INSERTED.ID VALUES (?, ?)');
+                $check = $pdo->prepare('SELECT ID FROM LOP WHERE MA_LOP = ?');
+                $check->execute([$record['MA_LOP']]);
+                $existingId = $check->fetchColumn();
+                if ($existingId !== false) {
+                    $stmt = $pdo->prepare('UPDATE LOP SET NGANH_ID = ? WHERE ID = ?');
+                    $stmt->execute([(int)$nganhId, (int)$existingId]);
+                    return (int)$existingId;
+                }
+                $stmt = $pdo->prepare('INSERT INTO LOP (MA_LOP, NGANH_ID) VALUES (?, ?)');
                 $stmt->execute([$record['MA_LOP'], (int)$nganhId]);
-                return (int)$stmt->fetchColumn();
+                $find = $pdo->prepare('SELECT ID FROM LOP WHERE MA_LOP = ?');
+                $find->execute([$record['MA_LOP']]);
+                return (int)$find->fetchColumn();
             }
             $stmt = $pdo->prepare('UPDATE LOP SET MA_LOP = ?, NGANH_ID = ? WHERE ID = ?');
             $stmt->execute([$record['MA_LOP'], (int)$nganhId, $id]);
@@ -280,9 +316,11 @@ class CatalogService
 
         if ($entity === 'LOI_VIPHAM') {
             if ($id === null) {
-                $stmt = $pdo->prepare('INSERT INTO LOI_VIPHAM (TEN_LOI, DIEM_TRU) OUTPUT INSERTED.ID VALUES (?, ?)');
+                $stmt = $pdo->prepare('INSERT INTO LOI_VIPHAM (TEN_LOI, DIEM_TRU) VALUES (?, ?)');
                 $stmt->execute([$record['TEN_LOI'], $record['DIEM_TRU']]);
-                return (int)$stmt->fetchColumn();
+                $find = $pdo->prepare('SELECT MAX(ID) FROM LOI_VIPHAM');
+                $find->execute();
+                return (int)$find->fetchColumn();
             }
             $stmt = $pdo->prepare('UPDATE LOI_VIPHAM SET TEN_LOI = ?, DIEM_TRU = ? WHERE ID = ?');
             $stmt->execute([$record['TEN_LOI'], $record['DIEM_TRU'], $id]);

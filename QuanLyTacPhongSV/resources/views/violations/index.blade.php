@@ -20,14 +20,12 @@
       </button>
       <button class="flex items-center gap-space-xs px-4 py-2 rounded-xl bg-primary-container text-on-primary hover:bg-primary transition-all font-label-md text-label-md shadow-sm" id="open-manual-btn" type="button">
         <span class="material-symbols-outlined text-[18px]">post_add</span>
-        <span>Lập biên bản Cờ Đỏ</span>
+        <span>Ghi nhận vi phạm</span>
       </button>
-      @if (session('role') === 'ADMIN')
-      <button class="flex items-center gap-space-xs px-3.5 py-2 rounded-xl bg-error-container text-on-error-container hover:bg-error hover:text-white transition-all font-label-md text-label-md shadow-sm" id="open-reset-btn" type="button" title="Đặt lại vi phạm toàn trường sau học kỳ">
-        <span class="material-symbols-outlined text-[18px]">restart_alt</span>
-        <span>Reset vi phạm</span>
+      <button class="flex items-center gap-space-xs px-3.5 py-2 rounded-xl bg-error-container text-on-error-container hover:bg-error hover:text-white transition-all font-label-md text-label-md shadow-sm" id="open-purge-camera-btn" type="button" title="Xóa toàn bộ bản ghi phát hiện">
+        <span class="material-symbols-outlined text-[18px]">delete_sweep</span>
+        <span>Xóa toàn bộ bản ghi phát hiện</span>
       </button>
-      @endif
     </div>
   </div>
 
@@ -70,6 +68,7 @@
       <select class="h-10 rounded-lg bg-surface-container-low px-3" name="status">
         <option value="">Tất cả</option><option value="MOI">Mới báo động (Chờ Cờ Đỏ)</option>
         <option value="DA_XEM">Đã điều Đội Cờ Đỏ</option><option value="DA_XU_LY">Đã kiểm tra tại phòng học</option>
+        <option value="BO_QUA">Bỏ qua (cảnh báo sai)</option>
       </select></label>
     <label class="flex flex-col gap-1"><span class="font-label-sm text-label-sm text-on-surface-variant">Sắp xếp</span>
       <select class="h-10 rounded-lg bg-surface-container-low px-3" name="sort">
@@ -82,6 +81,18 @@
       </button>
     </div>
   </form>
+
+  <!-- Reload List Banner (VL-18) -->
+  <div id="reload-list-banner" class="hidden items-center justify-between p-3 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 transition-all shadow-sm">
+    <div class="flex items-center gap-2 text-sm font-medium">
+      <span class="material-symbols-outlined text-[20px] text-amber-600 animate-bounce">info</span>
+      <span>Có bản ghi vi phạm mới vừa được ghi nhận.</span>
+    </div>
+    <button id="reload-list-btn" type="button" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 font-label-md text-xs font-semibold shadow-sm transition-all">
+      <span class="material-symbols-outlined text-[16px]">refresh</span>
+      <span>Tải lại danh sách</span>
+    </button>
+  </div>
 
   <section class="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
     <div class="overflow-x-auto">
@@ -129,6 +140,7 @@
           <option value="MOI">Mới báo động (Chờ Cờ Đỏ)</option>
           <option value="DA_XEM">Đã điều Đội Cờ Đỏ</option>
           <option value="DA_XU_LY">Đã kiểm tra tại phòng học</option>
+          <option value="BO_QUA">Bỏ qua (cảnh báo sai)</option>
         </select>
         <textarea class="min-h-[80px] rounded-lg bg-surface-container-lowest p-3" name="note" maxlength="500" placeholder="Ghi chú điều phối (VD: Cử 2 bạn Cờ Đỏ phòng A201 lúc 07:35)"></textarea>
         <button class="self-start rounded-lg bg-primary-container px-space-md py-2 font-label-md text-on-primary" type="submit">Cập nhật điều phối</button>
@@ -148,7 +160,7 @@
           <span class="material-symbols-outlined text-[20px]">flag</span>
         </div>
         <div>
-          <h2 class="font-headline-lg text-headline-lg text-on-surface">Biên bản vi phạm Đội Cờ Đỏ</h2>
+          <h2 class="font-headline-lg text-headline-lg text-on-surface">Ghi nhận vi phạm</h2>
           <p class="font-body-sm text-[12px] text-on-surface-variant">Ghi nhận thông tin sinh viên vi phạm vào cơ sở dữ liệu giám sát</p>
         </div>
       </div>
@@ -326,68 +338,45 @@
   </div>
 </div>
 
-<!-- Modal: Xác thực Mật mã Reset Toàn bộ Vi phạm -->
-<div class="fixed inset-0 z-50 hidden items-center justify-center p-space-md overflow-y-auto" id="reset-violations-modal">
-  <div class="fixed inset-0 bg-inverse-surface/40 backdrop-blur-xs transition-opacity cursor-pointer" id="reset-modal-backdrop"></div>
-  <div class="relative w-full max-w-md bg-surface-container-lowest rounded-xl shadow-[0_20px_25px_-5px_rgba(15,23,42,0.15)] flex flex-col z-10 overflow-hidden my-auto">
-    <div class="p-space-lg bg-surface-container-low flex items-center justify-between border-b border-surface-container">
+
+<!-- Modal: Xác nhận Xóa toàn bộ bản ghi phát hiện (VL-19, VL-20) -->
+<div class="fixed inset-0 z-50 hidden items-center justify-center p-space-md overflow-y-auto" id="purge-camera-modal">
+  <div class="fixed inset-0 bg-inverse-surface/40 backdrop-blur-xs transition-opacity cursor-pointer" id="purge-camera-backdrop"></div>
+  <div class="relative w-full max-w-md bg-surface-container-lowest rounded-xl shadow-[0_20px_25px_-5px_rgba(15,23,42,0.15)] flex flex-col z-10 overflow-hidden my-auto border border-error/30">
+    <div class="p-space-lg bg-error-container/20 flex items-center justify-between border-b border-error/20">
       <div class="flex items-center gap-space-sm">
-        <div class="w-10 h-10 rounded-xl bg-error-container text-on-error-container flex items-center justify-center shadow-sm">
-          <span class="material-symbols-outlined text-[22px]">restart_alt</span>
+        <div class="w-10 h-10 rounded-xl bg-error text-on-error flex items-center justify-center shadow-sm">
+          <span class="material-symbols-outlined text-[22px]">delete_sweep</span>
         </div>
         <div>
-          <h2 class="font-headline-sm text-headline-sm text-error">Reset toàn bộ vi phạm</h2>
-          <p class="font-body-sm text-[11px] text-on-surface-variant">Bắt đầu chu kỳ học kỳ mới</p>
+          <h2 class="font-headline-sm text-headline-sm text-error">Xóa toàn bộ bản ghi phát hiện</h2>
+          <p class="font-body-sm text-[11px] text-on-surface-variant">Dữ liệu phát hiện Camera AI</p>
         </div>
       </div>
-      <button class="w-8 h-8 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface flex items-center justify-center transition-colors" id="close-reset-modal-btn" type="button">
+      <button class="w-8 h-8 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface flex items-center justify-center transition-colors" id="close-purge-camera-btn" type="button">
         <span class="material-symbols-outlined text-[20px]">close</span>
       </button>
     </div>
 
-    <form class="p-space-lg flex flex-col gap-space-md" id="reset-violations-form">
-      <div class="p-space-sm rounded-lg bg-error-container/20 border border-error/20 flex items-start gap-2 text-error font-body-sm text-[12px]">
+    <div class="p-space-lg flex flex-col gap-space-md">
+      <div class="p-space-sm rounded-lg bg-error/10 border border-error/20 flex items-start gap-2 text-error font-body-sm text-[12px]">
         <span class="material-symbols-outlined text-[18px] shrink-0 mt-0.5">warning</span>
         <div>
-          <p class="font-semibold">Cảnh báo hành động không thể hoàn tác!</p>
-          <p class="mt-0.5">Toàn bộ bản ghi biên bản vi phạm và cảnh báo camera sẽ bị xóa vĩnh viễn. Số lượt vi phạm của tất cả sinh viên sẽ được trả về <strong>0 lượt vi phạm</strong>.</p>
+          <p class="font-semibold">Hành động này sẽ xóa toàn bộ bản ghi phát hiện!</p>
+          <p class="mt-0.5">Toàn bộ dữ liệu cảnh báo tại bảng <strong>PHAT_HIEN_VIPHAM</strong> và ảnh tại bảng <strong>ANH_VIPHAM</strong> sẽ bị xóa sạch. Bản ghi biên bản Đội Cờ Đỏ tại bảng <strong>CT_VIPHAM</strong> vẫn được bảo toàn nguyên vẹn.</p>
         </div>
-      </div>
-
-      <div class="flex flex-col gap-1.5">
-        <label class="font-label-sm text-label-sm text-on-surface font-semibold" for="reset-password-input">
-          Nhập mật mã xác nhận xóa vi phạm <span class="text-error">*</span>
-        </label>
-        <div class="relative">
-          <input class="w-full h-10 px-3 pr-10 rounded-lg bg-surface-container-low text-on-surface font-body-md focus:bg-surface-container-lowest focus:outline-none transition-all" id="reset-password-input" type="password" placeholder="Nhập mật mã bảo mật để reset..." required autocomplete="current-password">
-          <button class="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface flex items-center" id="toggle-reset-password-btn" type="button">
-            <span class="material-symbols-outlined text-[18px]" id="toggle-reset-password-icon">visibility</span>
-          </button>
-        </div>
-        <p class="font-body-sm text-[11px] text-error hidden" id="reset-password-error"></p>
-      </div>
-
-      <div class="p-space-sm rounded-lg bg-surface-container-low border border-surface-container flex flex-col gap-2">
-        <label class="flex items-center gap-2 text-on-surface font-body-sm text-[12px] cursor-pointer">
-          <input class="rounded text-primary focus:ring-primary w-4 h-4" id="reset-student-violations-check" type="checkbox" checked disabled>
-          <span>Đưa số lượt vi phạm của toàn bộ sinh viên về <strong>0 vi phạm</strong> (Bảng CT_VIPHAM)</span>
-        </label>
-        <label class="flex items-center gap-2 text-on-surface-variant font-body-sm text-[12px] cursor-pointer">
-          <input class="rounded text-error focus:ring-error w-4 h-4" id="reset-include-camera-check" type="checkbox">
-          <span>Xóa kèm cả lịch sử ảnh và cảnh báo Camera AI (mặc định giữ lại để đối soát thống kê)</span>
-        </label>
       </div>
 
       <div class="flex items-center justify-end gap-space-sm pt-2">
-        <button class="px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" id="cancel-reset-btn" type="button">
-          Hủy bỏ
+        <button class="px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" id="cancel-purge-camera-btn" type="button">
+          Hủy
         </button>
-        <button class="px-5 py-2 rounded-xl bg-error text-on-error hover:bg-error/90 font-label-md text-label-md shadow-sm transition-all flex items-center gap-1.5" id="confirm-reset-btn" type="submit">
+        <button class="px-5 py-2 rounded-xl bg-error text-on-error hover:bg-error/90 font-label-md text-label-md shadow-sm transition-all flex items-center gap-1.5" id="confirm-purge-camera-btn" type="button">
           <span class="material-symbols-outlined text-[18px]">delete_forever</span>
-          <span>Xác nhận xóa &amp; Reset về 0</span>
+          <span>Xác nhận</span>
         </button>
       </div>
-    </form>
+    </div>
   </div>
 </div>
 @endsection

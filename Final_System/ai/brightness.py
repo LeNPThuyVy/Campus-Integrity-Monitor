@@ -38,9 +38,9 @@ class BrightnessNormalizer:
         clip_on = getattr(my_config, "BRIGHTNESS_CLIP_ON", 0.10)
         clip_off = getattr(my_config, "BRIGHTNESS_CLIP_OFF", 0.07)
         target_mean = getattr(my_config, "BRIGHTNESS_TARGET", 120)
-        gamma_min = getattr(my_config, "BRIGHTNESS_GAMMA_MIN", 0.6)
-        gamma_max = getattr(my_config, "BRIGHTNESS_GAMMA_MAX", 1.6)
-        glare_gamma = getattr(my_config, "BRIGHTNESS_GLARE_GAMMA", 1.25)
+        gamma_min = max(0.75, getattr(my_config, "BRIGHTNESS_GAMMA_MIN", 0.75))
+        gamma_max = min(1.25, getattr(my_config, "BRIGHTNESS_GAMMA_MAX", 1.25))
+        glare_gamma = min(1.20, getattr(my_config, "BRIGHTNESS_GLARE_GAMMA", 1.15))
 
         # Hysteresis mode transition
         if self.mode == "dark":
@@ -99,7 +99,8 @@ class BrightnessNormalizer:
         """
         try:
             if not getattr(my_config, "BRIGHTNESS_ENABLED", 1):
-                self.counter = 0
+                if self.counter != 0 or self.mode != "normal":
+                    self.reset()
                 return frame
 
             if (

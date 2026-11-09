@@ -18,6 +18,8 @@ class VotingResult:
     card_label: str = WAITING
     uniform_confidence: float | None = None
     card_confidence: float | None = None
+    uniform_votes: int = 0  # samples currently in the uniform history
+    card_votes: int = 0     # samples currently in the card history
 
 
 def _decide_stable(
@@ -182,6 +184,8 @@ class TemporalVoting:
                 card_label=c_label,
                 uniform_confidence=u_conf,
                 card_confidence=c_conf,
+                uniform_votes=len(u_history),
+                card_votes=len(c_history),
             )
 
         return results_voting

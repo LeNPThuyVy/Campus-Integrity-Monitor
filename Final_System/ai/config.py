@@ -102,6 +102,8 @@ BRIGHTNESS_DEAD_ZONE=0.08         #|gamma-1| below this = leave frame untouched
 #==========================
 EVENT_DEDUP_SECONDS=600      #Same track is never reported twice within this window
 EVENT_MIN_TRACK_SECONDS=0    #A track must be visible this long before its first event (0 = report as soon as voted)
+EVENT_STABLE_SECONDS=3       #Combined status (UNIFORM/NO_CARD/BOTH) must stay unchanged this long before it is sent (keep > LABEL_HOLD_SECONDS)
+EVENT_MIN_VOTES=10           #Each criterion (uniform, card) needs at least this many samples in its history before an event is sent
 EVIDENCE_MIN_SIZE=32         #Minimum crop width/height (pixels) for a valid evidence image
 EVIDENCE_PADDING=0.08        #Extra margin around the person box in the evidence crop
 

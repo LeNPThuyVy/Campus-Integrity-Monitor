@@ -70,7 +70,11 @@
     try {
       if (id) {
         const body = { full_name: form.elements.full_name.value, role: form.elements.role.value, active: form.elements.active.checked };
-        if (!body.active && !(await CIM.confirmAction('Vô hiệu hóa tài khoản này? Người dùng sẽ bị đăng xuất ngay.', { danger: true }))) return;
+        const currentUserId = Number(form.dataset.currentUserId || 0);
+        const currentUsername = (form.dataset.currentUsername || '').toLowerCase();
+        const isSelf = (currentUserId > 0 && Number(id) === currentUserId) ||
+          (currentUsername && form.elements.username.value.trim().toLowerCase() === currentUsername);
+        if (!body.active && !isSelf && !(await CIM.confirmAction('Vô hiệu hóa tài khoản này? Người dùng sẽ bị đăng xuất ngay.', { danger: true }))) return;
         CIM.setBusy(button, true);
         await CIM.api('account', { method: 'PUT', params: { id }, body });
         CIM.toast('Đã cập nhật tài khoản.');

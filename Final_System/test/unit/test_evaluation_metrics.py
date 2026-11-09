@@ -17,7 +17,8 @@ def row(frame, track_id, uniform="Non_Uniform", conf=0.9, card_conf=0.0, box=(10
 def cached_run(detections: dict, frames: int, **config) -> CachedRun:
     base = {"LEN_HISTORY": 10, "VOTING_THREDSHOLD": 5, "VIOLATION_RATIO": 0.6, "CLASSIFY_CONF": 0.5,
             "DETECT_CARD_CONF": 0.5, "LABEL_HOLD_SECONDS": 0, "HYSTERESIS_MARGIN": 0.0,
-            "MISSING_COUNTER_THRESHOLD": 5, "EVENT_DEDUP_SECONDS": 600}
+            "MISSING_COUNTER_THRESHOLD": 5, "EVENT_DEDUP_SECONDS": 600,
+            "EVENT_STABLE_SECONDS": 0, "EVENT_MIN_VOTES": 0}
     return CachedRun(meta={"width": 640, "height": 480, "duration_s": frames / 10, "config": {**base, **config}},
                      frame_list=[(i, i / 10) for i in range(frames)], detections=detections)
 
@@ -62,6 +63,8 @@ def test_replay_needs_votes_and_respects_parameters():
     assert replay(cached_run(detections, 10), DETECT_CARD_CONF=0.9)[1].events[0][1] == "BOTH"
     # Without temporal voting the first frame already decides.
     assert replay(cached_run(detections, 10), **FRAME_LEVEL)[1].events[0][0] == pytest.approx(0.0)
+    # Stability gate: decided at 0.4 s, must hold 0.3 s more before the event is sent.
+    assert replay(cached_run(detections, 10), EVENT_STABLE_SECONDS=0.3)[1].events[0][0] == pytest.approx(0.7)
 
 
 def test_replay_compliant_track_is_decided_without_event():

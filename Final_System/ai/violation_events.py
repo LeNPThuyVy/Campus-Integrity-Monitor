@@ -12,6 +12,11 @@ Rules
   past the camera does not create a stream of records.
 - Minimum observation: no event before a track has been visible EVENT_MIN_TRACK_SECONDS, so the
   violation type is not locked in from the first few frames.
+- Stable status: the combined status must stay the same for EVENT_STABLE_SECONDS and each
+  criterion must have at least EVENT_MIN_VOTES samples before the event is sent. An early, still
+  noisy decision (e.g. UNIFORM while the card vote is about to become No_Card -> BOTH) would
+  otherwise be the only record the API ever receives for that person, because of the anti-repeat
+  window. The evidence crop is taken on the frame where the status is confirmed.
 - The evidence crop must be a valid, non-trivial image; otherwise no event is created for now
   (the track can still be reported on a later frame).
 - No identity: events only contain time, camera, type, confidences and the crop.
@@ -90,21 +95,41 @@ class ViolationEvent:
 
 
 class ViolationEventDetector:
-    def __init__(self, dedup_seconds: float | None = None):
+    def __init__(self, dedup_seconds: float | None = None, stable_seconds: float | None = None,
+                 min_votes: int | None = None):
         self.dedup_seconds = my_config.EVENT_DEDUP_SECONDS if dedup_seconds is None else dedup_seconds
+        # None -> read from config on every frame (so runtime/test config changes apply).
+        self._stable_seconds = stable_seconds
+        self._min_votes = min_votes
         self._reported: dict[int, datetime] = {}
         self._first_seen: dict[int, datetime] = {}
         self._last_seen: dict[int, datetime] = {}
+        self._candidate: dict[int, tuple[str, datetime]] = {}  # track_id -> (status, since)
+
+    @property
+    def stable_seconds(self) -> float:
+        if self._stable_seconds is not None:
+            return self._stable_seconds
+        return getattr(my_config, "EVENT_STABLE_SECONDS", 0)
+
+    @property
+    def min_votes(self) -> int:
+        if self._min_votes is not None:
+            return self._min_votes
+        return getattr(my_config, "EVENT_MIN_VOTES", 0)
 
     def reset(self):
         self._reported.clear()
         self._first_seen.clear()
         self._last_seen.clear()
+        self._candidate.clear()
 
     def process(self, frame: np.ndarray, pipeline_results, voting_results: dict, now: datetime) -> list[ViolationEvent]:
         events: list[ViolationEvent] = []
         self._forget_old(now)
         min_track_seconds = getattr(my_config, "EVENT_MIN_TRACK_SECONDS", 0)
+        stable_seconds = self.stable_seconds
+        min_votes = self.min_votes
         for result in pipeline_results:
             self._first_seen.setdefault(result.track_id, now)
             self._last_seen[result.track_id] = now
@@ -113,9 +138,20 @@ class ViolationEventDetector:
                 continue
             status = combined_status(vote.uniform_label, vote.card_label)
             if status is None or status == COMPLIANT:
+                self._candidate.pop(result.track_id, None)
                 continue
             if result.track_id in self._reported:
                 self._reported[result.track_id] = now  # still visible: extend the dedup window
+                continue
+            candidate = self._candidate.get(result.track_id)
+            if candidate is None or candidate[0] != status:
+                # New or changed status: restart the stability timer.
+                candidate = (status, now)
+                self._candidate[result.track_id] = candidate
+            if (getattr(vote, "uniform_votes", 0) < min_votes
+                    or getattr(vote, "card_votes", 0) < min_votes):
+                continue
+            if (now - candidate[1]).total_seconds() < stable_seconds:
                 continue
             if (now - self._first_seen[result.track_id]).total_seconds() < min_track_seconds:
                 continue
@@ -123,6 +159,7 @@ class ViolationEventDetector:
             if crop is None:
                 continue
             self._reported[result.track_id] = now
+            self._candidate.pop(result.track_id, None)
             events.append(ViolationEvent(
                 event_id=str(uuid.uuid4()),
                 track_id=int(result.track_id),
@@ -144,3 +181,4 @@ class ViolationEventDetector:
         for track_id in gone:
             del self._last_seen[track_id]
             self._first_seen.pop(track_id, None)
+            self._candidate.pop(track_id, None)

@@ -231,8 +231,21 @@
     const target = event.currentTarget;
     const button = target.querySelector('button[type="submit"]');
     const status = target.elements.status.value;
+
+    if (status === 'BO_QUA') {
+      const confirmed = await CIM.confirmAction('Bạn có chắc chắn muốn bỏ qua bản ghi này không? Trạng thái sẽ được đổi thành "Bỏ qua (cảnh báo sai)".', {
+        title: 'Xác nhận bỏ qua cảnh báo',
+        danger: true,
+        okText: 'Bỏ qua',
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+
     CIM.setBusy(button, true);
     try {
+      const oldStatus = state.current?.processing?.status;
       const { data } = await CIM.api('violation', {
         method: 'PATCH',
         params: { id: state.current.id },
@@ -240,6 +253,14 @@
       });
       state.current = data;
       CIM.toast('Đã cập nhật trạng thái điều phối Đội Cờ Đỏ.');
+
+      // NT-05: decrement bell badge if transitioning from MOI to DA_XU_LY or BO_QUA
+      if (oldStatus === 'MOI' && (status === 'DA_XU_LY' || status === 'BO_QUA')) {
+        if (typeof CIM.adjustNotificationBadge === 'function') {
+          CIM.adjustNotificationBadge(-1);
+        }
+      }
+
       dialog.close();
       load();
     } catch (error) {
@@ -250,8 +271,25 @@
   });
 
   document.getElementById('detail-close').addEventListener('click', () => dialog.close());
-  form.addEventListener('submit', (event) => { event.preventDefault(); state.page = 1; load(); });
-  form.addEventListener('reset', () => setTimeout(() => { state.page = 1; load(); }, 0));
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const from = form.elements.date_from?.value;
+    const to = form.elements.date_to?.value;
+    if (from && to && from > to) {
+      CIM.toast('Khoảng thời gian không hợp lệ: Từ ngày phải nhỏ hơn hoặc bằng Đến ngày.', 'error');
+      return;
+    }
+    state.page = 1;
+    load();
+  });
+  form.addEventListener('reset', () => setTimeout(() => {
+    state.page = 1;
+    form.elements.area_id.value = '';
+    const camSelect = form.elements.camera_id;
+    camSelect.replaceChildren(new Option('Tất cả', ''));
+    allCameras.forEach(c => camSelect.add(new Option(`${c.code} - ${c.name}`, c.id)));
+    load();
+  }, 0));
   document.getElementById('page-size').addEventListener('change', () => { state.page = 1; load(); });
   document.getElementById('page-prev').addEventListener('click', () => { if (state.page > 1) { state.page--; load(); } });
   document.getElementById('page-next').addEventListener('click', () => { if (state.page < state.pages) { state.page++; load(); } });
@@ -275,21 +313,41 @@
     });
   });
 
+  document.getElementById('reload-list-btn')?.addEventListener('click', () => {
+    const banner = document.getElementById('reload-list-banner');
+    if (banner) {
+      banner.classList.remove('flex');
+      banner.classList.add('hidden');
+    }
+    load();
+  });
+
+  let allCameras = [];
   async function fillFilters() {
-    const fill = async (name, route, label) => {
-      const result = await CIM.api(route);
-      for (const item of result.items) form.elements[name].add(new Option(label(item), item.id));
-    };
     try {
-      await Promise.all([
-        fill('area_id', 'areas', (a) => a.name),
-        fill('camera_id', 'cameras', (c) => `${c.code} - ${c.name}`),
-        fill('type_id', 'violation-types', (t) => t.name),
+      const [areasRes, camsRes, typesRes] = await Promise.all([
+        CIM.api('areas'),
+        CIM.api('cameras'),
+        CIM.api('violation-types'),
       ]);
+      for (const a of (areasRes.items || [])) form.elements.area_id.add(new Option(a.name, a.id));
+      allCameras = camsRes.items || [];
+      for (const c of allCameras) form.elements.camera_id.add(new Option(`${c.code} - ${c.name}`, c.id));
+      for (const t of (typesRes.items || [])) form.elements.type_id.add(new Option(t.name, t.id));
     } catch (error) {
       CIM.toast(`Không tải được bộ lọc: ${error.message}`, 'error');
     }
   }
+
+  form.elements.area_id?.addEventListener('change', () => {
+    const selectedAreaId = form.elements.area_id.value;
+    const camSelect = form.elements.camera_id;
+    camSelect.replaceChildren(new Option('Tất cả', ''));
+    const filtered = selectedAreaId
+      ? allCameras.filter(c => String(c.area_id) === String(selectedAreaId))
+      : allCameras;
+    filtered.forEach(c => camSelect.add(new Option(`${c.code} - ${c.name}`, c.id)));
+  });
 
   // ---------------------------------------------------------------- Real-time: SSE (Phase 2) & Polling (Phase 1)
   let eventSource = null;
@@ -334,23 +392,36 @@
         updateSSEStatus('online', 'Camera AI: Trực tuyến (SSE Live)');
       };
 
+      function onNewViolationReceived(payload) {
+        const v = payload?.data || payload;
+        if (state.page > 1 || (dialog && dialog.open)) {
+          const banner = document.getElementById('reload-list-banner');
+          if (banner) {
+            banner.classList.remove('hidden');
+            banner.classList.add('flex');
+          }
+        } else if (state.page === 1) {
+          load(true);
+        }
+      }
+
+      eventSource.addEventListener('violation', (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          onNewViolationReceived(payload);
+        } catch (e) {}
+      });
+
       eventSource.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data);
-          if (payload.event === 'new_violation' && payload.data) {
-            const v = payload.data;
-            const typeName = v.type?.name || 'Vi phạm tác phong';
-            const areaName = v.area?.name || 'Khu vực';
-            const camCode = v.camera?.code ? ` (${v.camera.code})` : '';
-            CIM.toast(`🔔 Cảnh báo AI: Phát hiện "${typeName}" tại ${areaName}${camCode}!`, 'info');
-            if (state.page === 1) {
-              load(true);
-            }
-          }
-        } catch (e) {
-          // ignore keepalive
-        }
+          onNewViolationReceived(payload);
+        } catch (e) {}
       };
+
+      window.addEventListener('cim:new-violation', (e) => {
+        onNewViolationReceived(e.detail);
+      });
 
       eventSource.onerror = () => {
         updateSSEStatus('offline', 'Camera AI: Mất kết nối (Cần bật Port 8001)');
@@ -701,91 +772,70 @@
     }
   });
 
-  // ---------------------------------------------------------------- Reset Vi Phạm Toàn Trường
-  const resetModal = document.getElementById('reset-violations-modal');
-  const resetForm = document.getElementById('reset-violations-form');
-  const resetInput = document.getElementById('reset-password-input');
-  const resetError = document.getElementById('reset-password-error');
 
-  function openResetModal() {
-    if (!resetModal) return;
-    resetModal.classList.remove('hidden');
-    resetModal.classList.add('flex');
-    if (resetInput) {
-      resetInput.value = '';
-      setTimeout(() => resetInput.focus(), 100);
-    }
-    if (resetError) resetError.classList.add('hidden');
+
+  // ---------------------------------------------------------------- Xóa toàn bộ bản ghi phát hiện (VL-19, VL-20)
+  const purgeModal = document.getElementById('purge-camera-modal');
+  const openPurgeBtn = document.getElementById('open-purge-camera-btn');
+  const closePurgeBtn = document.getElementById('close-purge-camera-btn');
+  const cancelPurgeBtn = document.getElementById('cancel-purge-camera-btn');
+  const backdropPurge = document.getElementById('purge-camera-backdrop');
+  const confirmPurgeBtn = document.getElementById('confirm-purge-camera-btn');
+
+  function openPurgeModal() {
+    if (!purgeModal) return;
+    purgeModal.classList.remove('hidden');
+    purgeModal.classList.add('flex');
   }
 
-  function closeResetModal() {
-    if (!resetModal) return;
-    resetModal.classList.remove('flex');
-    resetModal.classList.add('hidden');
-    if (resetInput) resetInput.value = '';
-    if (resetError) resetError.classList.add('hidden');
+  function closePurgeModal() {
+    if (!purgeModal) return;
+    purgeModal.classList.remove('flex');
+    purgeModal.classList.add('hidden');
   }
 
-  document.getElementById('open-reset-btn')?.addEventListener('click', openResetModal);
-  document.getElementById('close-reset-modal-btn')?.addEventListener('click', closeResetModal);
-  document.getElementById('cancel-reset-btn')?.addEventListener('click', closeResetModal);
-  document.getElementById('reset-modal-backdrop')?.addEventListener('click', closeResetModal);
+  openPurgeBtn?.addEventListener('click', openPurgeModal);
+  closePurgeBtn?.addEventListener('click', closePurgeModal);
+  cancelPurgeBtn?.addEventListener('click', closePurgeModal);
+  backdropPurge?.addEventListener('click', closePurgeModal);
 
-  document.getElementById('toggle-reset-password-btn')?.addEventListener('click', () => {
-    if (!resetInput) return;
-    const isPass = resetInput.type === 'password';
-    resetInput.type = isPass ? 'text' : 'password';
-    const icon = document.getElementById('toggle-reset-password-icon');
-    if (icon) icon.textContent = isPass ? 'visibility_off' : 'visibility';
-  });
-
-  resetForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const pass = resetInput?.value || '';
-    if (!pass) {
-      resetError.textContent = 'Vui lòng nhập mật mã xác nhận.';
-      resetError.classList.remove('hidden');
-      return;
-    }
-
-    const confirmBtn = document.getElementById('confirm-reset-btn');
-    CIM.setBusy(confirmBtn, true);
-    resetError.classList.add('hidden');
-    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
-
+  confirmPurgeBtn?.addEventListener('click', async () => {
+    CIM.setBusy(confirmPurgeBtn, true);
     try {
-      const includeCamera = document.getElementById('reset-include-camera-check')?.checked || false;
-      const resp = await fetch('api/students.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
-        credentials: 'same-origin',
-        body: JSON.stringify({ action: 'reset-violations', reset_password: pass, include_camera_records: includeCamera }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) {
-        throw new Error(data.error || 'Mật mã bảo mật không chính xác.');
-      }
-
-      if (includeCamera) {
-        const kept = data.kept_camera_records_with_evidence
-          ? ` Giữ lại ${data.kept_camera_records_with_evidence} cảnh báo còn ảnh bằng chứng (sẽ xóa được sau khi ảnh hết hạn).`
-          : '';
-        CIM.toast(`Học kỳ ${data.semester}: đã xóa ${data.deleted_student_violations} biên bản và ${data.deleted_camera_records} cảnh báo Camera AI.${kept}`, 'success');
-      } else {
-        CIM.toast(`Học kỳ ${data.semester}: đã xóa ${data.deleted_student_violations} biên bản sinh viên vi phạm (giữ nguyên nhật ký Camera AI).`, 'success');
-      }
-      closeResetModal();
+      const resp = await CIM.api('purge-camera-violations', { method: 'POST' });
+      CIM.toast(resp.message || 'Đã xóa toàn bộ bản ghi phát hiện và dọn sạch ảnh bằng chứng thành công.', 'success');
+      closePurgeModal();
       load();
+      if (typeof CIM.updateBadgeDisplay === 'function') {
+        CIM.updateBadgeDisplay(0);
+      }
     } catch (err) {
-      resetError.textContent = err.message;
-      resetError.classList.remove('hidden');
+      CIM.toast(err.message, 'error');
     } finally {
-      CIM.setBusy(confirmBtn, false);
+      CIM.setBusy(confirmPurgeBtn, false);
     }
   });
 
-  fillFilters();
-  load();
-  connectSSE();
-  startPolling();
+  async function initPage() {
+    await fillFilters();
+
+    // VL-16: Check deep-link query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialStatus = urlParams.get('status');
+    const initialId = urlParams.get('id');
+
+    if (initialStatus && form.elements.status) {
+      form.elements.status.value = initialStatus;
+    }
+
+    await load();
+    connectSSE();
+    startPolling();
+
+    if (initialId) {
+      openDetail(initialId, urlParams.get('source') || 'CAMERA');
+    }
+  }
+
+  initPage();
 })();

@@ -83,6 +83,10 @@
       confidence: 0.9 - i * 0.02,
     });
   }
+  /* Trường phẳng dùng cho danh sách thông báo ở chuông (header). */
+  for (const v of violations) {
+    Object.assign(v, { camera_name: v.camera.name, area_name: v.area.name, violation_type: v.type.name, timestamp: v.occurred_at });
+  }
 
   const allDays = Array.from({ length: 31 }, (_, i) => ({ date: `2026-10-${String(i + 1).padStart(2, '0')}`, count: [3, 5, 2, 0, 0, 6, 8, 4, 7, 3][i % 10] }));
   /* Chia tổng theo tỉ lệ cố định, phần dư cộng vào mục đầu để các biểu đồ luôn cộng đúng bằng tổng. */
@@ -118,6 +122,19 @@
   }
   const monthSummary = makeSummary(allDays);
   const weekSummary = makeSummary(allDays.slice(-7));
+  /* Học kỳ hiện tại (31/08 - 31/10): tổng khớp với thẻ "Học kỳ hiện tại" = 416. */
+  const semDays = (() => {
+    const before = [];
+    const raw = Array.from({ length: 31 }, (_, i) => [3, 5, 2, 0, 0, 6, 8, 4, 7, 3][(i + 4) % 10] + 1);
+    const need = 416 - monthSummary.total;
+    const f = need / raw.reduce((a, b) => a + b, 0);
+    const counts = raw.map((r) => Math.floor(r * f));
+    let rest = need - counts.reduce((a, b) => a + b, 0);
+    for (let i = 0; rest > 0; i = (i + 1) % counts.length, rest--) counts[i]++;
+    counts.forEach((count, i) => before.push({ date: i === 0 ? '2026-08-31' : `2026-09-${String(i).padStart(2, '0')}`, count }));
+    return before.concat(allDays);
+  })();
+  const semesterSummary = makeSummary(semDays);
 
   const accounts = [
     { id: 1, username: 'admin_ctsv', full_name: 'Quản trị hệ thống', role: 'ADMIN', active: true, locked_until: null, last_login_at: '2026-10-31 08:02:11' },
@@ -130,10 +147,11 @@
     const r = url.searchParams.get('r');
     const period = url.searchParams.get('period');
     const week = period === 'week';
-    const summary = week ? weekSummary : monthSummary;
-    const range = { label: week ? 'tuần 25/10/2026 - 31/10/2026' : 'tháng 10/2026' };
+    const sem = period === 'semester';
+    const summary = sem ? semesterSummary : week ? weekSummary : monthSummary;
+    const range = { label: sem ? 'Học kỳ 1 năm học 2026-2027 (31/08/2026 - 31/10/2026)' : week ? 'tuần 25/10/2026 - 31/10/2026' : 'tháng 10/2026' };
     switch (r) {
-      case 'dashboard': return { data: { counters: { today: allDays[30].count, week: weekSummary.total, month: monthSummary.total, semester: 416 }, current_semester: semesters[0], range, summary } };
+      case 'dashboard': return { data: { month_label: 'Tháng 10/2026', is_current_month: true, counters: { today: allDays[30].count, week: weekSummary.total, month: monthSummary.total, semester: 416 }, current_semester: semesters[0], range, summary } };
       case 'report-summary': return { data: { range, filters: [{ label: 'Khu vực', value: 'Tất cả' }, { label: 'Camera', value: 'Tất cả' }, { label: 'Loại vi phạm', value: 'Tất cả' }], summary } };
       case 'semesters': return { items: semesters };
       case 'areas': return { items: areas };
@@ -142,7 +160,10 @@
       case 'accounts': return { items: accounts };
       case 'violations': {
         const source = url.searchParams.get('source');
-        const items = source ? violations.filter((v) => v.source === source) : violations;
+        const status = url.searchParams.get('status');
+        let items = source ? violations.filter((v) => v.source === source) : violations;
+        if (status) items = items.filter((v) => v.processing.status === status);
+        if (status === 'MOI') return { items, total: 12, page: 1, pages: 2 };
         return { items, total: 416, page: 1, pages: 42 };
       }
       case 'violation': {
@@ -160,7 +181,13 @@
     const areaRows = areas.map((a) => ({ ID: a.id, TEN_KHU_VUC: a.name }));
     switch (action) {
       case 'init': return { csrf_token: 'mau', catalog: { faculties, majors, classes }, statistics: { students: 1250, faculties: 3, classes: 5 }, list };
-      case 'list': return list;
+      case 'list': {
+        const fac = url.searchParams.get('faculty');
+        if (!fac) return list;
+        const rows = students.filter((s) => s.MA_KHOA === fac);
+        return { rows, total: { CNTT: 612, QTKD: 381, NNA: 257 }[fac] || rows.length, page: 1, pages: 62, page_size: 10 };
+      }
+      case 'semesters': return { semesters: semesters.map((s, i) => ({ nam_hoc: s.academic_year, hoc_ky: s.term, ten_hk: s.name, violation_count: [416, 352, 298][i], is_current: s.is_current })) };
       case 'detail': return { student: students.find((s) => String(s.ID) === url.searchParams.get('id')) || students[0] };
       case 'violation-form-meta': return { types: typeRows, areas: areaRows };
       case 'lookup-student': return { student: { ...students[0], LOP: students[0].MA_LOP } };
@@ -186,9 +213,16 @@
   };
 
   /* Trạng thái kết nối camera trên bản tĩnh. */
+  const sources = [];
   window.EventSource = class {
-    constructor() { setTimeout(() => this.onopen?.(), 0); }
+    constructor() { this.listeners = {}; sources.push(this); setTimeout(() => this.onopen?.(), 0); }
+    addEventListener(name, fn) { (this.listeners[name] ||= []).push(fn); }
     close() {}
+  };
+  /* Phát một cảnh báo realtime mẫu (dùng khi chụp màn hình minh họa luồng cảnh báo tức thời). */
+  window.__mockEmitViolation = () => {
+    const payload = { id: 249, camera: { name: cameras[0].name }, type: { name: types[0].name } };
+    for (const s of sources) (s.listeners.violation || []).forEach((fn) => fn({ data: JSON.stringify(payload) }));
   };
 
   /* Ảnh bằng chứng trên bản tĩnh là ảnh minh họa, không có người thật. */

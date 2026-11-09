@@ -256,9 +256,11 @@
   });
   byId('catalog-form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
+    const isEdit = state.id !== null;
     const record = {};
     for (const field of definitions[entitySelect.value].fields) {
-      const control = event.currentTarget.elements.namedItem(field.name);
+      const control = form.elements.namedItem(field.name);
       record[field.name] = field.number ? Number(control.value) : control.value.trim();
       if (field.code && !/^[A-Za-z0-9_-]+$/.test(record[field.name])) {
         showStatus(`Mã ${field.label} không đúng định dạng.`, true);
@@ -277,11 +279,14 @@
         }),
       });
       state.id = null;
-      event.currentTarget.reset();
+      form.reset();
       await loadCatalogs();
-      showStatus('Đã lưu danh mục trong cơ sở dữ liệu.');
+      const msg = isEdit ? 'Đã cập nhật danh mục thành công.' : 'Đã thêm danh mục mới thành công.';
+      showStatus(msg);
+      window.CIM?.toast?.(msg);
     } catch (error) {
       showStatus(error.message, true);
+      window.CIM?.toast?.(error.message, 'error');
     }
   });
 

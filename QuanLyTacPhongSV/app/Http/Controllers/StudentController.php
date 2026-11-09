@@ -123,6 +123,34 @@ class StudentController extends Controller
                     case 'export':
                         return response()->json(['error' => 'Vui lòng xác thực mật khẩu bảo mật trước khi xuất danh sách.'], 403);
 
+                    case 'semesters':
+                        if ((string)$request->session()->get('role', '') !== 'ADMIN') {
+                            return response()->json(['error' => 'Chỉ quản trị viên mới có quyền xem thông tin học kỳ để xóa vi phạm.'], 403);
+                        }
+                        return response()->json(['semesters' => $this->studentService->getSemestersWithViolationCount()]);
+
+                    case 'semester-violations':
+                        if ((string)$request->session()->get('role', '') !== 'ADMIN') {
+                            return response()->json(['error' => 'Chỉ quản trị viên mới có quyền xem thông tin học kỳ để xóa vi phạm.'], 403);
+                        }
+                        $namHoc = $request->query('nam_hoc');
+                        $hocKy = filter_var($request->query('hoc_ky'), FILTER_VALIDATE_INT);
+                        $semesters = $this->studentService->getSemestersWithViolationCount();
+                        $matched = null;
+                        foreach ($semesters as $s) {
+                            if ($s['nam_hoc'] === $namHoc && $s['hoc_ky'] === $hocKy) {
+                                $matched = $s;
+                                break;
+                            }
+                        }
+                        if (!$matched) {
+                            return response()->json(['error' => 'Không tìm thấy học kỳ yêu cầu.'], 404);
+                        }
+                        return response()->json([
+                            'count' => $matched['violation_count'],
+                            'semester' => $matched,
+                        ]);
+
                     default:
                         return response()->json(['error' => 'Chức năng không tồn tại.'], 404);
                 }
@@ -223,7 +251,7 @@ class StudentController extends Controller
                     return response()->json(['success' => true]);
                 }
 
-                if ($action === 'reset-violations' || $action === 'reset_violations') {
+                if ($action === 'reset-violations' || $action === 'reset_violations' || $action === 'violation-delete-semester') {
                     if ((string)$request->session()->get('role', '') !== 'ADMIN') {
                         return response()->json(['error' => 'Chỉ quản trị viên mới được reset vi phạm.'], 403);
                     }
@@ -232,10 +260,14 @@ class StudentController extends Controller
                         return response()->json(['error' => 'Mật mã bảo mật không chính xác.'], 403);
                     }
                     $includeCamera = !empty($body['include_camera_records']) && filter_var($body['include_camera_records'], FILTER_VALIDATE_BOOLEAN);
-                    $res = $this->studentService->resetAllViolations($includeCamera);
+                    $namHoc = isset($body['nam_hoc']) && trim((string)$body['nam_hoc']) !== '' ? trim((string)$body['nam_hoc']) : null;
+                    $hocKy = isset($body['hoc_ky']) ? filter_var($body['hoc_ky'], FILTER_VALIDATE_INT) : null;
+                    if ($hocKy === false) $hocKy = null;
+
+                    $res = $this->studentService->resetAllViolations($includeCamera, $namHoc, $hocKy);
                     return response()->json([
                         'success' => true,
-                        'message' => "Đã reset vi phạm học kỳ {$res['semester']} về 0 thành công.",
+                        'message' => "Đã reset vi phạm {$res['semester']} về 0 thành công.",
                         'semester' => $res['semester'],
                         'deleted_student_violations' => $res['deleted_student_violations'],
                         'deleted_camera_records' => $res['deleted_camera_records'],

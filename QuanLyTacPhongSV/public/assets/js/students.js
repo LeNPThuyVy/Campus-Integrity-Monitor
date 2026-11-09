@@ -628,74 +628,158 @@
   // Refresh the "SO_VI_PHAM" column after a manual violation is added or removed.
   window.addEventListener('student-violations-changed', () => loadStudents(state.page));
 
-  // --- Xử lý Reset Toàn bộ Vi phạm Học kỳ
-  const studentResetModal = byId('student-reset-modal');
-  const studentResetInput = byId('student-reset-password');
-  const studentResetError = byId('student-reset-error');
-  const studentResetForm = byId('student-reset-form');
+  // ---------------------------------------------------------------- Xóa / Reset Vi Phạm Theo Học Kỳ (ST-16, ST-17)
+  const resetModal = byId('student-semester-reset-modal');
+  const resetForm = byId('reset-violations-form');
+  const resetInput = byId('reset-password-input');
+  const resetError = byId('reset-password-error');
+  const resetSemesterSelect = byId('reset-semester-select');
+  const resetCountText = byId('reset-semester-count-text');
+  let availableSemesters = [];
 
-  function openStudentResetModal() {
-    if (!studentResetModal) return;
-    studentResetModal.classList.remove('hidden');
-    studentResetModal.classList.add('flex');
-    if (studentResetInput) {
-      studentResetInput.value = '';
-      setTimeout(() => studentResetInput.focus(), 100);
+  function updateResetCountText() {
+    if (!resetSemesterSelect || !resetCountText) return;
+    const val = resetSemesterSelect.value;
+    if (!val) {
+      resetCountText.innerHTML = 'Vui lòng chọn học kỳ cần xóa vi phạm.';
+      return;
     }
-    if (studentResetError) studentResetError.classList.add('hidden');
+    const [y, t] = val.split('|');
+    const matched = availableSemesters.find((s) => s.nam_hoc === y && String(s.hoc_ky) === String(t));
+    if (matched) {
+      const count = Number(matched.violation_count) || 0;
+      if (count > 0) {
+        resetCountText.innerHTML = `<strong>${matched.ten_hk}</strong> hiện có <strong class="text-error">${count.toLocaleString('vi-VN')} bản ghi</strong> vi phạm sinh viên sẽ bị xóa khỏi hệ thống.`;
+      } else {
+        resetCountText.innerHTML = `<strong>${matched.ten_hk}</strong> hiện không có bản ghi vi phạm sinh viên nào.`;
+      }
+    }
   }
 
-  function closeStudentResetModal() {
-    if (!studentResetModal) return;
-    studentResetModal.classList.remove('flex');
-    studentResetModal.classList.add('hidden');
-    if (studentResetInput) studentResetInput.value = '';
-    if (studentResetError) studentResetError.classList.add('hidden');
+  async function loadResetSemesters() {
+    if (!resetSemesterSelect) return;
+    resetSemesterSelect.innerHTML = '<option value="">Đang tải danh sách học kỳ...</option>';
+    if (resetCountText) resetCountText.innerHTML = 'Đang đếm số bản ghi vi phạm...';
+    try {
+      const data = await request(`${endpoint}?action=semesters`);
+      availableSemesters = data.semesters || [];
+      resetSemesterSelect.innerHTML = '';
+      if (!availableSemesters.length) {
+        resetSemesterSelect.innerHTML = '<option value="">Chưa có học kỳ nào được khai báo</option>';
+        if (resetCountText) resetCountText.innerHTML = 'Chưa có học kỳ nào trong CSDL.';
+        return;
+      }
+      let selectedVal = '';
+      availableSemesters.forEach((s) => {
+        const opt = document.createElement('option');
+        opt.value = `${s.nam_hoc}|${s.hoc_ky}`;
+        opt.textContent = `${s.ten_hk} (${s.violation_count} vi phạm)${s.is_current ? ' [Học kỳ hiện tại]' : ''}`;
+        if (s.is_current || !selectedVal) {
+          opt.selected = true;
+          selectedVal = opt.value;
+        }
+        resetSemesterSelect.appendChild(opt);
+      });
+      updateResetCountText();
+    } catch (e) {
+      resetSemesterSelect.innerHTML = '<option value="">Lỗi tải học kỳ</option>';
+      if (resetCountText) resetCountText.innerHTML = `<span class="text-error">${e.message}</span>`;
+    }
   }
 
-  byId('open-reset-violations-btn')?.addEventListener('click', openStudentResetModal);
-  byId('close-student-reset-btn')?.addEventListener('click', closeStudentResetModal);
-  byId('cancel-student-reset-btn')?.addEventListener('click', closeStudentResetModal);
-  byId('student-reset-backdrop')?.addEventListener('click', closeStudentResetModal);
+  function openResetModal() {
+    if (!resetModal) return;
+    resetModal.classList.remove('hidden');
+    resetModal.classList.add('flex');
+    if (resetInput) {
+      resetInput.value = '';
+      setTimeout(() => resetInput.focus(), 100);
+    }
+    if (resetError) {
+      resetError.textContent = '';
+      resetError.classList.add('hidden');
+    }
+    loadResetSemesters();
+  }
 
-  byId('toggle-student-reset-pwd')?.addEventListener('click', () => {
-    if (!studentResetInput) return;
-    const isPass = studentResetInput.type === 'password';
-    studentResetInput.type = isPass ? 'text' : 'password';
-    const icon = byId('toggle-student-reset-pwd-icon');
+  function closeResetModal() {
+    if (!resetModal) return;
+    resetModal.classList.remove('flex');
+    resetModal.classList.add('hidden');
+    if (resetInput) resetInput.value = '';
+    if (resetError) {
+      resetError.textContent = '';
+      resetError.classList.add('hidden');
+    }
+  }
+
+  resetSemesterSelect?.addEventListener('change', updateResetCountText);
+  byId('open-reset-semester-btn')?.addEventListener('click', openResetModal);
+  byId('close-reset-modal-btn')?.addEventListener('click', closeResetModal);
+  byId('cancel-reset-btn')?.addEventListener('click', closeResetModal);
+  byId('reset-modal-backdrop')?.addEventListener('click', closeResetModal);
+
+  byId('toggle-reset-password-btn')?.addEventListener('click', () => {
+    if (!resetInput) return;
+    const isPass = resetInput.type === 'password';
+    resetInput.type = isPass ? 'text' : 'password';
+    const icon = byId('toggle-reset-password-icon');
     if (icon) icon.textContent = isPass ? 'visibility_off' : 'visibility';
   });
 
-  studentResetForm?.addEventListener('submit', async (e) => {
+  resetForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const password = studentResetInput?.value || '';
-    if (!password) {
-      if (studentResetError) {
-        studentResetError.textContent = 'Vui lòng nhập mật mã bảo mật.';
-        studentResetError.classList.remove('hidden');
-      }
+    const pass = resetInput?.value || '';
+    if (!pass) {
+      resetError.textContent = 'Vui lòng nhập mật mã xác nhận.';
+      resetError.classList.remove('hidden');
       return;
     }
 
-    const confirmBtn = byId('confirm-student-reset-btn');
-    if (confirmBtn) confirmBtn.disabled = true;
-    if (studentResetError) studentResetError.classList.add('hidden');
+    const semVal = resetSemesterSelect?.value || '';
+    if (!semVal) {
+      resetError.textContent = 'Vui lòng chọn học kỳ cần xóa.';
+      resetError.classList.remove('hidden');
+      return;
+    }
+
+    const [namHoc, hocKy] = semVal.split('|');
+    const confirmBtn = byId('confirm-reset-btn');
+    if (window.CIM && CIM.setBusy) CIM.setBusy(confirmBtn, true);
+    resetError.classList.add('hidden');
 
     try {
-      const resp = await request(endpoint, {
+      const includeCamera = byId('reset-include-camera-check')?.checked || false;
+      const data = await request(endpoint, {
         method: 'POST',
-        body: JSON.stringify({ action: 'reset-violations', reset_password: password }),
+        body: JSON.stringify({
+          action: 'reset-violations',
+          nam_hoc: namHoc,
+          hoc_ky: Number(hocKy),
+          reset_password: pass,
+          include_camera_records: includeCamera,
+        }),
       });
-      closeStudentResetModal();
-      showStatus(`Đã reset toàn bộ vi phạm thành công! Đã xóa ${resp.deleted_student_violations} biên bản và ${resp.deleted_camera_records} cảnh báo camera.`);
-      await loadStudents(state.page);
-    } catch (err) {
-      if (studentResetError) {
-        studentResetError.textContent = err.message || 'Mật mã bảo mật không chính xác.';
-        studentResetError.classList.remove('hidden');
+
+      if (includeCamera) {
+        const kept = data.kept_camera_records_with_evidence
+          ? ` Giữ lại ${data.kept_camera_records_with_evidence} cảnh báo còn ảnh bằng chứng.`
+          : '';
+        if (window.CIM && CIM.toast) {
+          CIM.toast(`${data.semester}: đã xóa ${data.deleted_student_violations} biên bản và ${data.deleted_camera_records} cảnh báo Camera AI.${kept}`, 'success');
+        }
+      } else {
+        if (window.CIM && CIM.toast) {
+          CIM.toast(`${data.semester}: đã xóa ${data.deleted_student_violations} biên bản sinh viên vi phạm (giữ nguyên nhật ký Camera AI).`, 'success');
+        }
       }
+      closeResetModal();
+      loadStudents(state.page);
+    } catch (err) {
+      resetError.textContent = err.message || 'Mật mã bảo mật không chính xác.';
+      resetError.classList.remove('hidden');
     } finally {
-      if (confirmBtn) confirmBtn.disabled = false;
+      if (window.CIM && CIM.setBusy) CIM.setBusy(confirmBtn, false);
     }
   });
 

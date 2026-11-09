@@ -16,6 +16,8 @@ use ZipArchive;
 
 class StudentService
 {
+    protected static ?PDO $cachedPdo = null;
+
     public const PAGE_SIZE_DEFAULT = 10;
     public const PAGE_SIZE_MAX = 100;
     public const IMPORT_MAX_BYTES = 15 * 1024 * 1024;
@@ -25,9 +27,13 @@ class StudentService
 
     public function getPdo(): PDO
     {
+        if (self::$cachedPdo !== null) {
+            return self::$cachedPdo;
+        }
+
         if (extension_loaded('pdo_sqlsrv')) {
             try {
-                return DB::connection('sqlsrv')->getPdo();
+                return self::$cachedPdo = DB::connection('sqlsrv')->getPdo();
             } catch (Throwable) {
                 // Tiếp tục thử kết nối trực tiếp
             }
@@ -45,7 +51,7 @@ class StudentService
                 try {
                     if ($trusted) {
                         $dsn = sprintf('odbc:Driver={%s};Server=%s;Database=%s;Trusted_Connection=yes;', $drv, $host, $database);
-                        return new PDO($dsn, null, null, [
+                        return self::$cachedPdo = new PDO($dsn, null, null, [
                             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                             PDO::ATTR_EMULATE_PREPARES => false,
@@ -53,7 +59,7 @@ class StudentService
                     }
 
                     $dsn = sprintf('odbc:Driver={%s};Server=%s;Database=%s;', $drv, $host, $database);
-                    return new PDO($dsn, $username, $password, [
+                    return self::$cachedPdo = new PDO($dsn, $username, $password, [
                         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                         PDO::ATTR_EMULATE_PREPARES => false,
@@ -68,7 +74,7 @@ class StudentService
             $encrypt = config('cim.db.encrypt');
             $trustCert = config('cim.db.trust_server_certificate');
             $dsn = sprintf('sqlsrv:Server=%s;Database=%s;Encrypt=%s;TrustServerCertificate=%s', $host, $database, $encrypt, $trustCert);
-            return new PDO($dsn, $trusted ? null : $username, $trusted ? null : $password, [
+            return self::$cachedPdo = new PDO($dsn, $trusted ? null : $username, $trusted ? null : $password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
@@ -326,9 +332,23 @@ class StudentService
         }
 
         if ($studentId === null || $studentId === '') {
+            $check = $pdo->prepare('SELECT ID FROM SINHVIEN WHERE MA_SV = :code');
+            $check->execute(['code' => $code]);
+            $existingId = $check->fetchColumn();
+            if ($existingId !== false) {
+                $update = $pdo->prepare(
+                    'UPDATE SINHVIEN SET HOTEN = :name, NIEN_KHOA = :year, LOP_ID = :class_id WHERE ID = :id'
+                );
+                $update->execute([
+                    'name' => $name,
+                    'year' => $year,
+                    'class_id' => (int)$classId,
+                    'id' => (int)$existingId,
+                ]);
+                return ['id' => (int)$existingId, 'ma_sv' => $code];
+            }
             $insert = $pdo->prepare(
                 'INSERT INTO SINHVIEN (MA_SV, HOTEN, NIEN_KHOA, LOP_ID)
-                 OUTPUT INSERTED.ID
                  VALUES (:code, :name, :year, :class_id)'
             );
             $insert->execute([
@@ -337,7 +357,9 @@ class StudentService
                 'year' => $year,
                 'class_id' => (int)$classId,
             ]);
-            return ['id' => (int)$insert->fetchColumn(), 'ma_sv' => $code];
+            $find = $pdo->prepare('SELECT ID FROM SINHVIEN WHERE MA_SV = :code');
+            $find->execute(['code' => $code]);
+            return ['id' => (int)$find->fetchColumn(), 'ma_sv' => $code];
         }
 
         $id = (int)$studentId;
@@ -615,7 +637,6 @@ class StudentService
 
         $insert = $pdo->prepare(
             'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, THOI_DIEM, KHU_VUC_ID, GHI_CHU, NAM_HOC, HOC_KY) 
-             OUTPUT INSERTED.ID
              VALUES (:type, :student, :day, :thoidiem, :area, :note, :nam_hoc, :hoc_ky)'
         );
         $insert->bindValue(':type', $typeId, PDO::PARAM_INT);
@@ -628,7 +649,14 @@ class StudentService
         $insert->bindValue(':hoc_ky', $hocKy, $hocKy === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
         $insert->execute();
 
-        return ['id' => (int)$insert->fetchColumn(), 'student_id' => $studentId];
+        $vId = (int)$pdo->lastInsertId();
+        if ($vId <= 0) {
+            $findV = $pdo->prepare('SELECT TOP 1 ID FROM CT_VIPHAM WHERE ID_SV = :student ORDER BY ID DESC');
+            $findV->execute(['student' => $studentId]);
+            $vId = (int)$findV->fetchColumn();
+        }
+
+        return ['id' => $vId, 'student_id' => $studentId];
     }
 
     public function deleteViolation(int $violationId, int $studentId): void
@@ -771,8 +799,8 @@ class StudentService
                 'MASV', 'MSSV', 'MASINHVIEN', 'MASOSINHVIEN', 'MASINHVIENMSSV', 'STUDENTID', 'STUDENTCODE', 'CODE', 'MA', 'MA_SV' => 'MA_SV',
                 'HOTEN', 'HOVATEN', 'TENSINHVIEN', 'TENSV', 'HOVATENSINHVIEN', 'FULLNAME', 'NAME', 'HOTEN' => 'HOTEN',
                 'VITRI', 'VITRIBIGHINHAN', 'PHONG', 'PHONGHOC', 'DIADIEM', 'KHUVUC', 'LOCATION', 'ROOM', 'PLACE', 'VI_TRI' => 'VI_TRI',
-                'THOIDIEM', 'THOIGIAN', 'THOIGIANBIGHINHAN', 'THOIDIEMBIGHINHAN', 'NGAYGIO', 'NGAYTHANG', 'TIME', 'DATETIME', 'DATE', 'THOI_DIEM' => 'THOI_DIEM',
-                'TENLOI', 'LOI', 'LOIVIPHAM', 'LOIBIGHINHAN', 'HINHTHUCVIPHAM', 'VIOLATION', 'VIOLATIONTYPE', 'TYPE', 'TEN_LOI' => 'TEN_LOI',
+                'THOIDIEM', 'THOIGIAN', 'THOIGIANBIGHINHAN', 'THOIDIEMBIGHINHAN', 'THOIDIEMVIPHAM', 'NGAYGIO', 'NGAYTHANG', 'TIME', 'DATETIME', 'DATE', 'THOI_DIEM' => 'THOI_DIEM',
+                'TENLOI', 'LOI', 'LOIVIPHAM', 'LOAIVIPHAM', 'LOIBIGHINHAN', 'HINHTHUCVIPHAM', 'VIOLATION', 'VIOLATIONTYPE', 'TYPE', 'TEN_LOI' => 'TEN_LOI',
                 default => $rawHeader,
             };
         }
@@ -1092,6 +1120,18 @@ class StudentService
                     $areaLookup[$aCode] = (int)$a['ID'];
                 }
             }
+
+            // Tải danh sách vi phạm đã có trong CSDL để phát hiện trùng lặp
+            $existingViolations = $pdo->query(
+                'SELECT UPPER(LTRIM(RTRIM(s.MA_SV))) AS MA_SV, v.ID_LOI, CONVERT(VARCHAR(10), v.NGAY_VIPHAM, 23) AS NGAY_VIPHAM
+                 FROM CT_VIPHAM v
+                 JOIN SINHVIEN s ON v.ID_SV = s.ID'
+            )->fetchAll(PDO::FETCH_ASSOC);
+            $existingViolationsMap = [];
+            foreach ($existingViolations as $ev) {
+                $k = $ev['MA_SV'] . '|' . $ev['ID_LOI'] . '|' . $ev['NGAY_VIPHAM'];
+                $existingViolationsMap[$k] = true;
+            }
         }
 
         $existingCodesMap = array_fill_keys(array_map('strtoupper', $existingCodes), true);
@@ -1246,10 +1286,16 @@ class StudentService
             // Kiểm tra trùng lặp (Duplicate)
             if ($rowStatus !== 'error') {
                 if ($dataset === 'VIPHAM') {
-                    $dupKey = $primaryCode . '|' . ($cleanValues['TEN_LOI'] ?? '') . '|' . ($cleanValues['THOI_DIEM'] ?? '');
+                    $typeId = $cleanValues['_type_id'] ?? 0;
+                    $violationDate = $cleanValues['_ngay'] ?? '';
+                    $dupKey = $primaryCode . '|' . $typeId . '|' . $violationDate;
+
                     if (isset($seenInFile[$dupKey])) {
                         $rowStatus = 'duplicate';
-                        $errors[] = "Bản ghi vi phạm trùng lặp với dòng " . $seenInFile[$dupKey] . " trong file";
+                        $errors[] = "Bản ghi vi phạm trùng lặp với dòng " . $seenInFile[$dupKey] . " trong file (cùng sinh viên, cùng lỗi, cùng ngày)";
+                    } elseif (isset($existingViolationsMap[$dupKey])) {
+                        $rowStatus = 'duplicate';
+                        $errors[] = "Bản ghi vi phạm đã tồn tại trong CSDL (sinh viên đã có lỗi này vào ngày {$violationDate})";
                     } else {
                         $seenInFile[$dupKey] = $rowNumber;
                     }
@@ -1456,6 +1502,12 @@ class StudentService
                 }
                 $semesters = $pdo->query('SELECT NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY ORDER BY NGAY_BAT_DAU DESC')->fetchAll(PDO::FETCH_ASSOC);
 
+                $checkDup = $pdo->prepare(
+                    'SELECT COUNT(*) FROM CT_VIPHAM WITH (UPDLOCK, HOLDLOCK)
+                     WHERE ID_SV = :student AND ID_LOI = :type AND NGAY_VIPHAM = :day'
+                );
+                $seenInCommit = [];
+
                 $insert = $pdo->prepare(
                     'INSERT INTO CT_VIPHAM (ID_LOI, ID_SV, NGAY_VIPHAM, THOI_DIEM, KHU_VUC_ID, GHI_CHU, NAM_HOC, HOC_KY)
                      VALUES (:type, :student, :day, :thoidiem, :area, :note, :nam_hoc, :hoc_ky)'
@@ -1477,6 +1529,19 @@ class StudentService
                     $typeId = $val['_type_id'] ?? ($typeMap[mb_strtolower((string)($val['TEN_LOI'] ?? ''), 'UTF-8')] ?? 1);
                     $thoiDiem = $val['THOI_DIEM'] ?? date('Y-m-d H:i:s');
                     $ngay = $val['_ngay'] ?? substr($thoiDiem, 0, 10);
+
+                    // Chốt chặn kiểm tra trùng lặp
+                    $commitDupKey = $studentId . '|' . $typeId . '|' . $ngay;
+                    if (isset($seenInCommit[$commitDupKey])) {
+                        $skipped++;
+                        continue;
+                    }
+                    $checkDup->execute(['student' => $studentId, 'type' => $typeId, 'day' => $ngay]);
+                    if ((int)$checkDup->fetchColumn() > 0) {
+                        $skipped++;
+                        continue;
+                    }
+                    $seenInCommit[$commitDupKey] = true;
                     $areaId = $val['_area_id'] ?? null;
                     $room = !empty($val['VI_TRI']) ? (string)$val['VI_TRI'] : null;
                     if ($areaId === null && $room !== null && $room !== '') {
@@ -1690,20 +1755,59 @@ class StudentService
         return hash_equals($expected, $password);
     }
 
+    public function getSemestersWithViolationCount(): array
+    {
+        $pdo = $this->getPdo();
+        $sql = "SELECT h.NAM_HOC, h.HOC_KY, h.NGAY_BAT_DAU, h.NGAY_KET_THUC,
+                       (SELECT COUNT(*) FROM CT_VIPHAM v WHERE v.NAM_HOC = h.NAM_HOC AND v.HOC_KY = h.HOC_KY) AS SO_VI_PHAM
+                FROM HOCKY h
+                ORDER BY h.NGAY_BAT_DAU DESC, h.HOC_KY DESC";
+        $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        $today = date('Y-m-d');
+        $items = [];
+        foreach ($rows as $r) {
+            $namHoc = trim((string)$r['NAM_HOC']);
+            $hocKy = (int)$r['HOC_KY'];
+            $start = substr((string)$r['NGAY_BAT_DAU'], 0, 10);
+            $end = substr((string)$r['NGAY_KET_THUC'], 0, 10);
+            $items[] = [
+                'nam_hoc' => $namHoc,
+                'hoc_ky' => $hocKy,
+                'ten_hk' => "Học kỳ {$hocKy} ({$namHoc})",
+                'code' => "HK{$hocKy}-{$namHoc}",
+                'ngay_bat_dau' => $start,
+                'ngay_ket_thuc' => $end,
+                'violation_count' => (int)$r['SO_VI_PHAM'],
+                'is_current' => ($today >= $start && $today <= $end),
+            ];
+        }
+        return $items;
+    }
+
     /**
-     * Reset vi phạm của HỌC KỲ HIỆN TẠI (không đụng tới lịch sử các học kỳ trước).
+     * Reset vi phạm theo HỌC KỲ (mặc định là học kỳ hiện tại nếu không truyền nam_hoc và hoc_ky).
      * Bản ghi Camera AI chỉ bị xóa khi ảnh bằng chứng đã được job retention dọn (ANH_KHOA NULL)
      * để không bỏ sót object trên Cloudflare R2.
      */
-    public function resetAllViolations(bool $includeCameraRecords = false): array
+    public function resetAllViolations(bool $includeCameraRecords = false, ?string $namHoc = null, ?int $hocKy = null): array
     {
         $pdo = $this->getPdo();
-        $semester = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY
-                                   WHERE :d BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
-        $semester->execute(['d' => date('Y-m-d')]);
-        $current = $semester->fetch(PDO::FETCH_ASSOC);
-        if (!$current) {
-            throw new InvalidArgumentException('Chưa khai báo học kỳ hiện tại nên không thể reset. Vui lòng thêm học kỳ trong mục Camera & Khu vực.');
+        if (!empty($namHoc) && $hocKy !== null && $hocKy > 0) {
+            $semester = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY
+                                       WHERE NAM_HOC = :y AND HOC_KY = :t');
+            $semester->execute(['y' => trim($namHoc), 't' => $hocKy]);
+            $current = $semester->fetch(PDO::FETCH_ASSOC);
+            if (!$current) {
+                throw new InvalidArgumentException("Không tìm thấy học kỳ {$hocKy} ({$namHoc}) trong hệ thống.");
+            }
+        } else {
+            $semester = $pdo->prepare('SELECT TOP 1 NAM_HOC, HOC_KY, NGAY_BAT_DAU, NGAY_KET_THUC FROM HOCKY
+                                       WHERE :d BETWEEN NGAY_BAT_DAU AND NGAY_KET_THUC ORDER BY NGAY_BAT_DAU DESC');
+            $semester->execute(['d' => date('Y-m-d')]);
+            $current = $semester->fetch(PDO::FETCH_ASSOC);
+            if (!$current) {
+                throw new InvalidArgumentException('Chưa khai báo học kỳ hiện tại nên không thể reset. Vui lòng thêm học kỳ trong mục Camera & Khu vực.');
+            }
         }
 
         $pdo->beginTransaction();
