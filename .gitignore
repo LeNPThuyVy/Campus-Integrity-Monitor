@@ -242,3 +242,8 @@ Final_System/evaluation/outputs/*
 # Local tools installed by scripts/setup-php-windows.ps1
 /tools/
 Final_System/docs/*
+
+# Secrets: env variants and backups (keep examples)
+.env.*
+!.env.example
+*.env.bak

@@ -390,8 +390,6 @@
 <span class="font-body-sm text-[11px] text-on-surface-variant">Bước thiết lập 04</span>
 </div>
 </label>
-</div>
-</div>
 <label class="p-space-md rounded-xl bg-surface-container-low cursor-pointer flex items-start gap-space-sm transition-all">
 <input class="mt-0.5 text-primary focus:ring-0" name="import-type" type="radio" value="VIPHAM">
 <div class="flex flex-col">
@@ -399,6 +397,8 @@
 <span class="font-body-sm text-[11px] text-on-surface-variant">Bước thiết lập 05</span>
 </div>
 </label>
+</div>
+</div>
 <!-- STEP 2: Drag & Drop Zone + Download Sample -->
 <div class="flex flex-col gap-space-xs">
 <div class="flex items-center justify-between">

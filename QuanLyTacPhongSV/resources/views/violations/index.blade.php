@@ -2,8 +2,8 @@
 
 @section('content')
 <div class="flex flex-col gap-space-md py-space-md pb-space-xl">
-  <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-space-md">
-    <div class="max-w-2xl">
+  <div class="flex flex-col 2xl:flex-row 2xl:items-end justify-between gap-space-md">
+    <div class="max-w-2xl min-w-0">
       <div class="flex items-center gap-space-xs text-primary font-label-sm text-label-sm uppercase tracking-wider mb-1">
         <span class="material-symbols-outlined text-[16px]">security</span>
         <span>Hệ thống giám sát tác phong học đường</span>
@@ -13,7 +13,7 @@
         Nhật ký cảnh báo tự động từ Camera AI và biên bản kiểm tra thực tế của Đội Cờ Đỏ tại các giảng đường, phòng học và khu vực.
       </p>
     </div>
-    <div class="flex flex-wrap items-center gap-space-sm">
+    <div class="flex flex-wrap 2xl:flex-nowrap 2xl:justify-end shrink-0 items-center gap-space-sm">
       <button class="flex items-center gap-space-xs px-3.5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md transition-all shadow-sm" id="open-excel-btn" type="button">
         <span class="material-symbols-outlined text-[18px]">upload_file</span>
         <span>Nhập từ Excel</span>

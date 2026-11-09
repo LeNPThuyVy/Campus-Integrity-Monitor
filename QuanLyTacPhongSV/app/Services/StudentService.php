@@ -723,7 +723,7 @@ class StudentService
                 ['14DHTH02', 'Hệ thống thông tin'],
             ],
             'VIPHAM' => [
-                ['21110823', 'Nguyễn Văn An', 'Phòng A201', '2026-10-21 07:30', 'Vi phạm sai đồng phục'],
+                ['21110823', 'Nguyễn Văn An', 'Giảng đường A', '2026-10-21 07:30', 'Vi phạm sai đồng phục'],
                 ['21110824', 'Trần Thị Bình', 'Cổng chính', '2026-10-21 07:45', 'Thiếu thẻ sinh viên'],
             ],
             default => [
@@ -813,6 +813,12 @@ class StudentService
             'MALOP', 'LOP', 'LOPHOC', 'LOPSINHHOAT', 'CLASS', 'CLASSCODE', 'MA_LOP' => 'MA_LOP',
             default => $rawHeader,
         };
+    }
+
+    /** Chuẩn hóa chuỗi để so khớp khu vực: viết thường, gộp khoảng trắng, bỏ khoảng trắng hai đầu. */
+    protected function areaMatchKey(string $value): string
+    {
+        return mb_strtolower(trim((string)preg_replace('/\s+/u', ' ', $value)), 'UTF-8');
     }
 
     public function parseXlsxRows(string $filePath): array
@@ -1049,10 +1055,27 @@ class StudentService
         $majorLookup = [];
         $classLookup = [];
 
+        // Tên đã có trong CSDL (TEN_KHOA / TEN_NGANH có ràng buộc UNIQUE) => [tên viết thường => mã]
+        $existingNames = [];
+
         if ($dataset === 'KHOA') {
             $existingCodes = $pdo->query('SELECT MA_KHOA FROM KHOA')->fetchAll(PDO::FETCH_COLUMN);
+            $faculties = $pdo->query('SELECT MA_KHOA, TEN_KHOA, CONVERT(VARCHAR(MAX), CAST(TEN_KHOA AS VARBINARY(MAX)), 2) AS TEN_KHOA_HEX FROM KHOA')->fetchAll();
+            foreach ($faculties as $f) {
+                $normName = mb_strtolower(trim($this->decodeHexUnicode($f['TEN_KHOA_HEX'] ?? null, $f['TEN_KHOA'])), 'UTF-8');
+                if ($normName !== '') {
+                    $existingNames[$normName] = strtoupper(trim((string)$f['MA_KHOA']));
+                }
+            }
         } elseif ($dataset === 'NGANH') {
             $existingCodes = $pdo->query('SELECT MA_NGANH FROM NGANH')->fetchAll(PDO::FETCH_COLUMN);
+            $majorsByName = $pdo->query('SELECT MA_NGANH, TEN_NGANH, CONVERT(VARCHAR(MAX), CAST(TEN_NGANH AS VARBINARY(MAX)), 2) AS TEN_NGANH_HEX FROM NGANH')->fetchAll();
+            foreach ($majorsByName as $m) {
+                $normName = mb_strtolower(trim($this->decodeHexUnicode($m['TEN_NGANH_HEX'] ?? null, $m['TEN_NGANH'])), 'UTF-8');
+                if ($normName !== '') {
+                    $existingNames[$normName] = strtoupper(trim((string)$m['MA_NGANH']));
+                }
+            }
             $faculties = $pdo->query('SELECT ID, MA_KHOA, TEN_KHOA, CONVERT(VARCHAR(MAX), CAST(TEN_KHOA AS VARBINARY(MAX)), 2) AS TEN_KHOA_HEX FROM KHOA')->fetchAll();
             foreach ($faculties as $f) {
                 $name = $this->decodeHexUnicode($f['TEN_KHOA_HEX'] ?? null, $f['TEN_KHOA']);
@@ -1111,13 +1134,20 @@ class StudentService
             }
 
             $areas = $pdo->query('SELECT ID, MA_KHU_VUC, TEN_KHU_VUC, CONVERT(VARCHAR(MAX), CAST(TEN_KHU_VUC AS VARBINARY(MAX)), 2) AS TEN_KHU_VUC_HEX FROM KHU_VUC WHERE DANG_SU_DUNG = 1')->fetchAll();
+            // Khóa so khớp chính xác: tên (có dấu / không dấu, không phân biệt hoa thường) hoặc mã khu vực
             $areaLookup = [];
+            $areaNames = [];
             foreach ($areas as $a) {
-                $aName = $this->decodeHexUnicode($a['TEN_KHU_VUC_HEX'] ?? null, $a['TEN_KHU_VUC']);
+                $aName = trim($this->decodeHexUnicode($a['TEN_KHU_VUC_HEX'] ?? null, $a['TEN_KHU_VUC']));
                 $aCode = strtoupper(trim((string)$a['MA_KHU_VUC']));
-                $areaLookup[mb_strtolower($aName, 'UTF-8')] = (int)$a['ID'];
+                $aItem = ['id' => (int)$a['ID'], 'name' => $aName];
+                if ($aName !== '') {
+                    $areaNames[] = $aName;
+                    $areaLookup[$this->areaMatchKey($aName)] = $aItem;
+                    $areaLookup[$this->areaMatchKey($this->stripAccents($aName))] = $aItem;
+                }
                 if ($aCode !== '') {
-                    $areaLookup[$aCode] = (int)$a['ID'];
+                    $areaLookup[$this->areaMatchKey($aCode)] = $aItem;
                 }
             }
 
@@ -1222,7 +1252,11 @@ class StudentService
                     $rowStatus = 'error';
                     $errors[] = "Mã lớp '{$parent}' chưa tồn tại trong CSDL";
                 }
-                if (!empty($cleanValues['NIEN_KHOA']) && !ctype_digit((string)$cleanValues['NIEN_KHOA'])) {
+                if (trim((string)($cleanValues['NIEN_KHOA'] ?? '')) === '') {
+                    // SINHVIEN.NIEN_KHOA là NOT NULL trong CSDL
+                    $rowStatus = 'error';
+                    $errors[] = 'Niên khóa không được để trống';
+                } elseif (!ctype_digit((string)$cleanValues['NIEN_KHOA'])) {
                     $rowStatus = 'error';
                     $errors[] = 'Niên khóa phải là chữ số';
                 }
@@ -1268,19 +1302,24 @@ class StudentService
                     $errors[] = "Thời gian '{$rawTime}' không đúng định dạng (VD: 2026-10-21 07:30 hoặc 21/10/2026 07:30)";
                 }
 
+                // Vị trí phải trùng chính xác một khu vực đang sử dụng trong danh sách khu vực
                 $rawPlace = trim((string)($cleanValues['VI_TRI'] ?? ''));
+                $matchedArea = null;
                 if ($rawPlace === '') {
-                    $cleanValues['VI_TRI'] = 'Khu vực chung';
-                }
-                $matchedAreaId = null;
-                $cleanPlaceLower = mb_strtolower($cleanValues['VI_TRI'], 'UTF-8');
-                foreach ($areaLookup as $areaNameLower => $aId) {
-                    if (str_contains($cleanPlaceLower, $areaNameLower) || str_contains($areaNameLower, $cleanPlaceLower)) {
-                        $matchedAreaId = $aId;
-                        break;
+                    $rowStatus = 'error';
+                    $errors[] = 'Vị trí bị ghi nhận không được để trống';
+                } else {
+                    $matchedArea = $areaLookup[$this->areaMatchKey($rawPlace)]
+                        ?? ($areaLookup[$this->areaMatchKey($this->stripAccents($rawPlace))] ?? null);
+                    if ($matchedArea) {
+                        $cleanValues['VI_TRI'] = $matchedArea['name'];
+                    } else {
+                        $rowStatus = 'error';
+                        $errors[] = "Khu vực '{$rawPlace}' không có trong danh sách khu vực"
+                            . (empty($areaNames) ? '' : ' (' . implode(', ', $areaNames) . ')');
                     }
                 }
-                $cleanValues['_area_id'] = $matchedAreaId;
+                $cleanValues['_area_id'] = $matchedArea['id'] ?? null;
             }
 
             // Kiểm tra trùng lặp (Duplicate)
@@ -1308,6 +1347,23 @@ class StudentService
                         $errors[] = "Mã '{$primaryCode}' đã tồn tại trong CSDL";
                     } else {
                         $seenInFile[$primaryCode] = $rowNumber;
+                    }
+
+                    // TEN_KHOA / TEN_NGANH là UNIQUE: chặn trùng tên dù khác mã
+                    if ($rowStatus !== 'duplicate' && ($dataset === 'KHOA' || $dataset === 'NGANH')) {
+                        $nameCol = $dataset === 'KHOA' ? 'TEN_KHOA' : 'TEN_NGANH';
+                        $nameLabel = $dataset === 'KHOA' ? 'Tên khoa' : 'Tên ngành';
+                        $normName = mb_strtolower(trim((string)($cleanValues[$nameCol] ?? '')), 'UTF-8');
+                        $nameKey = '#name|' . $normName;
+                        if (isset($existingNames[$normName])) {
+                            $rowStatus = 'duplicate';
+                            $errors[] = "{$nameLabel} '{$cleanValues[$nameCol]}' đã tồn tại trong CSDL (mã {$existingNames[$normName]})";
+                        } elseif (isset($seenInFile[$nameKey])) {
+                            $rowStatus = 'duplicate';
+                            $errors[] = "{$nameLabel} '{$cleanValues[$nameCol]}' bị trùng với dòng " . $seenInFile[$nameKey] . ' trong file';
+                        } else {
+                            $seenInFile[$nameKey] = $rowNumber;
+                        }
                     }
                 }
             }

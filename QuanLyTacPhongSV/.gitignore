@@ -27,3 +27,8 @@ Homestead.yaml
 Thumbs.db
 Architecture_system.md
 /task
+
+# Secrets: never commit env variants or backups
+.env.*
+!.env.example
+*.bak
